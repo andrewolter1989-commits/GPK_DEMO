@@ -1,0 +1,197 @@
+{
+  "Berghegger": {
+    "availability": "Auftrag-du@maintrans-spedition.de",
+    "booking": "Auftrag-du@maintrans-spedition.de"
+  },
+  "bowker": {
+    "availability": "",
+    "booking": ""
+  },
+  "btk": {
+    "availability": "",
+    "booking": ""
+  },
+  "BTK": {
+    "availability": "",
+    "booking": ""
+  },
+  "Ceha": {
+    "availability": "",
+    "booking": ""
+  },
+  "CEHA": {
+    "availability": "",
+    "booking": ""
+  },
+  "Convent": {
+    "availability": "",
+    "booking": ""
+  },
+  "CTK": {
+    "availability": "customerservice@ctk-logistics.pl",
+    "booking": "customerservice@ctk-logistics.pl"
+  },
+  "doepke": {
+    "availability": "",
+    "booking": ""
+  },
+  "DSV": {
+    "availability": "",
+    "booking": ""
+  },
+  "Duvenbeck": {
+    "availability": "",
+    "booking": ""
+  },
+ "Emons": {
+  "national": {
+    "availability": "direct.koeln@emons.de",
+    "booking": "direct.koeln@emons.de"
+  },
+  "international": {
+    "availability": "International.koeln@emons.de",
+    "booking": "International.koeln@emons.de"
+  }
+  },
+  "epotrans": {
+    "availability": "",
+    "booking": ""
+  },
+  "fairscargo": {
+    "availability": "",
+    "booking": ""
+  },
+  "Fairscargo": {
+    "availability": "",
+    "booking": ""
+  },
+  "Hegelmann": {
+    "availability": "",
+    "booking": ""
+  },
+  "Heinloth": {
+    "availability": "sales@heinloth.com",
+    "booking": "sales@heinloth.com"
+  },
+  "Heuma": {
+    "availability": "hucht@heuma-international.com;longo@heuma-international.com",
+    "booking": "hucht@heuma-international.com;longo@heuma-international.com"
+  },
+  "husch": {
+    "availability": "",
+    "booking": ""
+  },
+  "Jan": {
+    "availability": "",
+    "booking": ""
+  },
+  "JMIT": {
+    "availability": "smekal@jmit.cz",
+    "booking": "smekal@jmit.cz"
+  },
+  "Kubisch": {
+    "availability": "",
+    "booking": ""
+  },
+  "LIT": {
+    "availability": "EwaMaria.Amendt@lit.de",
+    "booking": "EwaMaria.Amendt@lit.de"
+  },
+  "LKW-Walter": {
+    "availability": "",
+    "booking": ""
+  },
+  "lkwwalter": {
+    "availability": "",
+    "booking": ""
+  },
+  "Ludwig": {
+    "availability": "",
+    "booking": ""
+  },
+  "Marathon": {
+    "availability": "customerservice@emarathon.eu",
+    "booking": "customerservice@emarathon.eu"
+  },
+  "Maszonski": {
+    "availability": "natalia.wilczynska@mcg-logistics.com",
+    "booking": "natalia.wilczynska@mcg-logistics.com"
+  },
+  "MBS": {
+    "availability": "norbert.theobald@mbslogistics.com",
+    "booking": "norbert.theobald@mbslogistics.com"
+  },
+  "McCann": {
+    "availability": "",
+    "booking": ""
+  },
+  "Moeller": {
+    "availability": "dispo.koeln@moeller-transporte.de",
+    "booking": "dispo.koeln@moeller-transporte.de"
+  },
+  "Morrisson": {
+    "availability": "",
+    "booking": ""
+  },
+  "munsberg": {
+    "availability": "",
+    "booking": ""
+  },
+  "Neu": {
+    "availability": "",
+    "booking": ""
+  },
+  "Noerpel": {
+    "availability": "",
+    "booking": ""
+  },
+  "Nosta": {
+    "availability": "",
+    "booking": ""
+  },
+  "Nostsa": {
+    "availability": "",
+    "booking": ""
+  },
+  "Rieck": {
+    "availability": "",
+    "booking": ""
+  },
+  "Semmer": {
+    "availability": "p.kreutner@semmer.info",
+    "booking": "p.kreutner@semmer.info"
+  },
+  "Sievert": {
+    "availability": "",
+    "booking": ""
+  },
+  "Sostmeier": {
+    "availability": "",
+    "booking": ""
+  },
+  "Strohbecke": {
+    "availability": "Urte.land@strohbecke.com;Thorben.podewils@strohbecke.com",
+    "booking": "Urte.land@strohbecke.com;Thorben.podewils@strohbecke.com"
+  },
+  "Stromps": {
+    "availability": "",
+    "booking": ""
+  },
+  "Timotrans": {
+    "availability": "cmueller@timotrans.de",
+    "booking": "cmueller@timotrans.de"
+  },
+  "Tombers": {
+    "availability": "v.lukas@tombers.de",
+    "booking": "v.lukas@tombers.de"
+  },
+  "Toplogistik": {
+    "availability": "maria.haas@toplogistik.com",
+    "booking": "maria.haas@toplogistik.com"
+  },
+  "Transcargo": {
+    "availability": "a.rumin@transcargo.com.pl;p.rzemyk@transcargo.com.pl",
+    "booking": "a.rumin@transcargo.com.pl;p.rzemyk@transcargo.com.pl"
+  }
+
+}
