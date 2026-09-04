@@ -618,7 +618,7 @@ function buildCalculationForForwarder(forwarder, destCountry, postalCode, loadMe
 function renderEmptyRow(text = "Noch keine Berechnung.") {
   const tbody = document.getElementById("resultsBody");
   if (!tbody) return;
-  tbody.innerHTML = `<tr id="noResults"><td colspan="7" class="muted">${text}</td></tr>`;
+  tbody.innerHTML = `<tr id="noResults"><td colspan="8" class="muted">${text}</td></tr>`;
 }
 
 function getEmailConfig(forwarder, destCountry) {
@@ -664,11 +664,58 @@ function createEmailButton(kind, forwarder) {
   return `<button type="button" class="email-btn" onclick="createEmailRequest('${escapeJs(forwarder)}','${kind}')">${label}</button>`;
 }
 
+function createOfferAction(kind, forwarder, primary = false) {
+  const destCountry = document.getElementById("destCountry")?.value || "";
+  const cfg = getEmailConfig(forwarder, destCountry);
+  const address = kind === "booking" ? cfg.booking : cfg.availability;
+  const label = kind === "booking" ? "Sendung buchen" : "Verfügbarkeit anfragen";
+  if (!address) return `<span class="offer-action unavailable">${label} · nicht hinterlegt</span>`;
+  return `<button type="button" class="offer-action ${primary ? "primary-offer-action" : ""}" onclick="createEmailRequest('${escapeJs(forwarder)}','${kind}')">${label}</button>`;
+}
+
+function renderOfferCards(results) {
+  const host = document.getElementById("offerCards");
+  if (!host) return;
+  host.innerHTML = "";
+  const visible = results.slice(0, Math.min(3, results.length));
+
+  visible.forEach((result, index) => {
+    const card = document.createElement("article");
+    card.className = `offer-card ${index === 0 ? "recommended" : ""}`;
+    const saving = index > 0 ? round2(result.total - results[0].total) : 0;
+    card.innerHTML = `
+      <div class="offer-card-top">
+        <div>
+          ${index === 0 ? '<span class="recommendation-badge">Empfohlen · Bestpreis</span>' : `<span class="alternative-badge">Alternative ${index + 1}</span>`}
+          <h3>${escapeHtml(result.forwarder)}</h3>
+          <p>Zone ${escapeHtml(result.zone)} · ${escapeHtml(result.priceSource || "Tarif")}</p>
+        </div>
+        <div class="offer-price-wrap">
+          <span class="offer-price-label">Gesamtpreis</span>
+          <strong class="offer-price">${money(result.total)}</strong>
+          ${index > 0 ? `<span class="offer-difference">+ ${money(saving)} zum Bestpreis</span>` : '<span class="offer-difference best">Niedrigster berechneter Preis</span>'}
+        </div>
+      </div>
+      <div class="offer-breakdown">
+        <div><span>Basisfracht</span><strong>${money(result.basePrice)}</strong></div>
+        <div><span>Floater</span><strong>${percent(result.floaterPercent)}</strong></div>
+        <div><span>Floater €</span><strong>${money(result.floaterAmount)}</strong></div>
+      </div>
+      <div class="offer-actions">
+        ${createOfferAction("availability", result.forwarder, false)}
+        ${createOfferAction("booking", result.forwarder, index === 0)}
+      </div>
+    `;
+    host.appendChild(card);
+  });
+}
+
 function renderResults(results) {
   const tbody = document.getElementById("resultsBody");
   if (!tbody) return;
 
   tbody.innerHTML = "";
+  renderOfferCards(results);
 
   if (!results.length) {
     renderEmptyRow("Keine berechenbaren Ergebnisse gefunden.");
@@ -680,9 +727,10 @@ function renderResults(results) {
     if (index === 0) tr.className = "best-row";
     tr.innerHTML = `
       <td>
-        ${index === 0 ? '<span class="rank-badge">Günstigster</span>' : ''}
+        ${index === 0 ? '<span class="rank-badge">Bestpreis</span>' : ''}
         <span class="provider-name">${escapeHtml(result.forwarder)}</span>
       </td>
+      <td class="right">${escapeHtml(result.zone)}</td>
       <td class="right">${money(result.basePrice)}</td>
       <td class="right">${percent(result.floaterPercent)}</td>
       <td class="right">${money(result.floaterAmount)}</td>
@@ -792,6 +840,15 @@ const freeTextInput = document.getElementById("freeText");
   const summaryBox = document.getElementById("summaryBox");
   const resultsSection = document.getElementById("resultsSection");
   const transportSwitch = document.getElementById("transportSwitch");
+  const toggleComparison = document.getElementById("toggleComparison");
+  const comparisonTable = document.getElementById("comparisonTable");
+  toggleComparison?.addEventListener("click", () => {
+    const opening = comparisonTable?.style.display === "none";
+    if (comparisonTable) comparisonTable.style.display = opening ? "block" : "none";
+    if (toggleComparison) toggleComparison.innerHTML = opening
+      ? 'Detailvergleich ausblenden <span aria-hidden="true">↑</span>'
+      : 'Alle Angebote im Detail vergleichen <span aria-hidden="true">↓</span>';
+  });
 
   const countries = Array.from(new Set(
     STATE.rates
@@ -861,6 +918,8 @@ const freeTextInput = document.getElementById("freeText");
     }
 
     renderResults(successfulResults);
+    if (comparisonTable) comparisonTable.style.display = "none";
+    if (toggleComparison) toggleComparison.innerHTML = 'Alle Angebote im Detail vergleichen <span aria-hidden="true">↓</span>';
 
     const cheapest = successfulResults[0];
     const shipmentLabel = SHIPMENT_TYPES[shipmentType]?.label || "—";
@@ -901,6 +960,7 @@ if (freeTextInput) freeTextInput.value = "";
       showMessage("", "warn");
       summaryBox.style.display = "none";
       resultsSection.style.display = "none";
+      if (comparisonTable) comparisonTable.style.display = "none";
       renderEmptyRow();
     }, 0);
   });
