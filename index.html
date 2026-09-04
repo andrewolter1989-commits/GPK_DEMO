@@ -18,26 +18,18 @@
         <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
         <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v3.1</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v3.2</div>
     </aside>
 
     <main class="workspace">
-      <header class="topbar">
-        <div>
-          <h1>Freight Rate Calculator</h1>
-        </div>
-        
-      </header>
-
-      <div class="workspace-grid">
+<div class="workspace-grid">
         <div class="main-column">
           <div id="fatalError" class="notice danger"></div>
 
           <section class="calculator-shell card">
         <form id="calculatorForm" class="calculator-form" novalidate>
           <section class="workflow-section destination-section">
-            <div class="section-head section-head-main">
-              <div class="section-title"><p class="section-lead">Land, PLZ und optional die Entladestelle für die operative Planung erfassen.</p></div>
+            <div class="section-head section-head-main mode-row">
               <div class="calculation-mode inline-mode-switch" role="group" aria-label="Kalkulationsmodus">
                 <button type="button" class="mode-option" data-mode="price">
                   <span class="mode-title">Preisauskunft</span>
@@ -76,9 +68,6 @@
 
           <section class="workflow-section split-section">
             <div class="transport-panel">
-              <div class="section-head compact">
-                <div class="section-title"><h2>Transportart &amp; Sendungsgröße</h2></div>
-              </div>
               <fieldset class="field transport-field">
                 <legend>Transportart</legend>
                 <div class="transport-switch" id="transportSwitch">
@@ -95,9 +84,6 @@
             </div>
 
             <div class="details-panel planning-only">
-              <div class="section-head compact">
-                <div class="section-title"><h2>Termin &amp; Details</h2></div>
-              </div>
               <div class="date-grid">
                 <div class="field"><label for="pickupDate">Abholdatum</label><input id="pickupDate" type="date" /></div>
                 <div class="field"><label for="deliveryDate">Liefertermin</label><input id="deliveryDate" type="date" /></div>
@@ -150,9 +136,7 @@
       <section id="detailComparisonSection" class="detail-compare-shell card" style="display:none;">
         <div class="detail-compare-head">
           <div>
-            <p class="eyebrow">Detailvergleich</p>
             <h2>Alle Angebote im direkten Vergleich</h2>
-            <p class="muted">Die vollständige Vergleichsansicht wird erst nach der Kalkulation eingeblendet.</p>
           </div>
         </div>
         <div id="comparisonTable" class="table-wrap comparison-table-wrap">

@@ -862,3 +862,109 @@ body.has-results .results-column{
   .summary-box{grid-template-columns:1fr !important}
   .summary-copy{padding-right:0 !important}
 }
+
+
+/* v3.2 – expert mode: no redundant explanations, laptop-safe layout */
+.workspace{
+  padding-top:18px !important;
+}
+.topbar{display:none !important}
+.calculator-shell{
+  padding-top:18px !important;
+}
+.destination-section{
+  padding-top:0 !important;
+}
+.section-head-main.mode-row{
+  min-height:48px;
+  margin-bottom:14px !important;
+  justify-content:flex-end !important;
+  align-items:center !important;
+}
+.mode-row .inline-mode-switch{
+  margin-left:auto !important;
+}
+.section-lead{display:none !important}
+.transport-panel .section-head,
+.details-panel .section-head{display:none !important}
+.transport-panel,
+.details-panel{
+  padding-top:22px !important;
+}
+.split-section{
+  align-items:stretch;
+}
+.transport-field legend{
+  font-size:13px !important;
+  margin-bottom:10px !important;
+}
+.field label{
+  font-size:13px !important;
+}
+.detail-compare-head{
+  padding-top:22px !important;
+  padding-bottom:18px !important;
+}
+.detail-compare-head .eyebrow,
+.detail-compare-head .muted{display:none !important}
+.detail-compare-head h2{
+  margin:0 !important;
+  font-size:24px !important;
+}
+
+/* Keep the two-column result layout only on sufficiently wide desktop screens. */
+.workspace-grid{
+  grid-template-columns:minmax(0,1fr) 430px !important;
+}
+@media(max-width:1490px){
+  .workspace-grid{
+    grid-template-columns:1fr !important;
+  }
+  .results-column{
+    visibility:visible !important;
+    display:none !important;
+  }
+  body.has-results .results-column{
+    display:block !important;
+  }
+  .results-shell{
+    position:static !important;
+    max-width:760px;
+    margin-top:0 !important;
+  }
+  .offer-cards{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:14px !important;
+  }
+  .offer-card-top{
+    grid-template-columns:1fr !important;
+  }
+  .offer-price-wrap{
+    justify-items:start !important;
+    text-align:left !important;
+    min-width:0 !important;
+  }
+  .offer-actions{
+    grid-template-columns:1fr !important;
+  }
+  .summary-box{
+    max-width:100% !important;
+  }
+}
+@media(max-width:1050px){
+  .offer-cards{
+    grid-template-columns:1fr !important;
+  }
+  .results-shell{
+    max-width:none !important;
+  }
+}
+@media(max-width:700px){
+  .section-head-main.mode-row{
+    min-height:0;
+  }
+  .mode-row .inline-mode-switch{
+    width:100%;
+    margin-left:0 !important;
+  }
+}
