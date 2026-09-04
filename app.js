@@ -718,10 +718,10 @@ function renderOfferCards(results) {
     const saving = index > 0 ? round2(result.total - results[0].total) : 0;
     card.innerHTML = `
       <div class="offer-card-top">
-        <div>
+        <div class="offer-provider-block">
           ${index === 0 ? '<span class="recommendation-badge">Empfohlen · Bestpreis</span>' : `<span class="alternative-badge">Alternative ${index + 1}</span>`}
           <h3>${escapeHtml(result.forwarder)}</h3>
-          <p>Zone ${escapeHtml(result.zone)} · ${escapeHtml(result.priceSource || "Tarif")}</p>
+          <p class="offer-meta">Zone ${escapeHtml(result.zone)} · ${escapeHtml(result.priceSource || "Tarif")}</p>
         </div>
         <div class="offer-price-wrap">
           <span class="offer-price-label">Gesamtpreis</span>
