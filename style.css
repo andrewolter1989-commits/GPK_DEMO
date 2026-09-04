@@ -520,3 +520,75 @@ body.has-results .results-column{display:block}
   .topbar h1{font-size:34px}
   .offer-breakdown{grid-template-columns:1fr 1fr}
 }
+
+
+/* v2.9 – larger detail comparison below */
+body.has-results .workspace-grid{
+  grid-template-columns:minmax(720px,1fr) 410px;
+}
+.summary-box{
+  padding:28px 28px;
+  grid-template-columns:minmax(300px,.95fr) 1.05fr;
+}
+.summary-best{font-size:32px;line-height:1.08}
+.summary-caption{font-size:15px;line-height:1.45}
+.summary-facts{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 24px}
+.summary-facts span{font-size:11px;letter-spacing:.08em}
+.summary-facts strong{font-size:16px;line-height:1.35}
+.summary-facts .wide{grid-column:span 2}
+.results-shell{top:16px}
+.results-head h2{font-size:26px}
+.offer-card{padding:18px 18px 16px}
+.offer-card h3{font-size:22px}
+.offer-price{font-size:28px}
+.comparison-toggle-wrap{padding:0 20px 18px}
+.comparison-toggle{
+  width:100%;
+  justify-content:center;
+  padding:12px 14px;
+  border:1px dashed #c7d8df;
+  border-radius:12px;
+  background:#f8fbfc;
+}
+.detail-compare-shell{
+  margin-top:18px;
+  padding:24px 0 8px;
+  overflow:hidden;
+}
+.detail-compare-head{
+  padding:0 26px 18px;
+  border-bottom:1px solid #e6edf0;
+}
+.detail-compare-head h2{
+  margin:4px 0 6px;
+  color:#153847;
+  font-size:28px;
+  line-height:1.05;
+}
+.detail-compare-head .muted{font-size:14px;line-height:1.5}
+.comparison-table-wrap{
+  padding:0;
+  display:block !important;
+  overflow:auto;
+}
+.price-table{
+  min-width:1000px;
+}
+.price-table th,
+.price-table td{
+  padding:18px 22px;
+}
+.price-table td{font-size:16px}
+.price-table th{font-size:12px}
+@media(max-width:1320px){
+  body.has-results .workspace-grid{grid-template-columns:1fr}
+  .results-column{display:block}
+  .results-shell{position:static}
+}
+@media(max-width:760px){
+  .summary-box{grid-template-columns:1fr;padding:22px 20px}
+  .summary-facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .summary-facts .wide{grid-column:span 2}
+  .detail-compare-head{padding:0 18px 16px}
+  .detail-compare-head h2{font-size:24px}
+}

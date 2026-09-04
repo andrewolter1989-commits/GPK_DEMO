@@ -876,12 +876,13 @@ const freeTextInput = document.getElementById("freeText");
   const transportSwitch = document.getElementById("transportSwitch");
   const toggleComparison = document.getElementById("toggleComparison");
   const comparisonTable = document.getElementById("comparisonTable");
+  const detailComparisonSection = document.getElementById("detailComparisonSection");
   toggleComparison?.addEventListener("click", () => {
-    const opening = comparisonTable?.style.display === "none";
-    if (comparisonTable) comparisonTable.style.display = opening ? "block" : "none";
+    const opening = detailComparisonSection?.style.display === "none";
+    if (detailComparisonSection) detailComparisonSection.style.display = opening ? "block" : "none";
     if (toggleComparison) toggleComparison.innerHTML = opening
       ? 'Detailvergleich ausblenden <span aria-hidden="true">↑</span>'
-      : 'Alle Angebote im Detail vergleichen <span aria-hidden="true">↓</span>';
+      : 'Detailvergleich anzeigen <span aria-hidden="true">↓</span>';
   });
 
   document.querySelectorAll(".mode-option").forEach((button) => {
@@ -933,6 +934,8 @@ const freeTextInput = document.getElementById("freeText");
       showMessage(validationError, "danger");
       resultsSection.style.display = "none";
       document.body.classList.remove("has-results");
+      if (detailComparisonSection) detailComparisonSection.style.display = "none";
+      if (toggleComparison) toggleComparison.innerHTML = 'Detailvergleich anzeigen <span aria-hidden="true">↓</span>';
       summaryBox.style.display = "none";
       renderEmptyRow();
       return;
@@ -953,6 +956,8 @@ const freeTextInput = document.getElementById("freeText");
       showMessage(diagnoseNoResults(input.destCountry, input.postalCode, input.loadMeters), "danger");
       resultsSection.style.display = "none";
       document.body.classList.remove("has-results");
+      if (detailComparisonSection) detailComparisonSection.style.display = "none";
+      if (toggleComparison) toggleComparison.innerHTML = 'Detailvergleich anzeigen <span aria-hidden="true">↓</span>';
       summaryBox.style.display = "none";
       renderEmptyRow();
       return;
@@ -982,6 +987,9 @@ document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(d
     summaryBox.style.display = "grid";
     resultsSection.style.display = "block";
     document.body.classList.add("has-results");
+    if (detailComparisonSection) detailComparisonSection.style.display = "none";
+    if (toggleComparison) toggleComparison.innerHTML = 'Detailvergleich anzeigen <span aria-hidden="true">↓</span>';
+
 
     if (errors.length) {
       showMessage(`Berechnung erfolgreich. ${successfulResults.length} Dienstleister gefunden, ${errors.length} ohne Ergebnis.`, "success");
@@ -1005,6 +1013,8 @@ if (freeTextInput) freeTextInput.value = "";
       summaryBox.style.display = "none";
       resultsSection.style.display = "none";
       document.body.classList.remove("has-results");
+      if (detailComparisonSection) detailComparisonSection.style.display = "none";
+      if (toggleComparison) toggleComparison.innerHTML = 'Detailvergleich anzeigen <span aria-hidden="true">↓</span>';
       if (comparisonTable) comparisonTable.style.display = "none";
       renderEmptyRow();
     }, 0);

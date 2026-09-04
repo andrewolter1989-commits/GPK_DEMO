@@ -18,7 +18,7 @@
         <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
         <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.8</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.9</div>
     </aside>
 
     <main class="workspace">
@@ -155,18 +155,27 @@
             <div id="offerCards" class="offer-cards"></div>
 
             <div class="comparison-toggle-wrap">
-              <button id="toggleComparison" type="button" class="comparison-toggle">Alle Angebote im Detail vergleichen <span aria-hidden="true">↓</span></button>
-            </div>
-
-            <div id="comparisonTable" class="table-wrap comparison-table-wrap" style="display:none;">
-              <table class="price-table">
-                <thead><tr><th>Dienstleister</th><th class="right">Zone</th><th class="right">Basis</th><th class="right">Floater</th><th class="right">Zuschlag</th><th class="right">Gesamt</th><th>Anfrage</th><th>Buchung</th></tr></thead>
-                <tbody id="resultsBody"><tr id="noResults"><td colspan="8" class="muted">Noch keine Berechnung.</td></tr></tbody>
-              </table>
+              <button id="toggleComparison" type="button" class="comparison-toggle">Detailvergleich anzeigen <span aria-hidden="true">↓</span></button>
             </div>
           </section>
         </aside>
       </div>
+
+      <section id="detailComparisonSection" class="detail-compare-shell card" style="display:none;">
+        <div class="detail-compare-head">
+          <div>
+            <p class="eyebrow">Detailvergleich</p>
+            <h2>Alle Angebote im direkten Vergleich</h2>
+            <p class="muted">Die vollständige Vergleichsansicht wird erst nach der Kalkulation eingeblendet.</p>
+          </div>
+        </div>
+        <div id="comparisonTable" class="table-wrap comparison-table-wrap">
+          <table class="price-table">
+            <thead><tr><th>Dienstleister</th><th class="right">Zone</th><th class="right">Basis</th><th class="right">Floater</th><th class="right">Zuschlag</th><th class="right">Gesamt</th><th>Anfrage</th><th>Buchung</th></tr></thead>
+            <tbody id="resultsBody"><tr id="noResults"><td colspan="8" class="muted">Noch keine Berechnung.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
   <script src="app.js"></script>
