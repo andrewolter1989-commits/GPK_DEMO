@@ -932,6 +932,7 @@ const freeTextInput = document.getElementById("freeText");
     if (validationError) {
       showMessage(validationError, "danger");
       resultsSection.style.display = "none";
+      document.body.classList.remove("has-results");
       summaryBox.style.display = "none";
       renderEmptyRow();
       return;
@@ -951,6 +952,7 @@ const freeTextInput = document.getElementById("freeText");
     if (!successfulResults.length) {
       showMessage(diagnoseNoResults(input.destCountry, input.postalCode, input.loadMeters), "danger");
       resultsSection.style.display = "none";
+      document.body.classList.remove("has-results");
       summaryBox.style.display = "none";
       renderEmptyRow();
       return;
@@ -979,6 +981,7 @@ document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(d
     updateTransportUi();
     summaryBox.style.display = "grid";
     resultsSection.style.display = "block";
+    document.body.classList.add("has-results");
 
     if (errors.length) {
       showMessage(`Berechnung erfolgreich. ${successfulResults.length} Dienstleister gefunden, ${errors.length} ohne Ergebnis.`, "success");
@@ -1001,6 +1004,7 @@ if (freeTextInput) freeTextInput.value = "";
       showMessage("", "warn");
       summaryBox.style.display = "none";
       resultsSection.style.display = "none";
+      document.body.classList.remove("has-results");
       if (comparisonTable) comparisonTable.style.display = "none";
       renderEmptyRow();
     }, 0);

@@ -18,7 +18,7 @@
         <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
         <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.7</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.8</div>
     </aside>
 
     <main class="workspace">
@@ -29,9 +29,11 @@
         
       </header>
 
-      <div id="fatalError" class="notice danger"></div>
+      <div class="workspace-grid">
+        <div class="main-column">
+          <div id="fatalError" class="notice danger"></div>
 
-      <section class="calculator-shell card">
+          <section class="calculator-shell card">
         <form id="calculatorForm" class="calculator-form" novalidate>
           <section class="workflow-section destination-section">
             <div class="section-head section-head-main">
@@ -141,26 +143,30 @@
           <div class="wide subtle"><span>Zusatzinformationen</span><strong id="summaryFreeText">—</strong></div>
         </div>
       </section>
-
-      <section id="resultsSection" class="results-shell card" style="display:none;">
-        <div class="results-head">
-          <div><p class="eyebrow">Preisvergleich</p><h2>Ihre Transportoptionen</h2><p class="muted">Die wirtschaftlichste Option zuerst. Preisdetails und weitere Angebote bleiben jederzeit transparent.</p></div>
-          <div class="results-chip">LIVE KALKULATION</div>
         </div>
 
-        <div id="offerCards" class="offer-cards"></div>
+        <aside class="results-column">
+          <section id="resultsSection" class="results-shell card" style="display:none;">
+            <div class="results-head">
+              <div><h2>Ihre Transportoptionen</h2><p class="muted">Die wirtschaftlichste Option zuerst. Preisdetails bleiben transparent.</p></div>
+              <div class="results-chip">LIVE KALKULATION</div>
+            </div>
 
-        <div class="comparison-toggle-wrap">
-          <button id="toggleComparison" type="button" class="comparison-toggle">Alle Angebote im Detail vergleichen <span aria-hidden="true">↓</span></button>
-        </div>
+            <div id="offerCards" class="offer-cards"></div>
 
-        <div id="comparisonTable" class="table-wrap comparison-table-wrap" style="display:none;">
-          <table class="price-table">
-            <thead><tr><th>Dienstleister</th><th class="right">Zone</th><th class="right">Basis</th><th class="right">Floater</th><th class="right">Zuschlag</th><th class="right">Gesamt</th><th>Anfrage</th><th>Buchung</th></tr></thead>
-            <tbody id="resultsBody"><tr id="noResults"><td colspan="8" class="muted">Noch keine Berechnung.</td></tr></tbody>
-          </table>
-        </div>
-      </section>
+            <div class="comparison-toggle-wrap">
+              <button id="toggleComparison" type="button" class="comparison-toggle">Alle Angebote im Detail vergleichen <span aria-hidden="true">↓</span></button>
+            </div>
+
+            <div id="comparisonTable" class="table-wrap comparison-table-wrap" style="display:none;">
+              <table class="price-table">
+                <thead><tr><th>Dienstleister</th><th class="right">Zone</th><th class="right">Basis</th><th class="right">Floater</th><th class="right">Zuschlag</th><th class="right">Gesamt</th><th>Anfrage</th><th>Buchung</th></tr></thead>
+                <tbody id="resultsBody"><tr id="noResults"><td colspan="8" class="muted">Noch keine Berechnung.</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+        </aside>
+      </div>
     </main>
   </div>
   <script src="app.js"></script>
