@@ -1221,3 +1221,124 @@ body.has-results .results-shell{
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* === v3.7 compact workflow + integrated calculation summary === */
+.calculator-shell{
+  padding-bottom:18px !important;
+}
+.destination-section{
+  padding-bottom:16px !important;
+}
+.manual-recipient-box{
+  margin-top:12px !important;
+  padding:14px !important;
+}
+.manual-recipient-title{margin-bottom:9px !important}
+.manual-recipient-grid{gap:10px !important}
+.split-section{
+  gap:14px !important;
+  padding-top:16px !important;
+  padding-bottom:16px !important;
+  align-items:stretch !important;
+}
+.transport-panel,
+.details-panel{
+  padding:16px !important;
+  min-width:0 !important;
+}
+.transport-switch{
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:8px !important;
+  width:100% !important;
+}
+.transport-option{
+  min-width:0 !important;
+}
+.transport-option span{
+  width:100% !important;
+  min-width:0 !important;
+  height:44px !important;
+  padding:0 8px !important;
+  box-sizing:border-box !important;
+  white-space:nowrap !important;
+}
+.date-grid{gap:10px !important;margin-bottom:10px !important}
+.form-actions{
+  padding:16px 0 10px !important;
+}
+#messageBox.notice{
+  margin:0 !important;
+}
+
+/* Summary now belongs to the calculator card instead of being a second large card. */
+.summary-box{
+  margin:10px 0 0 !important;
+  padding:0 !important;
+  border:1px solid #cfe4da !important;
+  border-radius:14px !important;
+  background:#f7fcf9 !important;
+  box-shadow:none !important;
+  display:none;
+  grid-template-columns:1fr !important;
+  gap:0 !important;
+  overflow:hidden;
+}
+.summary-status{
+  padding:10px 14px;
+  background:#eaf7f0;
+  border-bottom:1px solid #d5e9df;
+  color:#28614c;
+  font-size:12px;
+  font-weight:700;
+}
+.summary-content{
+  display:grid;
+  grid-template-columns:220px minmax(0,1fr);
+  gap:22px;
+  padding:16px 18px;
+  align-items:center;
+}
+.summary-copy{
+  padding:0 20px 0 0 !important;
+  border-right:1px solid #dbece4 !important;
+  border-bottom:0 !important;
+}
+.summary-copy .eyebrow{display:none !important}
+.summary-caption{
+  margin-top:8px !important;
+  font-size:12px !important;
+  line-height:1.4 !important;
+}
+.summary-provider-brand{gap:10px !important}
+.provider-visual-lg{
+  width:40px !important;
+  height:40px !important;
+  flex-basis:40px !important;
+}
+.summary-provider-name{font-size:18px !important}
+.summary-provider-price{font-size:23px !important}
+.summary-facts{
+  grid-template-columns:repeat(4,minmax(90px,1fr)) !important;
+  gap:12px 18px !important;
+}
+.summary-facts div{gap:3px !important}
+.summary-facts span{font-size:9px !important}
+.summary-facts strong{font-size:14px !important}
+.summary-facts .wide strong{font-size:13px !important}
+.summary-facts .subtle strong{font-size:13px !important}
+
+@media(max-width:1150px){
+  .summary-content{grid-template-columns:1fr !important}
+  .summary-copy{
+    border-right:0 !important;
+    border-bottom:1px solid #dbece4 !important;
+    padding:0 0 12px !important;
+  }
+  .summary-facts{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+}
+@media(max-width:760px){
+  .transport-switch{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .summary-content{padding:14px !important}
+  .summary-facts{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+}

@@ -18,7 +18,7 @@
         <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
         <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v3.6</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v3.7</div>
     </aside>
 
     <main class="workspace">
@@ -100,9 +100,10 @@
         </form>
 
         <div id="messageBox" class="notice warn"></div>
-      </section>
 
-      <section id="summaryBox" class="summary-box card" style="display:none;">
+        <section id="summaryBox" class="summary-box" style="display:none;">
+        <div id="summaryStatus" class="summary-status">Berechnung erfolgreich.</div>
+        <div class="summary-content">
         <div class="summary-copy">
           <p class="eyebrow">Beste Option</p>
           <div class="summary-best" id="summaryBest">—</div>
@@ -119,6 +120,8 @@
           <div><span>Angebote</span><strong id="summaryCount">—</strong></div>
           <div class="wide subtle"><span>Zusatzinformationen</span><strong id="summaryFreeText">—</strong></div>
         </div>
+        </div>
+      </section>
       </section>
         </div>
 

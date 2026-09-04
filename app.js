@@ -914,6 +914,7 @@ const deliveryDateInput = document.getElementById("deliveryDate");
 const freeTextInput = document.getElementById("freeText");
   const messageBox = document.getElementById("messageBox");
   const summaryBox = document.getElementById("summaryBox");
+  const summaryStatus = document.getElementById("summaryStatus");
   const resultsSection = document.getElementById("resultsSection");
   const transportSwitch = document.getElementById("transportSwitch");
   const toggleComparison = document.getElementById("toggleComparison");
@@ -1033,10 +1034,11 @@ document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(d
     if (toggleComparison) toggleComparison.innerHTML = 'Detailvergleich anzeigen <span aria-hidden="true">↓</span>';
 
 
-    if (errors.length) {
-      showMessage(`Berechnung erfolgreich. ${successfulResults.length} Dienstleister gefunden, ${errors.length} ohne Ergebnis.`, "success");
-    } else {
-      showMessage(`Berechnung erfolgreich. ${successfulResults.length} Dienstleister gefunden.`, "success");
+    showMessage("", "success");
+    if (summaryStatus) {
+      summaryStatus.textContent = errors.length
+        ? `Berechnung erfolgreich · ${successfulResults.length} Angebote · ${errors.length} ohne Ergebnis`
+        : `Berechnung erfolgreich · ${successfulResults.length} Angebote`;
     }
   });
 
