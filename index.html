@@ -18,7 +18,7 @@
         <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
         <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.2</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.4</div>
     </aside>
 
     <main class="workspace">
@@ -38,7 +38,17 @@
           <section class="workflow-section destination-section">
             <div class="section-head">
               <span class="step-number">01</span>
-              <div><h2>Ziel & Entladestelle</h2><p>Relation auswählen und bekannte Empfängeradresse übernehmen.</p></div>
+              <div><h2>Ziel & Entladestelle</h2><p>Relation wählen und je nach Bedarf direkt kalkulieren oder vollständig planen.</p></div>
+            </div>
+            <div class="calculation-mode" role="group" aria-label="Kalkulationsmodus">
+              <button type="button" class="mode-option active" data-mode="price">
+                <span class="mode-title">Nur Preis kalkulieren</span>
+                <span class="mode-copy">Schnelle Preisauskunft nur mit Land und PLZ.</span>
+              </button>
+              <button type="button" class="mode-option" data-mode="planning">
+                <span class="mode-title">Transport planen</span>
+                <span class="mode-copy">Mit Entladestelle, Terminen, Anfrage und Buchung.</span>
+              </button>
             </div>
             <div class="form-grid destination-grid">
               <div class="field">
@@ -49,13 +59,13 @@
                 <label for="postalCode">PLZ Empfänger</label>
                 <input id="postalCode" type="text" placeholder="z. B. 24939" />
               </div>
-              <div class="field recipient-field">
+              <div class="field recipient-field planning-only">
                 <label for="recipientSelect">Entladestelle</label>
                 <select id="recipientSelect" disabled><option value="">Bitte zuerst Land und PLZ eingeben</option></select>
                 <span class="field-hint" id="recipientHint">Passende Entladestellen werden automatisch aus den hinterlegten Stammdaten geladen.</span>
               </div>
             </div>
-            <div id="manualRecipientBox" class="manual-recipient-box" style="display:none;">
+            <div id="manualRecipientBox" class="manual-recipient-box planning-only" style="display:none;">
               <div class="manual-recipient-title">Neue Entladestelle erfassen</div>
               <div class="manual-recipient-grid">
                 <div class="field"><label for="recipientName">Name</label><input id="recipientName" type="text" placeholder="Firmenname" /></div>
@@ -86,7 +96,7 @@
               </div>
             </div>
 
-            <div class="details-panel">
+            <div class="details-panel planning-only">
               <div class="section-head compact">
                 <span class="step-number">03</span>
                 <div><h2>Termin & Details</h2><p>Optionale Angaben für Anfrage und Buchung.</p></div>

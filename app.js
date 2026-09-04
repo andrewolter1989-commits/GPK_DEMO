@@ -24,6 +24,39 @@ const STATE = {
   recipientsById: {},
 };
 
+let CALCULATION_MODE = "price";
+
+function setCalculationMode(mode) {
+  CALCULATION_MODE = mode === "planning" ? "planning" : "price";
+  document.body.classList.toggle("price-mode", CALCULATION_MODE === "price");
+  document.body.classList.toggle("planning-mode", CALCULATION_MODE === "planning");
+  document.querySelectorAll(".mode-option").forEach((button) => {
+    button.classList.toggle("active", button.dataset.mode === CALCULATION_MODE);
+  });
+  if (CALCULATION_MODE === "price") {
+    const box = document.getElementById("manualRecipientBox");
+    if (box) box.style.display = "none";
+  } else {
+    renderRecipientSelection();
+  }
+}
+
+function ensurePlanningForAction(kind) {
+  if (CALCULATION_MODE === "planning") return true;
+  setCalculationMode("planning");
+  const target = document.querySelector(".destination-section");
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const message = document.getElementById("messageBox");
+  if (message) {
+    message.textContent = kind === "booking"
+      ? "Für die Buchung bitte noch Entladestelle und Tourdetails ergänzen."
+      : "Für die Verfügbarkeitsanfrage bitte noch Entladestelle und Tourdetails ergänzen.";
+    message.className = "notice warn";
+    message.style.display = "block";
+  }
+  return false;
+}
+
 const ZONE_MODE_BY_FORWARDER = {
   morrisson: "Morrisson",
 };
@@ -552,8 +585,8 @@ function getEffectiveLoadMeters(shipmentType, loadMetersInput) {
 function validateInput({ destCountry, postalCode, shipmentType, loadMeters }) {
   if (!destCountry) return "Bitte zuerst ein Land wählen.";
   if (!postalCode || String(postalCode).trim().length < 2) return "Bitte eine gültige PLZ eingeben.";
-  if (!document.getElementById("recipientSelect")?.value) return "Bitte eine Entladestelle auswählen.";
-  if (document.getElementById("recipientSelect")?.value === "manual" && !document.getElementById("recipientName")?.value?.trim()) return "Bitte bei einer neuen Entladestelle mindestens den Namen eingeben.";
+  if (CALCULATION_MODE === "planning" && !document.getElementById("recipientSelect")?.value) return "Bitte eine Entladestelle auswählen.";
+  if (CALCULATION_MODE === "planning" && document.getElementById("recipientSelect")?.value === "manual" && !document.getElementById("recipientName")?.value?.trim()) return "Bitte bei einer neuen Entladestelle mindestens den Namen eingeben.";
   if (!SHIPMENT_TYPES[shipmentType]) return "Bitte eine Transportart wählen.";
   if (shipmentType === "teilladung" && !(loadMeters > 0)) return "Bei Teilladung muss Lademeter größer 0 sein.";
   return null;
@@ -748,6 +781,7 @@ function showMissingEmail(forwarder, kind) {
 }
 
 function createEmailRequest(forwarder, kind) {
+  if (!ensurePlanningForAction(kind)) return;
   const country = document.getElementById("destCountry")?.value?.trim() || "";
   const cfg = getEmailConfig(forwarder, country);
   const to = kind === "booking" ? cfg.booking : cfg.availability;
@@ -850,6 +884,11 @@ const freeTextInput = document.getElementById("freeText");
       : 'Alle Angebote im Detail vergleichen <span aria-hidden="true">↓</span>';
   });
 
+  document.querySelectorAll(".mode-option").forEach((button) => {
+    button.addEventListener("click", () => setCalculationMode(button.dataset.mode));
+  });
+  setCalculationMode("price");
+
   const countries = Array.from(new Set(
     STATE.rates
       .filter((row) => row.originCountry === ORIGIN_COUNTRY)
@@ -926,7 +965,9 @@ const freeTextInput = document.getElementById("freeText");
     document.getElementById("summaryCountry").textContent = input.destCountry;
     document.getElementById("summaryPostal").textContent = input.postalCode;
     const selectedRecipient = getSelectedRecipient();
-    document.getElementById("summaryRecipient").textContent = selectedRecipient ? formatRecipientOption(selectedRecipient) : "—";
+    document.getElementById("summaryRecipient").textContent = selectedRecipient
+      ? formatRecipientOption(selectedRecipient)
+      : (CALCULATION_MODE === "price" ? "Nicht erforderlich · Preisauskunft" : "—");
     document.getElementById("summaryShipmentType").textContent = shipmentLabel;
 document.getElementById("summaryLdm").textContent = String(input.loadMeters).replace('.', ',');
 document.getElementById("summaryPickupDate").textContent = formatDisplayDate(pickupDateInput.value);

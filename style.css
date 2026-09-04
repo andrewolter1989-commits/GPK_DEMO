@@ -71,3 +71,62 @@
  .destination-section,.split-section{margin-left:-18px;margin-right:-18px;padding-left:18px;padding-right:18px}
  .split-section{gap:16px}
 }
+
+/* v2.4 — GP Kollund product color + dual workflow */
+:root{
+  --navy:#004251;
+  --primary:#087b9b;
+  --primary-dark:#004251;
+}
+.sidebar{background:#004251}
+.destination-section .section-head,
+.transport-panel .section-head,
+.details-panel .section-head{
+  background:#004251;
+}
+.destination-section .step-number,
+.transport-panel .step-number,
+.details-panel .step-number{
+  background:#004251;
+  color:#fff;
+  border:1px solid rgba(255,255,255,.34);
+}
+.destination-section .section-head::after,
+.transport-panel .section-head::after,
+.details-panel .section-head::after{background:#fff;opacity:.92}
+.calculation-mode{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  max-width:650px;
+  margin:0 0 20px;
+}
+.mode-option{
+  appearance:none;
+  text-align:left;
+  border:1px solid #cedbe1;
+  background:#fff;
+  border-radius:12px;
+  padding:13px 15px;
+  cursor:pointer;
+  color:var(--text);
+  transition:.15s ease;
+}
+.mode-option:hover{border-color:#7e9da8}
+.mode-option.active{
+  border-color:#004251;
+  background:#004251;
+  color:#fff;
+  box-shadow:0 7px 17px rgba(0,66,81,.13);
+}
+.mode-title{display:block;font-weight:800;font-size:13px;margin-bottom:3px}
+.mode-copy{display:block;font-size:11px;line-height:1.35;color:#738792}
+.mode-option.active .mode-copy{color:#c8dadd}
+body.price-mode .planning-only{display:none !important}
+body.price-mode .destination-grid{grid-template-columns:190px 240px}
+body.price-mode .split-section{grid-template-columns:1fr}
+body.price-mode .transport-panel{max-width:760px}
+@media(max-width:720px){
+ .calculation-mode{grid-template-columns:1fr}
+ body.price-mode .destination-grid{grid-template-columns:1fr}
+}
