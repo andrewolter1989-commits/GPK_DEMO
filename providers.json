@@ -1,0 +1,114 @@
+{
+  "providers": [
+    {
+      "id": "lit",
+      "name": "LIT",
+      "aliases": [
+        "LIT"
+      ],
+      "logo": "logos/lit.png",
+      "active": true
+    },
+    {
+      "id": "lkw-walter",
+      "name": "LKW Walter",
+      "aliases": [
+        "LKW-Walter",
+        "lkwwalter",
+        "Ikwwalter"
+      ],
+      "logo": "logos/lkw-walter.png",
+      "active": true
+    },
+    {
+      "id": "transcargo",
+      "name": "Transcargo",
+      "aliases": [
+        "Transcargo"
+      ],
+      "logo": "logos/transcargo.png",
+      "active": true
+    },
+    {
+      "id": "berghegger",
+      "name": "Berghegger",
+      "aliases": [
+        "Berghegger"
+      ],
+      "logo": "logos/berghegger.png",
+      "active": true
+    },
+    {
+      "id": "emons",
+      "name": "Emons",
+      "aliases": [
+        "Emons"
+      ],
+      "logo": "logos/emons.png",
+      "active": true
+    },
+    {
+      "id": "dsv",
+      "name": "DSV",
+      "aliases": [
+        "DSV"
+      ],
+      "logo": "logos/dsv.png",
+      "active": true
+    },
+    {
+      "id": "ctk",
+      "name": "CTK",
+      "aliases": [
+        "CTK"
+      ],
+      "logo": "logos/ctk.png",
+      "active": true
+    },
+    {
+      "id": "timotrans",
+      "name": "Timotrans",
+      "aliases": [
+        "Timotrans"
+      ],
+      "logo": "logos/timotrans.png",
+      "active": true
+    },
+    {
+      "id": "semmer",
+      "name": "Semmer",
+      "aliases": [
+        "Semmer"
+      ],
+      "logo": "logos/semmer.png",
+      "active": true
+    },
+    {
+      "id": "marathon",
+      "name": "Marathon",
+      "aliases": [
+        "Marathon"
+      ],
+      "logo": "logos/marathon.png",
+      "active": true
+    },
+    {
+      "id": "tombers",
+      "name": "Tombers",
+      "aliases": [
+        "Tombers"
+      ],
+      "logo": "logos/tombers.png",
+      "active": true
+    },
+    {
+      "id": "maszonski",
+      "name": "Maszonski",
+      "aliases": [
+        "Maszonski"
+      ],
+      "logo": "logos/maszonski.png",
+      "active": true
+    }
+  ]
+}

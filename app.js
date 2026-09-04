@@ -22,6 +22,7 @@ const STATE = {
   forwarders: [],
   addresses: [],
   recipientsById: {},
+  providers: {},
 };
 
 let CALCULATION_MODE = "planning";
@@ -217,6 +218,48 @@ function parseCsv(text) {
   }
 
   return rows;
+}
+
+
+async function loadProviderConfig() {
+  try {
+    const response = await fetch("providers.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`providers.json: HTTP ${response.status}`);
+    const data = await response.json();
+    const providers = Array.isArray(data?.providers) ? data.providers : [];
+    STATE.providers = {};
+    providers.forEach((provider) => {
+      const keys = [provider.name, ...(provider.aliases || [])].filter(Boolean);
+      keys.forEach((key) => { STATE.providers[normalizeKey(key)] = provider; });
+    });
+  } catch {
+    STATE.providers = {};
+  }
+}
+
+function getProviderMeta(forwarder) {
+  return STATE.providers[normalizeKey(forwarder)] || {
+    name: forwarder,
+    logo: "",
+    short: "",
+  };
+}
+
+function providerInitials(name) {
+  const parts = String(name || "").replace(/[^A-Za-z0-9ÄÖÜäöüß\s-]/g, " ").split(/[\s-]+/).filter(Boolean);
+  if (!parts.length) return "SP";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function providerVisualHtml(forwarder, sizeClass = "") {
+  const meta = getProviderMeta(forwarder);
+  const label = escapeHtml(meta.name || forwarder);
+  const cls = sizeClass ? ` ${sizeClass}` : "";
+  if (meta.logo) {
+    return `<span class="provider-visual${cls}"><img src="${escapeHtml(meta.logo)}" alt="${label} Logo" onerror="this.parentElement.classList.add('logo-fallback');this.remove();"><span>${escapeHtml(providerInitials(meta.short || meta.name || forwarder))}</span></span>`;
+  }
+  return `<span class="provider-visual logo-fallback${cls}"><span>${escapeHtml(providerInitials(meta.short || meta.name || forwarder))}</span></span>`;
 }
 
 async function loadAddresses() {
@@ -720,8 +763,7 @@ function renderOfferCards(results) {
       <div class="offer-card-top">
         <div class="offer-provider-block">
           ${index === 0 ? '<span class="recommendation-badge">Empfohlen · Bestpreis</span>' : `<span class="alternative-badge">Alternative ${index + 1}</span>`}
-          <h3>${escapeHtml(result.forwarder)}</h3>
-          <p class="offer-meta">Zone ${escapeHtml(result.zone)} · ${escapeHtml(result.priceSource || "Tarif")}</p>
+          <div class="provider-name-row">${providerVisualHtml(result.forwarder)}<h3>${escapeHtml(result.forwarder)}</h3></div>
         </div>
         <div class="offer-price-wrap">
           <span class="offer-price-label">Gesamtpreis</span>
@@ -761,7 +803,7 @@ function renderResults(results) {
     tr.innerHTML = `
       <td>
         ${index === 0 ? '<span class="rank-badge">Bestpreis</span>' : ''}
-        <span class="provider-name">${escapeHtml(result.forwarder)}</span>
+        <span class="provider-table-name">${providerVisualHtml(result.forwarder, "provider-visual-sm")}<span class="provider-name">${escapeHtml(result.forwarder)}</span></span>
       </td>
       <td class="right">${escapeHtml(result.zone)}</td>
       <td class="right">${money(result.basePrice)}</td>
@@ -981,7 +1023,7 @@ document.getElementById("summaryPickupDate").textContent = formatDisplayDate(pic
 document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(deliveryDateInput.value);
     document.getElementById("summaryFreeText").textContent = freeTextInput.value.trim() || "—";
     document.getElementById("summaryCount").textContent = String(successfulResults.length);
-    document.getElementById("summaryBest").textContent = `${cheapest.forwarder} (${money(cheapest.total)})`;
+    document.getElementById("summaryBest").innerHTML = `<span class="summary-provider-brand">${providerVisualHtml(cheapest.forwarder, "provider-visual-lg")}<span><span class="summary-provider-name">${escapeHtml(cheapest.forwarder)}</span><span class="summary-provider-price">${money(cheapest.total)}</span></span></span>`;
 
     updateTransportUi();
     summaryBox.style.display = "grid";
@@ -1022,7 +1064,7 @@ if (freeTextInput) freeTextInput.value = "";
 }
 
 async function boot() {
-  await Promise.all([loadZones(), loadRates(), loadFloaterConfig(), loadEmailConfig(), loadAddresses()]);
+  await Promise.all([loadZones(), loadRates(), loadFloaterConfig(), loadEmailConfig(), loadAddresses(), loadProviderConfig()]);
   initCalculatorPage();
 }
 

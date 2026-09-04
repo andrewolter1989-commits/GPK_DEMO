@@ -18,7 +18,7 @@
         <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
         <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v3.0</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v3.1</div>
     </aside>
 
     <main class="workspace">
@@ -37,10 +37,7 @@
         <form id="calculatorForm" class="calculator-form" novalidate>
           <section class="workflow-section destination-section">
             <div class="section-head section-head-main">
-              <div class="section-title">
-                <span class="step-number">01</span>
-                <div><h2>Ziel &amp; Entladestelle</h2><p>Land, PLZ und optional die Entladestelle für die operative Planung erfassen.</p></div>
-              </div>
+              <div class="section-title"><p class="section-lead">Land, PLZ und optional die Entladestelle für die operative Planung erfassen.</p></div>
               <div class="calculation-mode inline-mode-switch" role="group" aria-label="Kalkulationsmodus">
                 <button type="button" class="mode-option" data-mode="price">
                   <span class="mode-title">Preisauskunft</span>
@@ -80,10 +77,7 @@
           <section class="workflow-section split-section">
             <div class="transport-panel">
               <div class="section-head compact">
-                <div class="section-title">
-                  <span class="step-number">02</span>
-                  <div><h2>Transport</h2><p>Transportart und Sendungsgröße festlegen.</p></div>
-                </div>
+                <div class="section-title"><h2>Transportart &amp; Sendungsgröße</h2></div>
               </div>
               <fieldset class="field transport-field">
                 <legend>Transportart</legend>
@@ -102,10 +96,7 @@
 
             <div class="details-panel planning-only">
               <div class="section-head compact">
-                <div class="section-title">
-                  <span class="step-number">03</span>
-                  <div><h2>Termin &amp; Details</h2><p>Optionale Angaben für Anfrage und Buchung.</p></div>
-                </div>
+                <div class="section-title"><h2>Termin &amp; Details</h2></div>
               </div>
               <div class="date-grid">
                 <div class="field"><label for="pickupDate">Abholdatum</label><input id="pickupDate" type="date" /></div>
@@ -118,7 +109,7 @@
           <div class="form-actions">
             <button class="primary action-button" type="submit"><span>Preise vergleichen</span><span aria-hidden="true">→</span></button>
             <button class="secondary action-button" type="reset">Zurücksetzen</button>
-            <span class="action-note">Vergleicht automatisch alle verfügbaren Dienstleister.</span>
+            
           </div>
         </form>
 
@@ -147,11 +138,6 @@
 
         <aside class="results-column">
           <section id="resultsSection" class="results-shell card" style="display:none;">
-            <div class="results-head">
-              <div><h2>Ihre Transportoptionen</h2><p class="muted">Die drei besten Angebote für diese Relation auf einen Blick.</p></div>
-              <div class="results-chip">Top 3</div>
-            </div>
-
             <div id="offerCards" class="offer-cards"></div>
 
             <div class="comparison-toggle-wrap">
