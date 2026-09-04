@@ -18,15 +18,13 @@
         <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
         <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.6</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.7</div>
     </aside>
 
     <main class="workspace">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Neue Kalkulation</p>
           <h1>Freight Rate Calculator</h1>
-          <p class="subline">Transportkosten berechnen, Dienstleister vergleichen und Sendungen direkt anfragen.</p>
         </div>
         
       </header>
@@ -36,19 +34,21 @@
       <section class="calculator-shell card">
         <form id="calculatorForm" class="calculator-form" novalidate>
           <section class="workflow-section destination-section">
-            <div class="section-head">
-              <span class="step-number">01</span>
-              <div><h2>Ziel & Entladestelle</h2><p>Relation wählen und je nach Bedarf direkt kalkulieren oder vollständig planen.</p></div>
-            </div>
-            <div class="calculation-mode" role="group" aria-label="Kalkulationsmodus">
-              <button type="button" class="mode-option active" data-mode="price">
-                <span class="mode-title">Nur Preis kalkulieren</span>
-                <span class="mode-copy">Schnelle Preisauskunft nur mit Land und PLZ.</span>
-              </button>
-              <button type="button" class="mode-option" data-mode="planning">
-                <span class="mode-title">Transport planen</span>
-                <span class="mode-copy">Mit Entladestelle, Terminen, Anfrage und Buchung.</span>
-              </button>
+            <div class="section-head section-head-main">
+              <div class="section-title">
+                <span class="step-number">01</span>
+                <div><h2>Ziel &amp; Entladestelle</h2><p>Land, PLZ und optional die Entladestelle für die operative Planung erfassen.</p></div>
+              </div>
+              <div class="calculation-mode inline-mode-switch" role="group" aria-label="Kalkulationsmodus">
+                <button type="button" class="mode-option" data-mode="price">
+                  <span class="mode-title">Preisauskunft</span>
+                  <span class="mode-copy">Nur Preis</span>
+                </button>
+                <button type="button" class="mode-option active" data-mode="planning">
+                  <span class="mode-title">Transport planen</span>
+                  <span class="mode-copy">Disposition</span>
+                </button>
+              </div>
             </div>
             <div class="form-grid destination-grid">
               <div class="field">
@@ -78,8 +78,10 @@
           <section class="workflow-section split-section">
             <div class="transport-panel">
               <div class="section-head compact">
-                <span class="step-number">02</span>
-                <div><h2>Transport</h2><p>Transportart und Sendungsgröße festlegen.</p></div>
+                <div class="section-title">
+                  <span class="step-number">02</span>
+                  <div><h2>Transport</h2><p>Transportart und Sendungsgröße festlegen.</p></div>
+                </div>
               </div>
               <fieldset class="field transport-field">
                 <legend>Transportart</legend>
@@ -98,8 +100,10 @@
 
             <div class="details-panel planning-only">
               <div class="section-head compact">
-                <span class="step-number">03</span>
-                <div><h2>Termin & Details</h2><p>Optionale Angaben für Anfrage und Buchung.</p></div>
+                <div class="section-title">
+                  <span class="step-number">03</span>
+                  <div><h2>Termin &amp; Details</h2><p>Optionale Angaben für Anfrage und Buchung.</p></div>
+                </div>
               </div>
               <div class="date-grid">
                 <div class="field"><label for="pickupDate">Abholdatum</label><input id="pickupDate" type="date" /></div>

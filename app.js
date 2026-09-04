@@ -24,7 +24,7 @@ const STATE = {
   recipientsById: {},
 };
 
-let CALCULATION_MODE = "price";
+let CALCULATION_MODE = "planning";
 
 function setCalculationMode(mode) {
   CALCULATION_MODE = mode === "planning" ? "planning" : "price";
@@ -887,7 +887,7 @@ const freeTextInput = document.getElementById("freeText");
   document.querySelectorAll(".mode-option").forEach((button) => {
     button.addEventListener("click", () => setCalculationMode(button.dataset.mode));
   });
-  setCalculationMode("price");
+  setCalculationMode("planning");
 
   const countries = Array.from(new Set(
     STATE.rates
