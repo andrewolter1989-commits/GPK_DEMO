@@ -1038,3 +1038,94 @@ body.has-results .results-shell{
     margin-top:4px !important;
   }
 }
+
+
+/* === v3.5: zero-layout-shift result rail === */
+/* Desktop: reserve the result rail BEFORE calculation so the form never changes width. */
+@media (min-width: 1451px){
+  .workspace-grid,
+  body.has-results .workspace-grid{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) 400px !important;
+    gap:26px !important;
+    align-items:start !important;
+  }
+
+  .results-column,
+  body.has-results .results-column{
+    display:block !important;
+    width:400px !important;
+    min-width:400px !important;
+    max-width:400px !important;
+  }
+
+  .results-column{
+    visibility:hidden !important;
+    pointer-events:none !important;
+  }
+
+  body.has-results .results-column{
+    visibility:visible !important;
+    pointer-events:auto !important;
+  }
+
+  .results-shell,
+  body.has-results .results-shell{
+    width:100% !important;
+    max-width:100% !important;
+    margin-top:0 !important;
+  }
+
+  body.has-results .results-shell{
+    position:sticky !important;
+    top:20px !important;
+  }
+}
+
+/* Laptop/tablet: keep one-column layout both before AND after calculation. */
+@media (max-width: 1450px){
+  .workspace-grid,
+  body.has-results .workspace-grid{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:22px !important;
+  }
+
+  .results-column{
+    display:none !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+  }
+
+  body.has-results .results-column{
+    display:block !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+  }
+
+  body.has-results .results-shell{
+    position:static !important;
+    width:100% !important;
+    max-width:100% !important;
+    margin-top:0 !important;
+  }
+}
+
+/* Prevent top fields from overflowing when the right rail is present. */
+@media (min-width:1451px){
+  .destination-grid{
+    grid-template-columns:180px 220px minmax(0,1fr) !important;
+  }
+  .recipient-field,
+  .recipient-field select,
+  .field input,
+  .field select{
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+  .split-section{
+    grid-template-columns:minmax(0,1fr) minmax(320px,.9fr) !important;
+    gap:20px !important;
+  }
+}
