@@ -3,149 +3,146 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GP Kollund Preisrechner Demo</title>
+  <title>GP Kollund – Freight Rate Calculator</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="app-shell">
-    <header class="hero-header">
-      <p class="eyebrow">GP Kollund</p>
-      <h1>Preisrechner Demo</h1>
-    </header>
+  <div class="product-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-mark">GP</div>
+        <div><strong>GP Kollund</strong><span>Freight Intelligence</span></div>
+      </div>
+      <nav class="side-nav" aria-label="Hauptnavigation">
+        <button class="nav-item active" type="button"><span class="nav-icon">⌁</span><span>Kalkulation</span></button>
+        <button class="nav-item" type="button" disabled><span class="nav-icon">◎</span><span>Entladestellen</span><small>Demo</small></button>
+        <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
+        <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
+      </nav>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2</div>
+    </aside>
 
-    <div id="fatalError" class="notice danger"></div>
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Neue Kalkulation</p>
+          <h1>Freight Rate Calculator</h1>
+          <p class="subline">Transportkosten berechnen, Dienstleister vergleichen und Sendungen direkt anfragen.</p>
+        </div>
+        <div class="product-badge">GP KOLLUND</div>
+      </header>
 
-    <section class="calculator-shell card">
-      <form id="calculatorForm" class="calculator-form" novalidate>
-        <div class="form-grid form-grid-top">
-          <div class="field">
-            <label for="destCountry">Land</label>
-            <select id="destCountry">
-              <option value="">Bitte wählen</option>
-            </select>
-          </div>
+      <div id="fatalError" class="notice danger"></div>
 
-          <div class="field">
-            <label for="postalCode">PLZ Empfänger</label>
-            <input id="postalCode" type="text" placeholder="z.B. 24939" />
-          </div>
-
-          <div class="field recipient-field">
-            <label for="recipientSelect">Entladestelle</label>
-            <select id="recipientSelect" disabled>
-              <option value="">Bitte zuerst Land und PLZ eingeben</option>
-            </select>
-            <span class="field-hint" id="recipientHint">Passende Entladestellen werden automatisch aus der Pano-Adresslogik geladen.</span>
-          </div>
-
-          <fieldset class="field transport-field">
-            <legend>Transportart</legend>
-            <div class="transport-switch" id="transportSwitch">
-              <label class="transport-option active">
-                <input type="radio" name="shipmentType" value="teilladung" />
-                <span>Teilladung</span>
-              </label>
-              <label class="transport-option">
-                <input type="radio" name="shipmentType" value="ftl" checked />
-                <span>FTL</span>
-              </label>
-              <label class="transport-option">
-                <input type="radio" name="shipmentType" value="mega" />
-                <span>Mega</span>
-              </label>
-              <label class="transport-option">
-                <input type="radio" name="shipmentType" value="jumbo" />
-                <span>Jumbo</span>
-              </label>
+      <section class="calculator-shell card">
+        <form id="calculatorForm" class="calculator-form" novalidate>
+          <section class="workflow-section">
+            <div class="section-head">
+              <span class="step-number">01</span>
+              <div><h2>Ziel & Entladestelle</h2><p>Relation auswählen und bekannte Empfängeradresse übernehmen.</p></div>
             </div>
-          </fieldset>
-        </div>
+            <div class="form-grid destination-grid">
+              <div class="field">
+                <label for="destCountry">Land</label>
+                <select id="destCountry"><option value="">Bitte wählen</option></select>
+              </div>
+              <div class="field">
+                <label for="postalCode">PLZ Empfänger</label>
+                <input id="postalCode" type="text" placeholder="z. B. 24939" />
+              </div>
+              <div class="field recipient-field">
+                <label for="recipientSelect">Entladestelle</label>
+                <select id="recipientSelect" disabled><option value="">Bitte zuerst Land und PLZ eingeben</option></select>
+                <span class="field-hint" id="recipientHint">Passende Entladestellen werden automatisch aus den hinterlegten Stammdaten geladen.</span>
+              </div>
+            </div>
+            <div id="manualRecipientBox" class="manual-recipient-box" style="display:none;">
+              <div class="manual-recipient-title">Neue Entladestelle erfassen</div>
+              <div class="manual-recipient-grid">
+                <div class="field"><label for="recipientName">Name</label><input id="recipientName" type="text" placeholder="Firmenname" /></div>
+                <div class="field"><label for="recipientStreet">Straße</label><input id="recipientStreet" type="text" placeholder="Straße / Hausnummer" /></div>
+                <div class="field"><label for="recipientCity">Ort</label><input id="recipientCity" type="text" placeholder="Ort" /></div>
+              </div>
+            </div>
+          </section>
 
-        <div id="manualRecipientBox" class="manual-recipient-box" style="display:none;">
-          <div class="manual-recipient-title">Neue Entladestelle</div>
-          <div class="manual-recipient-grid">
-            <div class="field"><label for="recipientName">Name</label><input id="recipientName" type="text" placeholder="Firmenname" /></div>
-            <div class="field"><label for="recipientStreet">Straße</label><input id="recipientStreet" type="text" placeholder="Straße / Hausnummer" /></div>
-            <div class="field"><label for="recipientCity">Ort</label><input id="recipientCity" type="text" placeholder="Ort" /></div>
+          <section class="workflow-section split-section">
+            <div class="transport-panel">
+              <div class="section-head compact">
+                <span class="step-number">02</span>
+                <div><h2>Transport</h2><p>Transportart und Sendungsgröße festlegen.</p></div>
+              </div>
+              <fieldset class="field transport-field">
+                <legend>Transportart</legend>
+                <div class="transport-switch" id="transportSwitch">
+                  <label class="transport-option"><input type="radio" name="shipmentType" value="teilladung" /><span>Teilladung</span></label>
+                  <label class="transport-option"><input type="radio" name="shipmentType" value="ftl" checked /><span>FTL</span></label>
+                  <label class="transport-option"><input type="radio" name="shipmentType" value="mega" /><span>Mega</span></label>
+                  <label class="transport-option"><input type="radio" name="shipmentType" value="jumbo" /><span>Jumbo</span></label>
+                </div>
+              </fieldset>
+              <div class="field load-field" id="loadMetersField">
+                <label for="loadMeters">Lademeter</label>
+                <div class="input-suffix"><input id="loadMeters" type="text" inputmode="decimal" placeholder="z. B. 7,5" /><span>LDM</span></div>
+              </div>
+            </div>
+
+            <div class="details-panel">
+              <div class="section-head compact">
+                <span class="step-number">03</span>
+                <div><h2>Termin & Details</h2><p>Optionale Angaben für Anfrage und Buchung.</p></div>
+              </div>
+              <div class="date-grid">
+                <div class="field"><label for="pickupDate">Abholdatum</label><input id="pickupDate" type="date" /></div>
+                <div class="field"><label for="deliveryDate">Liefertermin</label><input id="deliveryDate" type="date" /></div>
+              </div>
+              <div class="field"><label for="freeText">Zusatzinformationen</label><input id="freeText" type="text" placeholder="z. B. Referenz, Zeitfenster oder Hinweis" /></div>
+            </div>
+          </section>
+
+          <div class="form-actions">
+            <button class="primary action-button" type="submit"><span>Preise vergleichen</span><span aria-hidden="true">→</span></button>
+            <button class="secondary action-button" type="reset">Zurücksetzen</button>
+            <span class="action-note">Vergleicht automatisch alle verfügbaren Dienstleister.</span>
           </div>
-        </div>
+        </form>
 
-        <div class="form-grid form-grid-bottom">
-          <div class="field" id="loadMetersField">
-            <label for="loadMeters">Lademeter</label>
-            <input id="loadMeters" type="text" inputmode="decimal" placeholder="z.B. 7,5" />
-          </div>
-<div class="field">
-  <label for="pickupDate">Abholdatum</label>
-  <input id="pickupDate" type="date" />
-</div>
-          <div class="field">
-            <label for="deliveryDate">Liefertermin</label>
-            <input id="deliveryDate" type="date" />
-          </div>
-          <div class="field field-wide-bottom">
-            <label for="freeText">Freitext</label>
-            <input id="freeText" type="text" placeholder="z.B. Zusatzinformationen" />
-          </div>
-        </div>
+        <div id="messageBox" class="notice warn"></div>
+      </section>
 
-        <div class="form-actions">
-          <button class="primary action-button" type="submit">Berechnen</button>
-          <button class="secondary action-button" type="reset">Zurücksetzen</button>
-        </div>
-      </form>
-
-      <div id="messageBox" class="notice warn"></div>
-
-      <section id="summaryBox" class="summary-box" style="display:none;">
-        <div class="summary-left">
-          <div class="summary-row"><strong>Land:</strong> <span id="summaryCountry">—</span></div>
-          <div class="summary-row"><strong>PLZ:</strong> <span id="summaryPostal">—</span></div>
-          <div class="summary-row"><strong>Entladestelle:</strong> <span id="summaryRecipient">—</span></div>
-          <div class="summary-row"><strong>Transportart:</strong> <span id="summaryShipmentType">—</span></div>
-<div class="summary-row" id="summaryLdmRow"><strong>Lademeter:</strong> <span id="summaryLdm">—</span></div>
-<div class="summary-row"><strong>Abholdatum:</strong> <span id="summaryPickupDate">—</span></div>
-<div class="summary-row"><strong>Liefertermin:</strong> <span id="summaryDeliveryDate">—</span></div>
-          <div class="summary-row"><strong>Freitext:</strong> <span id="summaryFreeText">—</span></div>
-          <div class="summary-row"><strong>Dienstleister mit Ergebnis:</strong> <span id="summaryCount">—</span></div>
-        </div>
-        <div class="summary-right">
-          <div class="summary-best-label">Günstigster Anbieter</div>
+      <section id="summaryBox" class="summary-box card" style="display:none;">
+        <div class="summary-copy">
+          <p class="eyebrow">Beste Option</p>
           <div class="summary-best" id="summaryBest">—</div>
+          <p class="summary-caption">Günstigster berechenbarer Dienstleister für diese Relation.</p>
+        </div>
+        <div class="summary-facts">
+          <div><span>Land</span><strong id="summaryCountry">—</strong></div>
+          <div><span>PLZ</span><strong id="summaryPostal">—</strong></div>
+          <div><span>Transportart</span><strong id="summaryShipmentType">—</strong></div>
+          <div id="summaryLdmRow"><span>Lademeter</span><strong id="summaryLdm">—</strong></div>
+          <div class="wide"><span>Entladestelle</span><strong id="summaryRecipient">—</strong></div>
+          <div><span>Abholung</span><strong id="summaryPickupDate">—</strong></div>
+          <div><span>Lieferung</span><strong id="summaryDeliveryDate">—</strong></div>
+          <div><span>Angebote</span><strong id="summaryCount">—</strong></div>
+          <div class="wide subtle"><span>Zusatzinformationen</span><strong id="summaryFreeText">—</strong></div>
         </div>
       </section>
-    </section>
 
-    <section id="resultsSection" class="results-shell card" style="display:none;">
-      <div class="results-head">
-        <div>
-          <h2>Preise aller Dienstleister</h2>
-          <p class="muted">Sortiert nach Gesamtpreis. Leere Preise oder nicht angebotene Zonen werden automatisch nicht angezeigt.</p>
+      <section id="resultsSection" class="results-shell card" style="display:none;">
+        <div class="results-head">
+          <div><p class="eyebrow">Preisvergleich</p><h2>Verfügbare Dienstleister</h2><p class="muted">Nach Gesamtpreis sortiert. Nicht angebotene Relationen werden automatisch ausgeblendet.</p></div>
+          <div class="results-chip">LIVE KALKULATION</div>
         </div>
-      </div>
-
-      <div class="table-wrap">
-        <table class="price-table">
-          <thead>
-            <tr>
-              <th>Dienstleister</th>
-                            <th class="right">Basis (€)</th>
-              <th class="right">Floater (%)</th>
-              <th class="right">Floater (€)</th>
-              <th class="right">Preis (€)</th>
-                            <th>Anfrage</th>
-              <th>Buchung</th>
-            </tr>
-          </thead>
-          <tbody id="resultsBody">
-            <tr id="noResults">
-              <td colspan="7" class="muted">Noch keine Berechnung.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+        <div class="table-wrap">
+          <table class="price-table">
+            <thead><tr><th>Dienstleister</th><th class="right">Basis</th><th class="right">Floater</th><th class="right">Zuschlag</th><th class="right">Gesamt</th><th>Anfrage</th><th>Buchung</th></tr></thead>
+            <tbody id="resultsBody"><tr id="noResults"><td colspan="7" class="muted">Noch keine Berechnung.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>

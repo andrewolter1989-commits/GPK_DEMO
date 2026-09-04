@@ -1,14 +1,23 @@
-GP Kollund Preisrechner Demo – Version 1
+GP KOLLUND – Freight Rate Calculator Prototype v2
 
-Grundlage:
-- Trocellen: Länder-/PLZ-Zonen, Transportarten Teilladung/FTL/Mega/Jumbo, Lademeter, Tarifbänder, Minimumfracht, Floater, Spediteursvergleich.
-- Pano: Auswahl einer bekannten Entladestelle anhand Land + PLZ sowie Möglichkeit, einen neuen Empfänger manuell einzugeben.
+Diese Version baut auf der funktionsfähigen Demo v1 auf.
 
-Start lokal:
-1. Ordner entpacken.
-2. Im Ordner einen lokalen Webserver starten, z. B. mit Python:
-   python -m http.server 8080
-3. Browser öffnen: http://localhost:8080
+Unverändert:
+- Trocellen Tarif-/Zonenlogik
+- Transportarten Teilladung / FTL / Mega / Jumbo
+- Minimumfracht und Floater
+- Dienstleistervergleich
+- Pano Entladestellen-/Empfängerlogik
+- Anfrage- und Buchungs-E-Mail-Logik
 
-Hinweis:
-Die Demo ist bewusst ohne Backend gebaut. Die Entladestellen werden direkt aus data/Adressen.csv geladen.
+Neu in v2:
+- Produktorientiertes SaaS-Layout
+- kompakte Navigation für spätere Module
+- Workflow in 3 Schritten: Ziel, Transport, Termin & Details
+- professionellere Ergebnis-/Bestpreis-Darstellung
+- responsive Darstellung für Desktop/Tablet/Mobil
+
+Lokaler Start:
+Die Dateien über einen lokalen HTTP-Server ausliefern, z.B. im Projektordner:
+python -m http.server 8000
+Danach im Browser http://localhost:8000 öffnen.
