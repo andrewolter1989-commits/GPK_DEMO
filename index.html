@@ -18,29 +18,22 @@
         <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
         <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.5</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v2.6</div>
     </aside>
 
     <main class="workspace">
-      <header class="topbar card">
-        <div class="topbar-copy">
+      <header class="topbar">
+        <div>
           <p class="eyebrow">Neue Kalkulation</p>
           <h1>Freight Rate Calculator</h1>
           <p class="subline">Transportkosten berechnen, Dienstleister vergleichen und Sendungen direkt anfragen.</p>
         </div>
-        <div class="hero-panel">
-          <div class="hero-label">Prototype v2.5</div>
-          <h2>Freight Intelligence für Vertrieb &amp; Disposition</h2>
-          <p>Schnelle Preisauskunft für Verkäufer und vollständige Tourplanung für operative Teams – in einem einzigen Workflow.</p>
-          <div class="hero-pills"><span>Preisauskunft</span><span>Transport planen</span><span>Live Preisvergleich</span></div>
-        </div>
+        
       </header>
 
-      <div class="workspace-grid">
-        <div class="main-column">
-          <div id="fatalError" class="notice danger"></div>
+      <div id="fatalError" class="notice danger"></div>
 
-          <section class="calculator-shell card">
+      <section class="calculator-shell card">
         <form id="calculatorForm" class="calculator-form" novalidate>
           <section class="workflow-section destination-section">
             <div class="section-head">
@@ -164,30 +157,6 @@
           </table>
         </div>
       </section>
-        </div>
-
-        <aside class="side-column">
-          <section class="side-card card">
-            <p class="eyebrow">Arbeitsweisen</p>
-            <h3>Schnell kalkulieren oder operativ weiterarbeiten</h3>
-            <ul class="feature-list">
-              <li><strong>Nur Preis kalkulieren</strong><span>Land, PLZ und Transportart reichen für eine schnelle Preisauskunft.</span></li>
-              <li><strong>Transport planen</strong><span>Mit Entladestelle, Terminen und Zusatzinformationen bis zur Anfrage oder Buchung.</span></li>
-              <li><strong>Preisvergleich</strong><span>Mehrere Dienstleister transparent vergleichen und die beste Option sofort erkennen.</span></li>
-            </ul>
-          </section>
-
-          <section class="side-card card">
-            <p class="eyebrow">Produktlogik</p>
-            <h3>Wofür das System später steht</h3>
-            <div class="mini-stat-grid">
-              <div><strong>Zonen &amp; Tarife</strong><span>Konfigurierbare Preislogik pro Dienstleister</span></div>
-              <div><strong>Entladestellen</strong><span>Stammdaten für wiederkehrende Empfänger</span></div>
-              <div><strong>Anfrage &amp; Buchung</strong><span>Vom Preis direkt in den operativen Prozess</span></div>
-            </div>
-          </section>
-        </aside>
-      </div>
     </main>
   </div>
   <script src="app.js"></script>
