@@ -1129,3 +1129,95 @@ body.has-results .results-shell{
     gap:20px !important;
   }
 }
+
+
+/* === v3.6 responsive workspace: proportional grid + max-width === */
+.workspace{
+  width:min(calc(100% - 32px), 1600px) !important;
+  max-width:1600px !important;
+  margin:0 auto !important;
+  padding-left:16px !important;
+  padding-right:16px !important;
+}
+
+.workspace-grid{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:24px !important;
+  align-items:start !important;
+}
+
+.results-column{
+  display:none !important;
+  min-width:0 !important;
+  width:auto !important;
+  max-width:none !important;
+}
+
+body.has-results .workspace-grid{
+  grid-template-columns:minmax(0,2.25fr) minmax(340px,.85fr) !important;
+  gap:24px !important;
+}
+
+body.has-results .results-column{
+  display:block !important;
+  visibility:visible !important;
+  pointer-events:auto !important;
+}
+
+body.has-results .results-shell{
+  position:sticky !important;
+  top:18px !important;
+  width:100% !important;
+  max-width:none !important;
+  margin-top:0 !important;
+}
+
+.summary-box,
+.detail-compare-shell{
+  width:100% !important;
+  max-width:100% !important;
+}
+
+/* Medium desktop / laptop: preserve usability by stacking results below */
+@media (max-width: 1380px){
+  .workspace{
+    width:min(calc(100% - 24px), 1280px) !important;
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+
+  body.has-results .workspace-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  body.has-results .results-column{
+    display:block !important;
+    width:100% !important;
+  }
+
+  body.has-results .results-shell{
+    position:static !important;
+    width:100% !important;
+    max-width:100% !important;
+    margin-top:4px !important;
+  }
+
+  body.has-results .offer-cards{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:14px !important;
+  }
+}
+
+@media (max-width: 1050px){
+  .workspace{
+    width:100% !important;
+    max-width:none !important;
+    padding-left:14px !important;
+    padding-right:14px !important;
+  }
+
+  body.has-results .offer-cards{
+    grid-template-columns:1fr !important;
+  }
+}
