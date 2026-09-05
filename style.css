@@ -1462,3 +1462,36 @@ body.has-results #toggleComparison.comparison-toggle{
     width:100% !important;
   }
 }
+
+
+/* v3.9 – restore detail comparison action beside reset */
+#toggleComparison.comparison-toggle{
+  display:none !important;
+  width:auto !important;
+  height:44px !important;
+  padding:0 16px !important;
+  border:1px solid #cbd6dd !important;
+  border-radius:10px !important;
+  background:#fff !important;
+  color:#355564 !important;
+  font-size:13px !important;
+  font-weight:750 !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:5px !important;
+  cursor:pointer !important;
+}
+body.has-results #toggleComparison.comparison-toggle{
+  display:inline-flex !important;
+}
+#toggleComparison.comparison-toggle:hover{
+  background:#f7fbfc !important;
+  border-color:#a9c6d0 !important;
+  color:#0b6888 !important;
+}
+@media(max-width:700px){
+  body.has-results #toggleComparison.comparison-toggle{
+    display:flex !important;
+    width:100% !important;
+  }
+}

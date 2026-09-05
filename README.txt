@@ -1,4 +1,4 @@
-GP KOLLUND – Freight Rate Calculator Prototype v3.8
+GP KOLLUND – Freight Rate Calculator Prototype v3.9
 
 Diese Version baut auf der funktionsfähigen Demo v1 auf.
 
