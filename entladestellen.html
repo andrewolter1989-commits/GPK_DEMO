@@ -14,11 +14,15 @@
       </div>
       <nav class="side-nav" aria-label="Hauptnavigation">
         <a class="nav-item" href="index.html"><span class="nav-icon">⌁</span><span>Kalkulation</span></a>
+        <a class="nav-item" href="vorgaenge.html"><span class="nav-icon">↗</span><span>Anfragen & Buchungen</span></a>
         <a class="nav-item active" href="entladestellen.html"><span class="nav-icon">◎</span><span>Entladestellen</span></a>
-        <button class="nav-item" type="button" disabled><span class="nav-icon">≡</span><span>Tarife</span><small>Demo</small></button>
-        <button class="nav-item" type="button" disabled><span class="nav-icon">⚙</span><span>Einstellungen</span><small>Demo</small></button>
+        <a class="nav-item" href="dienstleister.html"><span class="nav-icon">▦</span><span>Dienstleister</span></a>
+        <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">▥</span><span>Auswertungen</span></a>
+        <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
+        <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v4.0</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.3</div>
     </aside>
 
     <main class="workspace masterdata-workspace">
@@ -57,7 +61,7 @@
         <div class="masterdata-meta">
           <span><strong id="locationCount">8</strong> Entladestellen</span>
           <span class="meta-separator">•</span>
-          <span>Layout-Demo · Speicherung folgt später</span>
+          <span><span class="import-live">Excel/CSV Import aktiv · lokale Speicherung</span></span>
         </div>
 
         <div class="masterdata-table-wrap">
@@ -153,6 +157,12 @@
   </div>
 
   <div class="toast" id="demoToast" hidden></div>
+  <script src="gpk-core.js"></script>
+  <script src="api-client.js"></script>
+  <script src="gpk-data.js"></script>
+
+  <script src="excel-io.js"></script>
+  <script src="import-manager.js"></script>
   <script src="entladestellen.js"></script>
 </body>
 </html>

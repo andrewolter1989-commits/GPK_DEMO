@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GP Kollund – Einstellungen</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="product-shell">
+  <aside class="sidebar">
+    <div class="brand-block"><img class="brand-logo" src="logo.png" alt="GP Kollund – Make logistics smarter"></div>
+    <nav class="side-nav" aria-label="Hauptnavigation">
+        <a class="nav-item" href="index.html"><span class="nav-icon">⌁</span><span>Kalkulation</span></a>
+        <a class="nav-item" href="vorgaenge.html"><span class="nav-icon">↗</span><span>Anfragen & Buchungen</span></a>
+        <a class="nav-item" href="entladestellen.html"><span class="nav-icon">◎</span><span>Entladestellen</span></a>
+        <a class="nav-item" href="dienstleister.html"><span class="nav-icon">▦</span><span>Dienstleister</span></a>
+        <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">▥</span><span>Auswertungen</span></a>
+        <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
+        <a class="nav-item active" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
+      </nav>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.3</div>
+  </aside>
+
+  <main class="workspace settings-workspace">
+    <div class="settings-head">
+      <div>
+        <h1>Einstellungen</h1>
+        <p>Unternehmen, Benutzer, Branding und Systemoptionen verwalten.</p>
+      </div>
+      <button class="primary compact-button" id="saveSettingsBtn" type="button">Änderungen speichern</button>
+    </div>
+
+    <div class="settings-layout">
+      <nav class="settings-nav card" aria-label="Einstellungsbereiche">
+        <button class="settings-tab active" data-tab="company">Unternehmen</button>
+        <button class="settings-tab" data-tab="users" data-permission="users.manage">Benutzer</button>
+        <button class="settings-tab" data-tab="branding">Branding</button>
+        <button class="settings-tab" data-tab="domains">Domains</button>
+        <button class="settings-tab" data-tab="system">System</button>
+        <button class="settings-tab" data-tab="data">Datenstatus</button>
+        <button class="settings-tab" data-tab="admin">Daten-Admin</button>
+        <button class="settings-tab" data-tab="backend">Backend</button>
+        <button class="settings-tab" data-tab="audit" data-permission="audit.view">Aktivitätslog</button>
+      </nav>
+
+      <section class="settings-content">
+        <div class="settings-panel card active" id="tab-company">
+          <div class="panel-head">
+            <div><h2>Unternehmensprofil</h2><p>Grunddaten für den Mandanten und spätere Dokumente.</p></div>
+          </div>
+          <div class="settings-form-grid">
+            <div class="field span-2"><label>Unternehmensname</label><input value="GP Kollund"></div>
+            <div class="field"><label>Mandanten-ID</label><input value="gpk-demo" disabled></div>
+            <div class="field"><label>Sprache</label><select><option>Deutsch</option><option>Englisch</option></select></div>
+            <div class="field"><label>Land</label><select><option>Deutschland</option><option>Dänemark</option></select></div>
+            <div class="field"><label>Währung</label><select><option>EUR</option><option>DKK</option></select></div>
+            <div class="field span-2"><label>Adresse</label><input placeholder="Straße / Hausnummer"></div>
+            <div class="field"><label>PLZ</label><input placeholder="249xx"></div>
+            <div class="field"><label>Ort</label><input placeholder="Kollund / Flensburg"></div>
+            <div class="field"><label>E-Mail</label><input value="info@gpkollund.example"></div>
+            <div class="field"><label>Telefon</label><input value="+49 ..."></div>
+          </div>
+        </div>
+
+        
+        <div class="settings-panel card" id="tab-users">
+          <div class="panel-head settings-panel-actions">
+            <div><h2>Benutzer & Rollen</h2><p>Benutzerzugänge und Rollen verwalten.</p></div>
+            <button class="primary compact-button" id="addUserBtn" type="button">+ Benutzer hinzufügen</button>
+          </div>
+          <div class="role-overview">
+            <div class="role-card"><strong>Admin</strong><span>Alle Module + Benutzerverwaltung</span></div>
+            <div class="role-card"><strong>Disposition</strong><span>Kalkulation, Vorgänge, Stammdaten, Tarife</span></div>
+            <div class="role-card"><strong>Vertrieb</strong><span>Kalkulation, Vorgänge, Kunden- und Dienstleisterdaten</span></div>
+            <div class="role-card"><strong>Controlling</strong><span>Auswertungen, Rechnungsprüfung und Tarife</span></div>
+          </div>
+          <div class="user-list user-admin-list" id="userAdminList"><div class="empty-admin-state">Benutzer werden geladen …</div></div>
+          <div class="settings-note">Passwörter werden gehasht gespeichert und nicht im Klartext angezeigt.</div>
+        </div>
+
+<div class="settings-panel card" id="tab-branding">
+          <div class="panel-head"><div><h2>Branding</h2><p>Darstellung des Systems je Kunde oder Mandant.</p></div></div>
+          <div class="branding-grid">
+            <div class="brand-preview">
+              <div class="brand-preview-sidebar"><img src="logo.png" alt="Logo"><span>Make logistics smarter.</span></div>
+              <div class="brand-preview-main"><span class="preview-label">Vorschau</span><strong>Freight Rate Calculator</strong><div class="preview-button">Preise vergleichen</div></div>
+            </div>
+            <div class="settings-form-grid single-col">
+              <div class="field"><label>Logo-Datei</label><input value="logo.png"></div>
+              <div class="field"><label>Primärfarbe</label><div class="color-input"><span style="background:#004251"></span><input value="#004251"></div></div>
+              <div class="field"><label>Produktname</label><input value="GP Kollund"></div>
+              <div class="field"><label>Slogan</label><input value="Make logistics smarter."></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-panel card" id="tab-domains">
+          <div class="panel-head settings-panel-actions">
+            <div><h2>Domains</h2><p>Vorbereitung für zentrale App und spätere White-Label-Domains.</p></div>
+            <button class="secondary compact-button" id="addDomainBtn" type="button">+ Domain hinzufügen</button>
+          </div>
+          <div class="domain-list">
+            <div class="domain-row"><div><strong>app.gpkollund.de</strong><small>Primäre App-Domain</small></div><span class="status-pill active">Verbunden</span></div>
+            <div class="domain-row"><div><strong>demo.gpkollund.de</strong><small>Demo / Präsentation</small></div><span class="status-pill inactive">Geplant</span></div>
+            <div class="domain-row"><div><strong>kunde-a.de</strong><small>White-Label Beispiel</small></div><span class="status-pill inactive">Geplant</span></div>
+          </div>
+        </div>
+
+        <div class="settings-panel card" id="tab-system">
+          <div class="panel-head"><div><h2>System</h2><p>Allgemeine Regeln für Kalkulation und Datenverwaltung.</p></div></div>
+          <div class="setting-toggle-list">
+            <label class="setting-toggle"><div><strong>Transport planen als Standard</strong><small>Öffnet die Kalkulation standardmäßig im Dispo-Modus.</small></div><input type="checkbox" checked><span></span></label>
+            <label class="setting-toggle"><div><strong>Inaktive Dienstleister ausblenden</strong><small>Werden bei Kalkulationen nicht berücksichtigt.</small></div><input type="checkbox" checked><span></span></label>
+            <label class="setting-toggle"><div><strong>Floater automatisch anwenden</strong><small>Aktueller Floater wird zum Basispreis addiert.</small></div><input type="checkbox" checked><span></span></label>
+            <label class="setting-toggle"><div><strong>Excel-Import validieren</strong><small>Fehlerhafte Datensätze vor Import anzeigen.</small></div><input type="checkbox" checked><span></span></label>
+          </div>
+        </div>
+
+        <div class="settings-panel card" id="tab-data">
+          <div class="panel-head">
+            <div><h2>Lokaler Datenstand</h2><p>Übersicht der aktuell im Browser gespeicherten Demo-Daten.</p></div>
+          </div>
+          <div class="demo-data-grid" id="demoDataGrid"></div>
+          <div class="settings-note">Diese Daten bleiben auf diesem Browser/Gerät. In der späteren Produktivversion werden dieselben Bereiche zentral aus der Datenbank geladen.</div>
+        </div>
+
+
+        <div class="settings-panel card" id="tab-admin">
+          <div class="panel-head">
+            <div>
+              <h2>Daten-Admin</h2>
+              <p>Lokale Demo-Daten sichern, wiederherstellen oder gezielt zurücksetzen.</p>
+            </div>
+          </div>
+
+          <div class="admin-action-grid">
+            <article class="admin-action-card">
+              <span class="admin-icon">↓</span>
+              <div><strong>Backup erstellen</strong><small>Alle lokalen Daten in einer JSON-Datei sichern.</small></div>
+              <button class="primary compact-button" id="backupAllBtn" type="button">Backup herunterladen</button>
+            </article>
+
+            <article class="admin-action-card">
+              <span class="admin-icon">↑</span>
+              <div><strong>Backup wiederherstellen</strong><small>Eine zuvor exportierte Sicherung einspielen.</small></div>
+              <button class="secondary compact-button" id="restoreBackupBtn" type="button">Backup auswählen</button>
+              <input id="restoreBackupInput" type="file" accept=".json,application/json" hidden>
+            </article>
+
+            <article class="admin-action-card danger">
+              <span class="admin-icon">↺</span>
+              <div><strong>Alle lokalen Daten löschen</strong><small>Setzt das System auf Demo-Ausgangsdaten zurück.</small></div>
+              <button class="danger-button compact-button" id="resetAllBtn" type="button">Lokale Daten löschen</button>
+            </article>
+          </div>
+
+          <div class="admin-section">
+            <div class="admin-section-head">
+              <div><h3>Datenbereiche</h3><p>Einzelne Bereiche leeren, ohne andere Module zu verändern.</p></div>
+            </div>
+            <div class="area-list" id="adminAreaList"></div>
+          </div>
+
+          <div class="admin-section">
+            <div class="admin-section-head">
+              <div><h3>Import-Historie</h3><p>Die letzten Excel-/CSV-Importe dieser Demo.</p></div>
+              <button class="secondary compact-button" id="refreshImportHistoryBtn" type="button">Aktualisieren</button>
+            </div>
+            <div class="import-history" id="importHistoryList"></div>
+          </div>
+        </div>
+
+
+        <div class="settings-panel card" id="tab-backend">
+          <div class="panel-head">
+            <div><h2>Backend & Datenbank</h2><p>v6.1 verbindet die bestehenden Module automatisch mit dem lokalen Backend, sobald der Server läuft.</p></div>
+          </div>
+          <div class="backend-status-grid">
+            <div class="backend-status-card"><span>Server</span><strong id="backendServerState">Prüfen …</strong><small>Node.js / Express</small></div>
+            <div class="backend-status-card"><span>Datenbank</span><strong>SQLite</strong><small>server/data/gpk.sqlite</small></div>
+            <div class="backend-status-card"><span>Login</span><strong>JWT Cookie</strong><small>12 Stunden Sitzung</small></div>
+            <div class="backend-status-card"><span>Mandant</span><strong>company_id</strong><small>Mandantentrennung ist bereits im Backend-Schema</small></div>
+          </div>
+          <div class="backend-steps">
+            <h3>Lokal starten</h3>
+            <ol>
+              <li>Node.js installieren.</li>
+              <li>Im Projektordner <code>npm install</code> ausführen.</li>
+              <li>Danach <code>npm start</code>.</li>
+              <li><code>http://localhost:3000</code> öffnen.</li>
+            </ol>
+            <div class="settings-note">Demo-Login: <strong>admin@gpk.local</strong> · Passwort <strong>demo1234</strong>. Für produktiven Einsatz werden Secret, HTTPS, PostgreSQL und sichere Benutzerverwaltung eingerichtet.</div>
+          </div>
+        </div>
+
+<div class="settings-panel card" id="tab-audit"><div class="panel-head settings-panel-actions"><div><h2>Aktivitätslog</h2><p>Wer hat was wann angelegt oder geändert?</p></div><button class="secondary compact-button" id="refreshAuditBtn" type="button">Aktualisieren</button></div><div class="audit-summary-grid"><div class="backend-status-card"><span>Aktionen</span><strong id="auditCount">0</strong></div><div class="backend-status-card"><span>Tour-Buchungen</span><strong id="auditBookingCount">0</strong></div><div class="backend-status-card"><span>Benutzer</span><strong id="auditUserCount">0</strong></div></div><div class="masterdata-table-wrap"><table class="masterdata-table audit-table"><thead><tr><th>Zeitpunkt</th><th>Benutzer</th><th>Aktion</th><th>Bereich</th><th>Referenz</th><th>Beschreibung</th></tr></thead><tbody id="auditRows"></tbody></table></div></div>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="toast" id="settingsToast" hidden></div>
+  <script src="gpk-core.js"></script>
+  <script src="api-client.js"></script>
+  <script src="gpk-data.js"></script>
+
+<script src="einstellungen.js"></script>
+
+<div class="modal-backdrop" id="userModal" hidden>
+  <section class="location-modal user-modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div><span class="modal-eyebrow">Benutzerverwaltung</span><h2 id="userModalTitle">Benutzer hinzufügen</h2></div>
+      <button class="modal-close" id="closeUserModalBtn" type="button">×</button>
+    </div>
+    <form id="userForm">
+      <div class="location-form-grid">
+        <div class="field span-2"><label>Name</label><input id="userName" required></div>
+        <div class="field span-2"><label>E-Mail</label><input id="userEmail" type="email" required></div>
+        <div class="field"><label>Rolle</label><select id="userRole"><option value="admin">Admin</option><option value="dispo" selected>Disposition</option><option value="sales">Vertrieb</option><option value="controlling">Controlling</option></select></div>
+        <div class="field"><label>Status</label><select id="userActive"><option value="1">Aktiv</option><option value="0">Inaktiv</option></select></div>
+        <div class="field span-2"><label>Passwort</label><input id="userPassword" type="password" placeholder="mindestens 6 Zeichen"></div>
+        <div class="span-2 permission-editor"><div class="permission-editor-head"><div><strong>Individuelle Rechte</strong><small>Rolle ist nur Vorlage; Rechte können abweichen.</small></div><label><input id="userFullAccess" type="checkbox"> Vollzugriff</label></div><div class="permission-grid" id="userPermissionGrid"></div></div>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary compact-button" id="cancelUserModalBtn" type="button">Abbrechen</button>
+        <button class="primary compact-button" type="submit">Benutzer speichern</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+</body>
+</html>

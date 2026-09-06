@@ -1,5 +1,5 @@
 
-const locations = [
+const defaultLocations = [
   {id:1,name:"Andre Wolter",street:"An der Hochschule 4",zip:"24405",city:"Mohrkirch",country:"DE",contact:"Andre Wolter",email:"andre.wolter@example.com",phone:"+49 000 000000",status:"active",time:"",notes:""},
   {id:2,name:"Nordpack GmbH",street:"Werkstraße 18",zip:"24941",city:"Flensburg",country:"DE",contact:"Jana Petersen",email:"dispo@nordpack.example",phone:"+49 461 555010",status:"active",time:"07:00–15:00",notes:"Anmeldung beim Pförtner"},
   {id:3,name:"Demo Logistics NV",street:"Havenlaan 8",zip:"2450",city:"Meerhout",country:"BE",contact:"Tom Vermeulen",email:"warehouse@demo.example",phone:"+32 14 100200",status:"active",time:"08:00–14:00",notes:"Seitliche Entladung möglich"},
@@ -10,6 +10,7 @@ const locations = [
   {id:8,name:"Hanse Werkstoffe",street:"Billbrookdeich 77",zip:"22113",city:"Hamburg",country:"DE",contact:"Lea Hansen",email:"lager@hanse.example",phone:"+49 40 300020",status:"active",time:"06:00–14:00",notes:"Rampe 5"}
 ];
 
+let locations = GPK.read(GPK.KEYS.locations, null) || defaultLocations;
 let editingId = null;
 
 const rows = document.getElementById("locationRows");
@@ -108,12 +109,35 @@ form.addEventListener("submit",e=>{
     locations.unshift({id:Date.now(), ...data});
     showToast("Entladestelle wurde in der Layout-Demo angelegt.");
   }
+  GPK.write(GPK.KEYS.locations, locations);
   closeModal();
   render();
 });
 
 [search,countryFilter,statusFilter].forEach(el=>el.addEventListener("input",render));
-document.getElementById("importBtn").addEventListener("click",()=>showToast("Excel-Import wird im nächsten technischen Schritt angebunden."));
-document.getElementById("exportBtn").addEventListener("click",()=>showToast("Excel-/CSV-Export wird im nächsten technischen Schritt angebunden."));
+document.getElementById("importBtn").addEventListener("click",()=>chooseImportFile(async file=>{
+  try{
+    await GPKImport.open("locations",file);
+    const confirm=document.getElementById("gpkImportConfirmBtn");
+    confirm.onclick=()=>{
+      const result=GPKImport.confirm();
+      locations=GPK.read(GPK.KEYS.locations,[])||[];
+      render();
+      showToast(result.message);
+    };
+  }catch(err){showToast("Import fehlgeschlagen: "+err.message);}
+}));
+document.getElementById("exportBtn").addEventListener("click",async ()=>{
+  try{
+    await exportWorkbook("GP_Kollund_Entladestellen.xlsx",{
+      "Entladestellen":locations.map(x=>({
+        "Firmenname":x.name,"Land":x.country,"PLZ":x.zip,"Ort":x.city,"Straße":x.street,
+        "Ansprechpartner":x.contact,"E-Mail":x.email,"Telefon":x.phone,"Zeitfenster":x.time,
+        "Hinweise":x.notes,"Aktiv":x.status==="active"?"Ja":"Nein"
+      }))
+    });
+    showToast("Entladestellen exportiert.");
+  }catch(err){showToast("Export fehlgeschlagen: "+err.message);}
+});
 
 render();

@@ -23,6 +23,7 @@ const STATE = {
   addresses: [],
   recipientsById: {},
   providers: {},
+  latestResults: [],
 };
 
 let CALCULATION_MODE = "planning";
@@ -817,6 +818,130 @@ function renderResults(results) {
   });
 }
 
+
+const GPK_STORAGE = {
+  calculations: GPK.KEYS.calculations,
+  operations: GPK.KEYS.operations,
+};
+
+function readDemoStore(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function writeDemoStore(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (_) {}
+}
+
+function makeOperationId() {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const time = String(now.getHours()).padStart(2, "0") + String(now.getMinutes()).padStart(2, "0") + String(now.getSeconds()).padStart(2, "0");
+  return `GPK-${yy}${mm}${dd}-${time}`;
+}
+
+function getCurrentOffer(forwarder) {
+  return (STATE.latestResults || []).find((r) => r.forwarder === forwarder) || null;
+}
+
+function getCurrentWorkflowData(forwarder) {
+  const country = document.getElementById("destCountry")?.value?.trim() || "";
+  const plz = document.getElementById("postalCode")?.value?.trim() || "";
+  const shipmentType = getSelectedShipmentType();
+  const shipmentLabel = SHIPMENT_TYPES[shipmentType]?.label || shipmentType;
+  const effectiveLoadMeters = getEffectiveLoadMeters(shipmentType, document.getElementById("loadMeters")?.value || "");
+  const recipient = getSelectedRecipient();
+  const offer = getCurrentOffer(forwarder);
+  const deliveryRaw = document.getElementById("deliveryDate")?.value || "";
+  const pickupRaw = document.getElementById("pickupDate")?.value || "";
+  const customer = recipient ? (recipient.name || recipient.company || formatRecipientOption(recipient)) : "Nicht angegeben";
+  const transport = shipmentType === "teilladung" && Number.isFinite(effectiveLoadMeters)
+    ? `${shipmentLabel} · ${String(effectiveLoadMeters).replace(".", ",")} Ldm`
+    : shipmentLabel;
+
+  return {
+    country,
+    plz,
+    provider: forwarder,
+    price: offer?.total || 0,
+    basePrice: offer?.basePrice || 0,
+    floaterPercent: offer?.floaterPercent || 0,
+    floaterAmount: offer?.floaterAmount || 0,
+    relation: `${ORIGIN_COUNTRY} → ${country} ${plz}`.trim(),
+    transport,
+    customer,
+    pickupRaw,
+    deliveryRaw,
+    pickup: formatDisplayDate(pickupRaw),
+    delivery: formatDisplayDate(deliveryRaw),
+    note: document.getElementById("freeText")?.value?.trim() || "",
+  };
+}
+
+function saveCalculationSnapshot(results) {
+  if (!results?.length) return;
+  const best = results[0];
+  const d = getCurrentWorkflowData(best.forwarder);
+  const list = readDemoStore(GPK_STORAGE.calculations);
+  const now = new Date();
+  list.unshift({
+    id: makeOperationId().replace("GPK-", "CALC-"),
+    createdAt: now.toISOString(),
+    provider: best.forwarder,
+    price: best.total,
+    secondPrice: results[1]?.total ?? best.total,
+    saving: results[1] ? Math.max(0, results[1].total - best.total) : 0,
+    country: d.country,
+    postalCode: d.plz,
+    relation: d.relation,
+    transport: d.transport,
+    customer: d.customer,
+    pickup: d.pickup,
+    delivery: d.delivery,
+    mode: CALCULATION_MODE,
+  });
+  writeDemoStore(GPK_STORAGE.calculations, list.slice(0, 500));
+}
+
+function saveWorkflowOperation(forwarder, kind) {
+  const d = getCurrentWorkflowData(forwarder);
+  const list = readDemoStore(GPK_STORAGE.operations);
+  const now = new Date();
+  const operation = {
+    id: makeOperationId(),
+    type: kind === "booking" ? "booking" : "availability",
+    relation: d.relation,
+    provider: d.provider,
+    price: Math.round(d.price || 0),
+    status: kind === "booking" ? "booked" : "waiting",
+    date: d.delivery || "—",
+    user: "Disposition",
+    transport: d.transport,
+    customer: d.customer,
+    created: now.toLocaleDateString("de-DE") + " · " + now.toLocaleTimeString("de-DE", {hour:"2-digit", minute:"2-digit"}),
+    createdAt: now.toISOString(),
+    note: kind === "booking"
+      ? "Buchung aus der Kalkulation erstellt."
+      : "Verfügbarkeitsanfrage aus der Kalkulation erstellt.",
+    pickup: d.pickup,
+    delivery: d.delivery,
+    basePrice: d.basePrice,
+    floaterPercent: d.floaterPercent,
+    floaterAmount: d.floaterAmount,
+  };
+  list.unshift(operation);
+  writeDemoStore(GPK_STORAGE.operations, list.slice(0, 500));
+  return operation;
+}
+
 function showMissingEmail(forwarder, kind) {
   const label = kind === "booking" ? "Buchung" : "Verfügbarkeit";
   alert(`Für ${forwarder} ist noch keine E-Mail-Adresse für ${label} in emails.json hinterlegt.`);
@@ -872,6 +997,10 @@ bodyText += `Liefertermin ${deliveryDate}
 Vielen Dank und kurze Rückmeldung.`;
 
   const body = encodeURIComponent(bodyText);
+  const savedOperation = saveWorkflowOperation(forwarder, kind);
+  try {
+    sessionStorage.setItem("gpk_last_operation_id", savedOperation.id);
+  } catch (_) {}
   window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
 }
 
@@ -1006,11 +1135,13 @@ const freeTextInput = document.getElementById("freeText");
       return;
     }
 
+    STATE.latestResults = successfulResults;
     renderResults(successfulResults);
     if (comparisonTable) comparisonTable.style.display = "none";
     if (toggleComparison) toggleComparison.innerHTML = 'Alle Angebote im Detail vergleichen <span aria-hidden="true">↓</span>';
 
     const cheapest = successfulResults[0];
+    saveCalculationSnapshot(successfulResults);
     const shipmentLabel = SHIPMENT_TYPES[shipmentType]?.label || "—";
     document.getElementById("summaryCountry").textContent = input.destCountry;
     document.getElementById("summaryPostal").textContent = input.postalCode;

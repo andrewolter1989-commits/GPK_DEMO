@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GP Kollund – Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-brand">
+      <img src="logo.png" alt="GP Kollund">
+      <h1>Freight Rate Management</h1>
+      <p>Kalkulation, Tarife, Buchungen und Auswertungen in einem System.</p>
+      <span>Prototype v6.3</span>
+    </section>
+    <section class="login-card">
+      <div class="login-card-head">
+        <span class="modal-eyebrow">Anmeldung</span>
+        <h2>Willkommen zurück</h2>
+        <p>Mit Ihrem Benutzerkonto anmelden.</p>
+      </div>
+      <form id="loginForm" class="login-form">
+        <div class="field">
+          <label for="loginEmail">E-Mail</label>
+          <input id="loginEmail" type="email" value="admin@gpk.local" required>
+        </div>
+        <div class="field">
+          <label for="loginPassword">Passwort</label>
+          <input id="loginPassword" type="password" value="demo1234" required>
+        </div>
+        <div class="login-demo-hint">
+          <strong>Lokaler Demo-Zugang</strong>
+          <span>admin@gpk.local · demo1234</span>
+        </div>
+        <button class="primary login-button" type="submit">Anmelden</button>
+        <div class="login-error" id="loginError" hidden></div>
+      </form>
+      <div class="login-local-note" id="loginLocalNote" hidden>
+        Backend nicht gestartet. Die statische Demo kann weiterhin direkt über <strong>index.html</strong> geöffnet werden.
+      </div>
+    </section>
+  </main>
+  <script src="api-client.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>

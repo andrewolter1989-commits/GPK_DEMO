@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GP Kollund – Anfragen & Buchungen</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="product-shell">
+  <aside class="sidebar">
+    <div class="brand-block"><img class="brand-logo" src="logo.png" alt="GP Kollund – Make logistics smarter"></div>
+    <nav class="side-nav" aria-label="Hauptnavigation">
+        <a class="nav-item" href="index.html"><span class="nav-icon">⌁</span><span>Kalkulation</span></a>
+        <a class="nav-item active" href="vorgaenge.html"><span class="nav-icon">↗</span><span>Anfragen & Buchungen</span></a>
+        <a class="nav-item" href="entladestellen.html"><span class="nav-icon">◎</span><span>Entladestellen</span></a>
+        <a class="nav-item" href="dienstleister.html"><span class="nav-icon">▦</span><span>Dienstleister</span></a>
+        <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">▥</span><span>Auswertungen</span></a>
+        <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
+        <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
+      </nav>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.3</div>
+  </aside>
+
+  <main class="workspace masterdata-workspace operations-workspace">
+    <section class="masterdata-card card">
+      <div class="masterdata-toolbar operations-toolbar">
+        <div>
+          <h1>Anfragen & Buchungen</h1>
+          <p>Transportvorgänge, Status und Rückmeldungen zentral im Blick behalten.</p>
+        </div>
+        <div class="masterdata-actions">
+          <a class="secondary compact-button operations-link" href="index.html">Neue Preisanfrage</a>
+          <a class="primary compact-button operations-link" href="index.html">+ Neue Kalkulation</a>
+        </div>
+      </div>
+
+      <div class="provider-kpis operations-kpis">
+        <div class="provider-kpi"><span>Offene Anfragen</span><strong id="openCount">0</strong></div>
+        <div class="provider-kpi"><span>Warten auf Antwort</span><strong id="waitingCount">0</strong></div>
+        <div class="provider-kpi"><span>Gebucht</span><strong id="bookedCount">0</strong></div>
+        <div class="provider-kpi"><span>Diese Woche</span><strong id="weekCount">0</strong></div>
+      </div>
+
+      <div class="operations-tabs" role="tablist" aria-label="Vorgangsarten">
+        <button class="operations-tab active" data-type="">Alle</button>
+        <button class="operations-tab" data-type="price">Preisanfragen</button>
+        <button class="operations-tab" data-type="availability">Verfügbarkeit</button>
+        <button class="operations-tab" data-type="booking">Buchungen</button>
+      </div>
+
+      <div class="masterdata-filterbar operations-filterbar">
+        <label class="search-box"><span class="search-icon">⌕</span><input id="operationSearch" type="search" placeholder="Vorgang, PLZ, Ort oder Dienstleister suchen"></label>
+        <select id="operationStatusFilter">
+          <option value="">Alle Status</option>
+          <option value="open">Offen</option>
+          <option value="waiting">Warten auf Antwort</option>
+          <option value="confirmed">Bestätigt</option>
+          <option value="booked">Gebucht</option>
+          <option value="closed">Abgeschlossen</option>
+        </select>
+        <select id="operationUserFilter">
+          <option value="">Alle Benutzer</option>
+          <option value="Disposition">Disposition</option>
+          <option value="Vertrieb">Vertrieb</option>
+          <option value="Andre Wolter">Andre Wolter</option>
+        </select>
+      </div>
+
+      <div class="masterdata-meta">
+        <span><strong id="visibleOperationCount">0</strong> Vorgänge angezeigt</span>
+        <span class="meta-separator">•</span>
+        <span>Layout-Demo · Statushistorie und Nachrichten werden später gespeichert</span>
+      </div>
+
+      <div class="masterdata-table-wrap">
+        <table class="masterdata-table operations-table">
+          <thead>
+            <tr>
+              <th>Vorgang</th>
+              <th>Relation</th>
+              <th>Dienstleister</th>
+              <th>Preis</th>
+              <th>Status</th>
+              <th>Termin</th>
+              <th>Benutzer</th>
+              <th class="actions-col"></th>
+            </tr>
+          </thead>
+          <tbody id="operationRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="operationModal" hidden>
+  <section class="operation-modal" role="dialog" aria-modal="true" aria-labelledby="operationModalTitle">
+    <div class="modal-head">
+      <div><span class="modal-eyebrow">Vorgang</span><h2 id="operationModalTitle">Details</h2></div>
+      <button class="modal-close" id="closeOperationModalBtn" type="button" aria-label="Schließen">×</button>
+    </div>
+    <div class="operation-detail" id="operationDetail"></div>
+    <div class="modal-actions">
+      <button class="secondary compact-button" id="closeOperationBtn" type="button">Schließen</button>
+      <button class="primary compact-button" id="demoActionBtn" type="button">Status aktualisieren</button>
+    </div>
+  </section>
+</div>
+<div class="toast" id="operationToast" hidden></div>
+  <script src="gpk-core.js"></script>
+  <script src="api-client.js"></script>
+  <script src="gpk-data.js"></script>
+
+<script src="vorgaenge.js"></script>
+</body>
+</html>

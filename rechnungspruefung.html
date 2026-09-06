@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GP Kollund – Rechnungsprüfung</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="product-shell">
+  <aside class="sidebar">
+    <div class="brand-block"><img class="brand-logo" src="logo.png" alt="GP Kollund – Make logistics smarter"></div>
+    <nav class="side-nav" aria-label="Hauptnavigation">
+        <a class="nav-item" href="index.html"><span class="nav-icon">⌁</span><span>Kalkulation</span></a>
+        <a class="nav-item" href="vorgaenge.html"><span class="nav-icon">↗</span><span>Anfragen & Buchungen</span></a>
+        <a class="nav-item" href="entladestellen.html"><span class="nav-icon">◎</span><span>Entladestellen</span></a>
+        <a class="nav-item" href="dienstleister.html"><span class="nav-icon">▦</span><span>Dienstleister</span></a>
+        <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">▥</span><span>Auswertungen</span></a>
+        <a class="nav-item active" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
+        <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
+      </nav>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.3</div>
+  </aside>
+
+  <main class="workspace invoice-workspace">
+    <div class="invoice-head">
+      <div>
+        <h1>Rechnungsprüfung</h1>
+        <p>Frachtrechnungen gegen Tarif, Floater und Buchungsdaten prüfen.</p>
+      </div>
+      <button class="secondary compact-button" id="exportChecksBtn" type="button">Prüfungen exportieren</button>
+    </div>
+
+    <section class="invoice-kpis">
+      <article class="kpi-card"><span>Geprüfte Rechnungen</span><strong id="checkCount">28</strong><small>laufender Monat</small></article>
+      <article class="kpi-card"><span>Ohne Abweichung</span><strong id="okCount">21</strong><small>75 % korrekt</small></article>
+      <article class="kpi-card"><span>Mit Abweichung</span><strong id="diffCount">5</strong><small>manuelle Prüfung empfohlen</small></article>
+      <article class="kpi-card"><span>Nicht zugeordnet</span><strong id="unmatchedCount">2</strong><small>Tarif oder Vorgang fehlt</small></article>
+      <article class="kpi-card"><span>Abweichung gesamt</span><strong id="diffSum">436 €</strong><small>über Sollpreis</small></article>
+    </section>
+
+    <section class="invoice-entry-grid">
+      <article class="invoice-card upload-card">
+        <div class="invoice-card-head">
+          <div><span class="modal-eyebrow">Datei</span><h2>Rechnung hochladen</h2></div>
+          <span class="future-pill">Layout-Demo</span>
+        </div>
+        <div class="invoice-dropzone" id="invoiceDropzone">
+          <div class="drop-icon">⇧</div>
+          <strong>PDF, Excel oder CSV hier ablegen</strong>
+          <span>oder Datei auswählen</span>
+          <button class="secondary compact-button" id="chooseInvoiceBtn" type="button">Datei auswählen</button>
+          <input id="invoiceFileInput" type="file" accept=".pdf,.xlsx,.xls,.csv" hidden>
+        </div>
+        <div class="invoice-hint">Später werden Rechnungsnummer, Dienstleister, Transportdatum und Beträge automatisch erkannt.</div>
+      </article>
+
+      <article class="invoice-card manual-card">
+        <div class="invoice-card-head">
+          <div><span class="modal-eyebrow">Manuell</span><h2>Rechnung erfassen</h2></div>
+        </div>
+        <form id="manualInvoiceForm" class="invoice-form-grid">
+          <div class="field"><label>Rechnungsnummer</label><input id="invNumber" required placeholder="RE-2026-1048"></div>
+          <div class="field"><label>Dienstleister</label>
+            <select id="invProvider" required>
+              <option value="LIT">LIT</option><option value="Transimeksa">Transimeksa</option>
+              <option value="Bertschi">Bertschi</option><option value="Duvenbeck">Duvenbeck</option>
+              <option value="Dachser">Dachser</option><option value="Raben">Raben</option><option value="DSV">DSV</option>
+            </select>
+          </div>
+          <div class="field"><label>Transportdatum</label><input id="invDate" type="date" required></div>
+          <div class="field"><label>PLZ Ziel</label><input id="invZip" required placeholder="24939"></div>
+          <div class="field"><label>Transportart</label>
+            <select id="invTransport"><option>FTL</option><option>Teilladung</option><option>Mega</option><option>Jumbo</option></select>
+          </div>
+          <div class="field"><label>Rechnungsbetrag €</label><input id="invAmount" type="number" step="0.01" required placeholder="1034.00"></div>
+          <div class="field span-2"><label>Vorgangs-/Buchungs-ID</label><input id="invOperation" placeholder="optional, z. B. GPK-260906-..."></div>
+          <div class="span-2 invoice-form-action"><button class="primary compact-button" type="submit">Rechnung prüfen</button></div>
+        </form>
+      </article>
+    </section>
+
+    <section class="invoice-card invoice-result-card" id="invoiceResultCard" hidden>
+      <div class="invoice-result-status" id="invoiceResultStatus">
+        <div><span class="result-kicker">Prüfergebnis</span><strong id="resultHeadline">Abweichung festgestellt</strong></div>
+        <span class="status-pill active" id="resultStatusPill">OK</span>
+      </div>
+      <div class="invoice-compare-grid">
+        <div class="compare-box"><span>Rechnungsbetrag</span><strong id="resultInvoiceAmount">0 €</strong></div>
+        <div class="compare-box"><span>Sollpreis Tarif</span><strong id="resultBase">0 €</strong></div>
+        <div class="compare-box"><span>gültiger Floater</span><strong id="resultFloater">0 %</strong><small id="resultFloaterPeriod">—</small></div>
+        <div class="compare-box"><span>Erwarteter Gesamtpreis</span><strong id="resultExpected">0 €</strong></div>
+        <div class="compare-box emphasis"><span>Abweichung</span><strong id="resultDifference">0 €</strong></div>
+      </div>
+      <div class="invoice-result-meta" id="resultMeta"></div>
+    </section>
+
+    <section class="invoice-card history-card">
+      <div class="invoice-card-head history-head">
+        <div><h2>Letzte Prüfungen</h2><p>Historie für spätere Nachweise und Rechnungsabgleich.</p></div>
+        <div class="invoice-history-filters">
+          <select id="checkStatusFilter"><option value="">Alle Status</option><option value="ok">OK</option><option value="diff">Abweichung</option><option value="unmatched">Nicht zugeordnet</option></select>
+          <input id="checkSearch" type="search" placeholder="Rechnung, Dienstleister, Vorgang">
+        </div>
+      </div>
+      <div class="masterdata-table-wrap">
+        <table class="masterdata-table invoice-table">
+          <thead><tr>
+            <th>Rechnung</th><th>Dienstleister</th><th>Transportdatum</th><th>Soll</th><th>Ist</th><th>Abweichung</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="invoiceCheckRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="invoiceToast" hidden></div>
+  <script src="gpk-core.js"></script>
+  <script src="api-client.js"></script>
+  <script src="gpk-data.js"></script>
+
+<script src="rechnungspruefung.js"></script>
+</body>
+</html>

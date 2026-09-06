@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GP Kollund – Auswertungen</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="product-shell">
+  <aside class="sidebar">
+    <div class="brand-block"><img class="brand-logo" src="logo.png" alt="GP Kollund – Make logistics smarter"></div>
+    <nav class="side-nav" aria-label="Hauptnavigation">
+        <a class="nav-item" href="index.html"><span class="nav-icon">⌁</span><span>Kalkulation</span></a>
+        <a class="nav-item" href="vorgaenge.html"><span class="nav-icon">↗</span><span>Anfragen & Buchungen</span></a>
+        <a class="nav-item" href="entladestellen.html"><span class="nav-icon">◎</span><span>Entladestellen</span></a>
+        <a class="nav-item" href="dienstleister.html"><span class="nav-icon">▦</span><span>Dienstleister</span></a>
+        <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a>
+        <a class="nav-item active" href="dashboard.html"><span class="nav-icon">▥</span><span>Auswertungen</span></a>
+        <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
+        <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
+      </nav>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.3</div>
+  </aside>
+
+  <main class="workspace dashboard-workspace">
+    <div class="dashboard-head">
+      <div>
+        <h1>Auswertungen</h1>
+        <p>Kosten, Buchungen und Dienstleister-Performance im Überblick.</p>
+      </div>
+      <div class="dashboard-period">
+        <select id="periodSelect">
+          <option value="30">Letzte 30 Tage</option>
+          <option value="90">Letzte 90 Tage</option>
+          <option value="365">Dieses Jahr</option>
+        </select>
+        <button class="secondary compact-button" id="exportDashboardBtn" type="button">Exportieren</button>
+      </div>
+    </div>
+
+    <section class="dashboard-kpis">
+      <article class="kpi-card">
+        <span>Kalkulationen</span>
+        <strong id="kpiCalculations">124</strong>
+        <small>+18 % zum Vormonat</small>
+      </article>
+      <article class="kpi-card">
+        <span>Buchungen</span>
+        <strong id="kpiBookings">41</strong>
+        <small>33,1 % Buchungsquote</small>
+      </article>
+      <article class="kpi-card">
+        <span>Ø Transportpreis</span>
+        <strong id="kpiAvgPrice">1.086 €</strong>
+        <small>-3,8 % zum Vormonat</small>
+      </article>
+      <article class="kpi-card">
+        <span>Einsparung</span>
+        <strong id="kpiSavings">8.740 €</strong>
+        <small>gegenüber zweitbestem Angebot</small>
+      </article>
+      <article class="kpi-card">
+        <span>Offene Vorgänge</span>
+        <strong id="kpiOpen">9</strong>
+        <small>3 warten auf Antwort</small>
+      </article>
+      <article class="kpi-card">
+        <span>Rechnungsabweichung</span>
+        <strong id="kpiInvoice">1,9 %</strong>
+        <small>Vorschau für spätere Prüfung</small>
+      </article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="dashboard-card wide-card">
+        <div class="chart-head">
+          <div><h2>Transportkosten-Entwicklung</h2><p>Durchschnittlicher Gesamtpreis pro Monat</p></div>
+          <span class="chart-badge">EUR</span>
+        </div>
+        <div class="bar-chart" id="costChart">
+          <div class="bar-col"><div class="bar-value">1.142 €</div><div class="bar" style="height:72%"></div><span>Apr</span></div>
+          <div class="bar-col"><div class="bar-value">1.118 €</div><div class="bar" style="height:67%"></div><span>Mai</span></div>
+          <div class="bar-col"><div class="bar-value">1.097 €</div><div class="bar" style="height:62%"></div><span>Jun</span></div>
+          <div class="bar-col"><div class="bar-value">1.074 €</div><div class="bar" style="height:56%"></div><span>Jul</span></div>
+          <div class="bar-col"><div class="bar-value">1.061 €</div><div class="bar" style="height:52%"></div><span>Aug</span></div>
+          <div class="bar-col active"><div class="bar-value">1.086 €</div><div class="bar" style="height:58%"></div><span>Sep</span></div>
+        </div>
+      </article>
+
+      <article class="dashboard-card">
+        <div class="chart-head">
+          <div><h2>Transportarten</h2><p>Anteil der Kalkulationen</p></div>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut-chart">
+            <div class="donut-center"><strong>124</strong><span>gesamt</span></div>
+          </div>
+          <div class="donut-legend">
+            <div><span class="legend-dot l1"></span><strong>FTL</strong><small>46 %</small></div>
+            <div><span class="legend-dot l2"></span><strong>Teilladung</strong><small>31 %</small></div>
+            <div><span class="legend-dot l3"></span><strong>Mega</strong><small>15 %</small></div>
+            <div><span class="legend-dot l4"></span><strong>Jumbo</strong><small>8 %</small></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="dashboard-card">
+        <div class="chart-head">
+          <div><h2>Dienstleister-Performance</h2><p>Buchungen und Ø Preis</p></div>
+        </div>
+        <div class="ranking-list">
+          <div class="ranking-row"><span class="rank">1</span><div><strong>LIT</strong><small>14 Buchungen</small></div><b>982 €</b></div>
+          <div class="ranking-row"><span class="rank">2</span><div><strong>Transimeksa</strong><small>9 Buchungen</small></div><b>1.014 €</b></div>
+          <div class="ranking-row"><span class="rank">3</span><div><strong>DSV</strong><small>7 Buchungen</small></div><b>1.089 €</b></div>
+          <div class="ranking-row"><span class="rank">4</span><div><strong>Dachser</strong><small>6 Buchungen</small></div><b>1.132 €</b></div>
+          <div class="ranking-row"><span class="rank">5</span><div><strong>Raben</strong><small>5 Buchungen</small></div><b>1.168 €</b></div>
+        </div>
+      </article>
+
+      <article class="dashboard-card">
+        <div class="chart-head">
+          <div><h2>Diesel / Floater</h2><p>Aktuelle Entwicklung</p></div>
+        </div>
+        <div class="metric-list">
+          <div><span>Aktuell gültige Floater</span><strong>5</strong></div>
+          <div><span>Ø Floater September</span><strong>8,1 %</strong></div>
+          <div><span>Höchster Floater</span><strong>9,2 %</strong></div>
+          <div><span>Nächster Wechsel</span><strong>15.09.</strong></div>
+        </div>
+        <a class="dashboard-link" href="tarife.html">Diesel / Floater öffnen →</a>
+      </article>
+
+      <article class="dashboard-card wide-card">
+        <div class="chart-head">
+          <div><h2>Top-Relationen</h2><p>Häufigste kalkulierte Zielgebiete</p></div>
+        </div>
+        <div class="relations-table">
+          <div class="relations-head"><span>Relation</span><span>Kalkulationen</span><span>Ø Preis</span><span>Bestpreisquote</span></div>
+          <div class="relations-row"><span>DE · 24xxx</span><span>28</span><span>948 €</span><span>71 %</span></div>
+          <div class="relations-row"><span>DE · 22xxx</span><span>21</span><span>1.036 €</span><span>67 %</span></div>
+          <div class="relations-row"><span>BE · 24xx</span><span>17</span><span>1.214 €</span><span>59 %</span></div>
+          <div class="relations-row"><span>NL · 50xx</span><span>14</span><span>1.188 €</span><span>64 %</span></div>
+          <div class="relations-row"><span>FR · 67xxx</span><span>11</span><span>1.462 €</span><span>55 %</span></div>
+        </div>
+      </article>
+    </section>
+  <section class="card dashboard-user-stats" id="bookingUserStatsCard" data-permission="dashboard.view"><div class="panel-head"><div><h2>Buchungen nach Benutzer</h2><p>Wer hat wie viele Touren gebucht?</p></div></div><div class="masterdata-table-wrap"><table class="masterdata-table"><thead><tr><th>Benutzer</th><th>Buchungen</th><th>Buchungsvolumen</th><th>Ø Preis</th></tr></thead><tbody id="bookingUserStatsRows"><tr><td colspan="4" class="empty-state">Daten werden geladen …</td></tr></tbody></table></div></section>
+</main>
+</div>
+
+<div class="toast" id="dashboardToast" hidden></div>
+  <script src="gpk-core.js"></script>
+  <script src="api-client.js"></script>
+  <script src="gpk-data.js"></script>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
