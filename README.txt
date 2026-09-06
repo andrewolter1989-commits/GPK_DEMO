@@ -1,4 +1,4 @@
-GP KOLLUND – Freight Rate Calculator Prototype v3.9
+GP KOLLUND – Freight Rate Calculator Prototype v4.0
 
 Diese Version baut auf der funktionsfähigen Demo v1 auf.
 
@@ -21,3 +21,6 @@ Lokaler Start:
 Die Dateien über einen lokalen HTTP-Server ausliefern, z.B. im Projektordner:
 python -m http.server 8000
 Danach im Browser http://localhost:8000 öffnen.
+
+
+v4.0: Neues Entladestellen-Layout mit Suche, Filtern, Anlegen/Bearbeiten sowie vorgesehenem Excel-Import/Export. Noch ohne Backend; Datenänderungen sind Demo-Sessiondaten.
