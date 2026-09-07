@@ -1,4 +1,4 @@
-GP KOLLUND – Freight Rate Calculator Prototype v6.7
+GP KOLLUND – Freight Rate Calculator Prototype v6.8
 
 Diese Version baut auf der funktionsfähigen Demo v1 auf.
 
@@ -23,46 +23,46 @@ python -m http.server 8000
 Danach im Browser http://localhost:8000 öffnen.
 
 
-v6.7: Neues Entladestellen-Layout mit Suche, Filtern, Anlegen/Bearbeiten sowie vorgesehenem Excel-Import/Export. Noch ohne Backend; Datenänderungen sind Demo-Sessiondaten.
+v6.8: Neues Entladestellen-Layout mit Suche, Filtern, Anlegen/Bearbeiten sowie vorgesehenem Excel-Import/Export. Noch ohne Backend; Datenänderungen sind Demo-Sessiondaten.
 
 
-v6.7: Dienstleister-Modul als Layout-Demo ergänzt: KPI-Übersicht, Suche, Filter, Anlegen/Bearbeiten, Ansprechpartner, Tarifanzahl, Floater, Logo-Feld und Aktivstatus.
+v6.8: Dienstleister-Modul als Layout-Demo ergänzt: KPI-Übersicht, Suche, Filter, Anlegen/Bearbeiten, Ansprechpartner, Tarifanzahl, Floater, Logo-Feld und Aktivstatus.
 
 
-v6.7: Tarife-Modul als Layout-Demo ergänzt: Tarifübersicht, Filter, Preis/Floater/Gesamt, Relation, Transportart, Anlegen/Bearbeiten sowie vorgesehener Excel-Import/Export.
+v6.8: Tarife-Modul als Layout-Demo ergänzt: Tarifübersicht, Filter, Preis/Floater/Gesamt, Relation, Transportart, Anlegen/Bearbeiten sowie vorgesehener Excel-Import/Export.
 
 
-v6.7: Einstellungen-Modul als Layout-Demo ergänzt: Unternehmensprofil, Benutzer/Rollen, Branding, Domains und Systemoptionen.
+v6.8: Einstellungen-Modul als Layout-Demo ergänzt: Unternehmensprofil, Benutzer/Rollen, Branding, Domains und Systemoptionen.
 
 
-v6.7: Modul Anfragen & Buchungen ergänzt: Vorgangsübersicht, Status, Filter, KPI, Detailansicht und Verlauf als Layout-Demo.
+v6.8: Modul Anfragen & Buchungen ergänzt: Vorgangsübersicht, Status, Filter, KPI, Detailansicht und Verlauf als Layout-Demo.
 
 
-v6.7: Diesel/Floater-Verwaltung unter Tarife ergänzt. Zeiträume werden mit Gültig-von/bis, Periodentyp (Woche, 2 Wochen, Monat, Halbmonat, individuell), Wert, Dienstleister und Notiz als Historie dargestellt. Grundlage für spätere Rechnungsprüfung.
+v6.8: Diesel/Floater-Verwaltung unter Tarife ergänzt. Zeiträume werden mit Gültig-von/bis, Periodentyp (Woche, 2 Wochen, Monat, Halbmonat, individuell), Wert, Dienstleister und Notiz als Historie dargestellt. Grundlage für spätere Rechnungsprüfung.
 
 
-v6.7: Auswertungen/KPI-Dashboard ergänzt: Kalkulationen, Buchungen, Buchungsquote, Durchschnittspreis, Einsparung, offene Vorgänge, Transportkosten-Trend, Transportarten, Dienstleister-Performance, Diesel/Floater und Top-Relationen.
+v6.8: Auswertungen/KPI-Dashboard ergänzt: Kalkulationen, Buchungen, Buchungsquote, Durchschnittspreis, Einsparung, offene Vorgänge, Transportkosten-Trend, Transportarten, Dienstleister-Performance, Diesel/Floater und Top-Relationen.
 
 
-v6.7: Workflow-Verknüpfung ohne Backend ergänzt. Erfolgreiche Kalkulationen werden lokal im Browser gespeichert. Verfügbarkeitsanfragen und Buchungen aus der Kalkulation erzeugen automatisch einen Vorgang in "Anfragen & Buchungen". Das KPI-Dashboard berücksichtigt diese Demo-Daten ebenfalls. Speicherung erfolgt aktuell per localStorage und ist damit browser-/gerätebezogen; später wird dieselbe Logik an die zentrale Datenbank angebunden.
+v6.8: Workflow-Verknüpfung ohne Backend ergänzt. Erfolgreiche Kalkulationen werden lokal im Browser gespeichert. Verfügbarkeitsanfragen und Buchungen aus der Kalkulation erzeugen automatisch einen Vorgang in "Anfragen & Buchungen". Das KPI-Dashboard berücksichtigt diese Demo-Daten ebenfalls. Speicherung erfolgt aktuell per localStorage und ist damit browser-/gerätebezogen; später wird dieselbe Logik an die zentrale Datenbank angebunden.
 
 
-v6.7: Excel/CSV-Import und Excel-Export für Entladestellen, Dienstleister, Tarife und Diesel/Floater aktiviert. Importierte und manuell geänderte Daten werden lokal im Browser (localStorage) gespeichert. XLSX-Import/-Export verwendet SheetJS, das beim ersten Excel-Vorgang über CDN geladen wird; CSV-Import funktioniert ohne die Bibliothek.
+v6.8: Excel/CSV-Import und Excel-Export für Entladestellen, Dienstleister, Tarife und Diesel/Floater aktiviert. Importierte und manuell geänderte Daten werden lokal im Browser (localStorage) gespeichert. XLSX-Import/-Export verwendet SheetJS, das beim ersten Excel-Vorgang über CDN geladen wird; CSV-Import funktioniert ohne die Bibliothek.
 
 
-v6.7: Rechnungsprüfung als neues Layout-/Workflow-Modul ergänzt. Unterstützt Datei-Upload als vorbereiteten Einstieg sowie manuelle Rechnungserfassung. Sollpreis wird aus Tarif und gültigem Floater ermittelt, Abweichung angezeigt und die Prüfung lokal gespeichert. PDF-/Excel-Inhaltserkennung folgt später.
+v6.8: Rechnungsprüfung als neues Layout-/Workflow-Modul ergänzt. Unterstützt Datei-Upload als vorbereiteten Einstieg sowie manuelle Rechnungserfassung. Sollpreis wird aus Tarif und gültigem Floater ermittelt, Abweichung angezeigt und die Prüfung lokal gespeichert. PDF-/Excel-Inhaltserkennung folgt später.
 
 
-v6.7 – Konsolidierungs-Version:
+v6.8 – Konsolidierungs-Version:
 - Einheitliche Navigation auf allen Modulen.
 - Gemeinsame lokale Speicher-Keys und Hilfsfunktionen über gpk-core.js.
 - Importdaten werden bei Entladestellen, Dienstleistern, Tarifen und Floatern dedupliziert.
 - Lokale Datenquellen sind zentral benannt und für den späteren Wechsel auf Backend/API vorbereitet.
 - Einstellungen enthalten einen neuen Datenstatus-Bereich mit Übersicht der lokal gespeicherten Datensätze.
-- Alle Seiten wurden auf Prototype v6.7 vereinheitlicht.
+- Alle Seiten wurden auf Prototype v6.8 vereinheitlicht.
 
 
-v6.7 – Daten-Admin:
+v6.8 – Daten-Admin:
 - Komplettes lokales Backup als JSON herunterladen.
 - Backup-Datei wiederherstellen.
 - Gesamten lokalen Datenstand zurücksetzen.
@@ -71,7 +71,7 @@ v6.7 – Daten-Admin:
 - Datenstatus und Adminfunktionen befinden sich unter Einstellungen.
 
 
-v6.7 – Import-Manager:
+v6.8 – Import-Manager:
 - Importvorschau für Entladestellen, Dienstleister, Tarife und Diesel/Floater.
 - Automatische Spaltenzuordnung anhand bekannter Bezeichnungen.
 - Manuelle Spaltenzuordnung vor dem Import.
@@ -81,7 +81,7 @@ v6.7 – Import-Manager:
 - Import wird erst nach expliziter Bestätigung in den lokalen Datenbestand übernommen.
 
 
-v6.7 – Backend-/Login-Grundlage:
+v6.8 – Backend-/Login-Grundlage:
 - Lokaler Node.js-/Express-Server.
 - SQLite-Datenbank mit Tabellen für Mandanten, Benutzer, Entladestellen, Dienstleister, Tarife, Floater, Vorgänge, Kalkulationen und Rechnungsprüfungen.
 - Login mit bcrypt-Passworthash und JWT-Session-Cookie.
@@ -97,7 +97,7 @@ Lokaler Start:
 4. http://localhost:3000 öffnen
 
 
-v6.7 – Backend-Anbindung:
+v6.8 – Backend-Anbindung:
 - Gemeinsamer Daten-Bridge-Layer über gpk-data.js.
 - Entladestellen, Dienstleister, Tarife, Diesel/Floater, Kalkulationen, Vorgänge und Rechnungsprüfungen werden bei laufendem Backend automatisch mit SQLite synchronisiert.
 - Beim ersten Backend-Start werden vorhandene lokale Demo-Daten in die Datenbank übernommen, wenn die jeweilige Tabelle noch leer ist.
@@ -106,10 +106,10 @@ v6.7 – Backend-Anbindung:
 - Ohne gestarteten Server funktioniert die bisherige Browser-Demo weiterhin.
 
 
-v6.7: Benutzerverwaltung und Rollen (Admin, Disposition, Vertrieb, Controlling) ergänzt; Benutzer anlegen/bearbeiten/deaktivieren, Passwort setzen, Navigation nach Rolle einschränken.
+v6.8: Benutzerverwaltung und Rollen (Admin, Disposition, Vertrieb, Controlling) ergänzt; Benutzer anlegen/bearbeiten/deaktivieren, Passwort setzen, Navigation nach Rolle einschränken.
 
 
-v6.7 – Individuelle Rechte & Audit:
+v6.8 – Individuelle Rechte & Audit:
 - Rollen sind Vorlagen; Rechte werden pro Benutzer gespeichert.
 - Vollzugriff möglich.
 - Aktivitätslog mit Benutzer, Zeitpunkt, Aktion und Referenz.
@@ -117,7 +117,7 @@ v6.7 – Individuelle Rechte & Audit:
 - Dashboard zeigt Buchungen, Buchungsvolumen und Ø Preis je Benutzer.
 
 
-v6.7 – erste gemeinsame Seitenüberarbeitung:
+v6.8 – erste gemeinsame Seitenüberarbeitung:
 - Navigation mit Hover-Effekt.
 - Kalkulation erhält sichtbaren Seitenkopf.
 - Anfragen & Buchungen: Zeitraumfilter Heute / Woche / Monat / 30 Tage / eigener Zeitraum.
@@ -127,7 +127,7 @@ v6.7 – erste gemeinsame Seitenüberarbeitung:
 - Nebenkosten-Grundpflege mit Betrag/Prozent, Land, Zone, Transportart und Gültigkeit.
 
 
-v6.7 – Seitenüberarbeitung:
+v6.8 – Seitenüberarbeitung:
 - Kalkulation: Seitenkopf sitzt jetzt innerhalb derselben Karte wie das Formular; Modusauswahl im Kopfbereich.
 - Anfragen & Buchungen: Zeitraum wird über einen sichtbaren Anwenden-Button bestätigt; KPI-Karten reagieren auf die aktuell gefilterte Ansicht.
 - Entladestellen: Drei-Punkte-Menü funktioniert (Bearbeiten, Aktivieren/Deaktivieren, Löschen); Löschen zusätzlich direkt im Bearbeiten-Dialog.
@@ -135,13 +135,23 @@ v6.7 – Seitenüberarbeitung:
 - Tarife-Seite selbst wurde in diesem Schritt bewusst nicht weiter überarbeitet.
 
 
-v6.7:
+v6.8:
 - Dienstleister-KPIs reagieren jetzt auf Suche, Status- und Tariffilter. Beispiel: Bei Filter „Inaktiv“ zeigen die KPI-Karten nur Werte der inaktiven Auswahl.
 - Kalkulation wurde in Breite, oberem Abstand, Kartenkopf und Bedienelement-Höhe an Entladestellen sowie Anfragen & Buchungen angeglichen.
 - Die Modus-Schalter in Kalkulation haben jetzt dieselbe kompakte Bedienhöhe wie die Aktionsbuttons der übrigen Seiten.
 
 
-v6.7:
+v6.8:
 - Kalkulation nutzt jetzt exakt dasselbe äußere Workspace-Raster wie Anfragen & Buchungen, Entladestellen und Dienstleister.
 - Gleicher Abstand zur Sidebar, gleicher Abstand nach oben und gleiche verfügbare Kartenbreite.
 - Der Kalkulations-Card-Header verwendet weiterhin denselben Toolbar-Abstand wie die übrigen Modul-Seiten.
+
+
+v6.8 – Dienstleister:
+- Logos können im Dienstleister-Dialog als PNG/JPG/WebP hochgeladen und lokal gespeichert werden.
+- Hochgeladene Logos werden in der Dienstleisterliste angezeigt; ohne Logo bleibt das Kürzel als Fallback.
+- Tarif-Länder eines Dienstleisters werden automatisch aus den hinterlegten Tarifen ermittelt.
+- Ansprechpartner können nur aus den tatsächlich vorhandenen Tarif-Ländern wählen oder „Alle Tarifländer“ verwenden.
+- In der Dienstleisterliste werden die vorhandenen Tarif-Länder beim Ansprechpartner angezeigt.
+- Unter der Tarifanzahl steht jetzt „+ Tarif hinzufügen“ statt „Tarife hinterlegt“.
+- „+ Tarif hinzufügen“ öffnet die Tarifseite direkt mit dem betreffenden Dienstleister und dem Dialog „Neuer Tarif“.

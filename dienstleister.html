@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.7</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.8</div>
     </aside>
 
     <main class="workspace masterdata-workspace">
@@ -109,7 +109,19 @@
             <div class="field"><label for="providerZip">PLZ</label><input id="providerZip" placeholder="24939"></div>
             <div class="field"><label for="providerCity">Ort</label><input id="providerCity" placeholder="Flensburg"></div>
             <div class="field"><label for="providerCountry">Land</label><input id="providerCountry" placeholder="DE"></div>
-            <div class="field"><label for="providerLogo">Logo-Datei</label><input id="providerLogo" placeholder="z. B. lit.png"></div>
+            <div class="field provider-logo-field">
+              <label>Logo</label>
+              <div class="provider-logo-editor">
+                <div class="provider-logo-preview" id="providerLogoPreview"><span>Logo</span></div>
+                <div class="provider-logo-controls">
+                  <button class="secondary compact-button" id="chooseProviderLogoBtn" type="button">Logo auswählen</button>
+                  <button class="text-button" id="removeProviderLogoBtn" type="button">Logo entfernen</button>
+                  <small>PNG, JPG oder WebP. Das Logo wird in der Demo lokal gespeichert.</small>
+                </div>
+              </div>
+              <input id="providerLogoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+              <input id="providerLogo" type="hidden">
+            </div>
           </div>
         </div>
 
