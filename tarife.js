@@ -3,17 +3,7 @@ const providerNames=[...new Set(["LIT","Transimeksa","Bertschi","Duvenbeck","Dac
   if(edit){const r=rates.find(x=>x.id===Number(edit.dataset.edit));if(r)openModal(r);return;}
   const more=e.target.closest("[data-rate-menu]");
   if(more)openRateMenu(more,Number(more.dataset.rateMenu));
-});rateForm.addEventListener("submit",e=>{e.preventDefault();let data={provider:rateProvider.value,status:rateStatus.value,country:rateCountry.value,zone:rateZone.value.trim(),zipFrom:rateZipFrom.value.trim(),zipTo:rateZipTo.value.trim(),transport:rateTransport.value,ldm:rateLdm.value.trim(),base:Number(rateBase.value||0),floater:Number(rateFloater.value||0),notes:rateNotes.value.trim()};if(editingId){Object.assign(rates.find(x=>x.id===editingId),data);toast("Tarif wurde in der Layout-Demo aktualisiert.")}else{rates.unshift({id:Date.now(),...data});toast("Tarif wurde in der Layout-Demo angelegt.")}GPK.write(GPK.KEYS.rates,rates);closeModal();render()});[search,providerFilter,transportFilter,statusFilter].forEach(x=>x.addEventListener("input",render));importRatesBtn.addEventListener("click",()=>chooseImportFile(async file=>{
-  try{
-    await GPKImport.open("rates",file);
-    gpkImportConfirmBtn.onclick=()=>{
-      const result=GPKImport.confirm();
-      rates=GPK.read(GPK.KEYS.rates,[])||[];
-      render();
-      toast(result.message);
-    };
-  }catch(err){toast("Import fehlgeschlagen: "+err.message);}
-}));exportRatesBtn.addEventListener("click",async ()=>{
+});rateForm.addEventListener("submit",e=>{e.preventDefault();let data={provider:rateProvider.value,status:rateStatus.value,country:rateCountry.value,zone:rateZone.value.trim(),zipFrom:rateZipFrom.value.trim(),zipTo:rateZipTo.value.trim(),transport:rateTransport.value,ldm:rateLdm.value.trim(),base:Number(rateBase.value||0),floater:Number(rateFloater.value||0),notes:rateNotes.value.trim()};if(editingId){Object.assign(rates.find(x=>x.id===editingId),data);toast("Tarif wurde in der Layout-Demo aktualisiert.")}else{rates.unshift({id:Date.now(),...data});toast("Tarif wurde in der Layout-Demo angelegt.")}GPK.write(GPK.KEYS.rates,rates);closeModal();render()});[search,providerFilter,transportFilter,statusFilter].forEach(x=>x.addEventListener("input",render));importRatesBtn.addEventListener("click",()=>GPKTariffImport.chooseAndOpen());exportRatesBtn.addEventListener("click",async ()=>{
   try{
     await exportWorkbook("GP_Kollund_Tarife.xlsx",{
       "Tarife":rates.map(x=>({
