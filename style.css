@@ -3116,3 +3116,58 @@ html.local-demo-mode .sidebar-demo-label::after{
     padding-right:16px !important;
   }
 }
+
+
+/* v6.7 – Kalkulation exakt auf Masterdata-Seitenraster */
+.calculator-workspace{
+  width:min(calc(100% - 40px),1560px) !important;
+  max-width:none !important;
+  margin:0 auto !important;
+  padding:24px 42px 32px !important;
+}
+.calculator-workspace .workspace-grid{
+  width:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  gap:22px !important;
+}
+.calculator-workspace .main-column{
+  width:100% !important;
+  min-width:0;
+}
+.calculator-shell.masterdata-card{
+  width:100% !important;
+  margin:0 !important;
+  padding:0 26px 0 !important;
+  border-radius:18px !important;
+}
+.calculator-toolbar{
+  margin:0 -26px !important;
+  padding:24px 26px 18px !important;
+  min-height:auto !important;
+}
+.calculator-toolbar h1{
+  font-size:24px !important;
+}
+.calculator-toolbar p{
+  font-size:14px !important;
+}
+.calculator-shell .destination-section{
+  padding-top:18px !important;
+}
+@media(max-width:720px){
+  .calculator-workspace{
+    width:calc(100% - 20px) !important;
+    padding:10px 0 24px !important;
+  }
+  .calculator-shell.masterdata-card{
+    padding-left:16px !important;
+    padding-right:16px !important;
+  }
+  .calculator-toolbar{
+    margin-left:-16px !important;
+    margin-right:-16px !important;
+    padding-left:16px !important;
+    padding-right:16px !important;
+  }
+}
