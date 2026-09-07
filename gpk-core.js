@@ -11,6 +11,7 @@ GPK.KEYS = Object.freeze({
   calculations: "gpk_demo_calculations_v1",
   operations: "gpk_demo_operations_v1",
   invoiceChecks: "gpk_demo_invoice_checks_v1",
+  surcharges: "gpk_demo_surcharges_v1",
   settings: "gpk_demo_settings_v1"
 });
 
@@ -80,7 +81,7 @@ GPK.setActiveNavigation = function() {
 GPK.installDemoBadge = function() {
   const footer = document.querySelector(".sidebar-foot");
   if (!footer) return;
-  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.8 <span class="sidebar-demo-label">· Lokal</span>';
+  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.9 <span class="sidebar-demo-label">· Lokal</span>';
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -191,3 +192,14 @@ GPK.permissionForHref=h=>({"index.html":"calc.view","vorgaenge.html":"operations
 GPK.hasPermission=p=>{const u=window.GPK_CURRENT_USER;if(!u)return true;const a=Array.isArray(u.permissions)?u.permissions:[];return a.includes("*")||a.includes(p)};
 GPK.applyPermissions=()=>{if(!window.GPK_CURRENT_USER)return;document.querySelectorAll('.side-nav a.nav-item').forEach(a=>{const p=GPK.permissionForHref((a.getAttribute('href')||'').split('/').pop());if(p&&!GPK.hasPermission(p))a.classList.add('permission-hidden')});document.querySelectorAll('[data-permission]').forEach(e=>{if(!GPK.hasPermission(e.dataset.permission))e.classList.add('permission-hidden')})};
 document.addEventListener('gpk:user-ready',GPK.applyPermissions);
+
+GPK.calculateSurcharge = function(rule, context={}){
+  const value=Number(rule?.value||0), base=Number(context.basePrice||0), floater=Number(context.floaterAmount||0);
+  const mode=rule?.calcMode||"fixed";
+  if(mode==="fixed") return {amount:value,needsInput:false};
+  if(mode==="percent_base") return {amount:base*(value/100),needsInput:false};
+  if(mode==="percent_freight") return {amount:(base+floater)*(value/100),needsInput:false};
+  const quantities={per_km:Number(context.km||0),per_ldm:Number(context.ldm||0),per_hour:Number(context.hours||0),per_stop:Number(context.extraStops||0),per_pallet:Number(context.pallets||0)};
+  if(mode in quantities) return {amount:value*quantities[mode],needsInput:!(quantities[mode]>0)};
+  return {amount:0,needsInput:false};
+};

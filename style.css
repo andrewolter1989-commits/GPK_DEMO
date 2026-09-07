@@ -3215,3 +3215,5 @@ html.local-demo-mode .sidebar-demo-label::after{
   padding:9px 10px;border:1px dashed #d6e2e6;border-radius:8px;background:#fafcfd;
   color:#81949d;font-size:10px;line-height:1.4;
 }
+
+.surcharge-calc-box{padding:10px 11px;border:1px solid #dfe7ea;border-radius:10px;background:#f9fcfd}.surcharge-calc-box select{background:#fff}

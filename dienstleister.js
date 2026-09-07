@@ -11,7 +11,7 @@ const defaultProviders = [
   {id:7,name:"Raben",alias:"RA",status:"active",street:"",zip:"",city:"",country:"DE",rates:12,floater:"7,5 %",logo:"",notes:"",contacts:[{id:71,name:"Disposition",emails:"dispo@raben.example",phone:"+49 000 700700",purposes:["booking","availability"],countries:"DE"}]},
   {id:8,name:"DSV",alias:"DS",status:"active",street:"",zip:"",city:"",country:"DK",rates:14,floater:"8,2 %",logo:"",notes:"",contacts:[{id:81,name:"Road",emails:"road@dsv.example",phone:"+45 000 800800",purposes:["booking","availability","price"],countries:"*"}]}
 ];
-let providers=GPK.read(GPK.KEYS.providers,null)||defaultProviders;
+let providers=GPK.read(GPK.KEYS.providers,null); if(!Array.isArray(providers)||!providers.length) providers=defaultProviders;
 providers=providers.map(p=>({...p,contacts:Array.isArray(p.contacts)?p.contacts:(p.contact||p.email||p.phone?[{id:Date.now()+Math.random(),name:p.contact||"",emails:p.email||"",phone:p.phone||"",purposes:["booking","availability","price"],countries:"*"}]:[])}));
 let editingId=null;
 const rows=document.getElementById("providerRows"),search=document.getElementById("providerSearch"),statusFilter=document.getElementById("providerStatusFilter"),rateFilter=document.getElementById("providerRateFilter"),modal=document.getElementById("providerModal"),form=document.getElementById("providerForm");
@@ -90,14 +90,14 @@ function render(){
 function toast(text){providerToast.textContent=text;providerToast.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>providerToast.hidden=true,2400)}
 function contactRow(c={}){
   const id=c.id||Date.now()+Math.floor(Math.random()*9999),ps=c.purposes||[];
-  const providerName=providerName?.value?.trim()||providers.find(x=>x.id===editingId)?.name||"";
+  const currentProviderName=document.getElementById("providerName")?.value?.trim()||providers.find(x=>x.id===editingId)?.name||"";
   return `<div class="provider-contact-card" data-contact-id="${id}">
     <div class="provider-contact-top"><strong>Ansprechpartner</strong><button class="icon-button remove-provider-contact" type="button" title="Entfernen">×</button></div>
     <div class="location-form-grid">
       <div class="field"><label>Name / Funktion</label><input data-contact-field="name" value="${esc(c.name||"")}" placeholder="z. B. Disposition"></div>
       <div class="field"><label>Telefon</label><input data-contact-field="phone" value="${esc(c.phone||"")}" placeholder="+49 ..."></div>
       <div class="field span-2"><label>E-Mail-Adresse(n)</label><input data-contact-field="emails" value="${esc(c.emails||"")}" placeholder="booking@..., dispo@..."><span class="field-hint">Mehrere Adressen durch Komma trennen.</span></div>
-      <div class="field span-2"><label>Für welche Tarif-Länder?</label>${countryOptionsForContact(providerName,c.countries||"*")}</div>
+      <div class="field span-2"><label>Für welche Tarif-Länder?</label>${countryOptionsForContact(currentProviderName,c.countries||"*")}</div>
       <div class="field span-2"><label>Verwendung</label><div class="contact-purpose-list">
         <label><input type="checkbox" data-purpose="booking" ${ps.includes("booking")?"checked":""}> Buchungen</label>
         <label><input type="checkbox" data-purpose="availability" ${ps.includes("availability")?"checked":""}> Verfügbarkeitsanfragen</label>
@@ -106,7 +106,7 @@ function contactRow(c={}){
     </div>
   </div>`;
 }
-function renderContactsfunction renderContacts(list=[]){providerContacts.innerHTML=(list.length?list:[{}]).map(contactRow).join("");}
+function renderContacts(list=[]){providerContacts.innerHTML=(list.length?list:[{}]).map(contactRow).join("");}
 function collectContacts(){
   return [...providerContacts.querySelectorAll(".provider-contact-card")].map(card=>{
     const all=card.querySelector("[data-country-all]")?.checked;
@@ -122,7 +122,7 @@ function collectContacts(){
     };
   }).filter(c=>c.name||c.emails||c.phone);
 }
-function openModalfunction openModal(p=null){editingId=p?.id??null;providerModalTitle.textContent=p?"Dienstleister bearbeiten":"Neuer Dienstleister";providerName.value=p?.name??"";providerAlias.value=p?.alias??"";providerStatus.value=p?.status??"active";providerStreet.value=p?.street??"";providerZip.value=p?.zip??"";providerCity.value=p?.city??"";providerCountry.value=p?.country??"DE";providerLogo.value=p?.logo??"";updateProviderLogoPreview(providerLogo.value);providerNotes.value=p?.notes??"";renderContacts(p?.contacts||[]);deleteProviderBtn.hidden=!p;modal.hidden=false;document.body.classList.add("modal-open");}
+function openModal(p=null){editingId=p?.id??null;providerModalTitle.textContent=p?"Dienstleister bearbeiten":"Neuer Dienstleister";providerName.value=p?.name??"";providerAlias.value=p?.alias??"";providerStatus.value=p?.status??"active";providerStreet.value=p?.street??"";providerZip.value=p?.zip??"";providerCity.value=p?.city??"";providerCountry.value=p?.country??"DE";providerLogo.value=p?.logo??"";updateProviderLogoPreview(providerLogo.value);providerNotes.value=p?.notes??"";renderContacts(p?.contacts||[]);deleteProviderBtn.hidden=!p;modal.hidden=false;document.body.classList.add("modal-open");}
 function closeModal(){modal.hidden=true;document.body.classList.remove("modal-open")}
 newProviderBtn.addEventListener("click",()=>openModal());closeProviderModalBtn.addEventListener("click",closeModal);cancelProviderModalBtn.addEventListener("click",closeModal);modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});addProviderContactBtn.addEventListener("click",()=>providerContacts.insertAdjacentHTML("beforeend",contactRow({})));providerContacts.addEventListener("click",e=>{const b=e.target.closest(".remove-provider-contact");if(b&&providerContacts.children.length>1)b.closest(".provider-contact-card").remove();});function closeProviderContextMenu(){document.getElementById("providerContextMenu")?.remove();}
 function deleteProvider(id){
