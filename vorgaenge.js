@@ -25,6 +25,8 @@ const userFilter=document.getElementById("operationUserFilter");
 const periodFilter=document.getElementById("operationPeriodFilter");
 const dateFrom=document.getElementById("operationDateFrom");
 const dateTo=document.getElementById("operationDateTo");
+const periodKpiLabel=document.getElementById("periodKpiLabel");
+const applyOperationDates=document.getElementById("applyOperationDates");
 const customPeriod=document.getElementById("operationCustomPeriod");
 const modal=document.getElementById("operationModal");
 const detail=document.getElementById("operationDetail");
@@ -61,10 +63,14 @@ function render(){
     const hay=`${o.id} ${o.relation} ${o.provider} ${o.customer} ${o.user} ${o.transport}`.toLowerCase();
     return (!activeType||o.type===activeType)&&(!q||hay.includes(q))&&(!sf||o.status===sf)&&(!uf||o.user===uf)&&periodMatches(o);
   });
-  openCount.textContent=operations.filter(o=>o.status==="open").length;
-  waitingCount.textContent=operations.filter(o=>o.status==="waiting").length;
-  bookedCount.textContent=operations.filter(o=>o.status==="booked"||o.status==="confirmed").length;
-  weekCount.textContent=operations.length;
+  openCount.textContent=filtered.filter(o=>o.status==="open").length;
+  waitingCount.textContent=filtered.filter(o=>o.status==="waiting").length;
+  bookedCount.textContent=filtered.filter(o=>o.status==="booked"||o.status==="confirmed").length;
+  weekCount.textContent=filtered.length;
+  if(periodKpiLabel){
+    const labels={today:"Heute",week:"Diese Woche",month:"Dieser Monat","30days":"Letzte 30 Tage",custom:"Eigener Zeitraum"};
+    periodKpiLabel.textContent=labels[periodFilter?.value]||"Gesamt";
+  }
   visibleOperationCount.textContent=filtered.length;
   rows.innerHTML=filtered.map(o=>`<tr class="operation-row" data-id="${o.id}">
     <td><div class="operation-id"><strong>${esc(o.id)}</strong><span class="operation-type ${o.type}">${labels[o.type]}</span>${o.createdAt?'<span class="workflow-new">Neu</span>':''}</div><small>${esc(o.created)}</small></td>
@@ -97,8 +103,9 @@ function closeModal(){modal.hidden=true;document.body.classList.remove("modal-op
 document.querySelectorAll(".operations-tab").forEach(btn=>btn.addEventListener("click",()=>{
   document.querySelectorAll(".operations-tab").forEach(x=>x.classList.toggle("active",x===btn));activeType=btn.dataset.type;render();
 }));
-[search,statusFilter,userFilter,dateFrom,dateTo].forEach(x=>x?.addEventListener("input",render));
-periodFilter?.addEventListener("change",()=>{customPeriod.hidden=periodFilter.value!=="custom";render();});
+[search,statusFilter,userFilter].forEach(x=>x?.addEventListener("input",render));
+periodFilter?.addEventListener("change",()=>{customPeriod.hidden=periodFilter.value!=="custom";if(periodFilter.value!=="custom")render();});
+applyOperationDates?.addEventListener("click",render);
 clearOperationDates?.addEventListener("click",()=>{dateFrom.value="";dateTo.value="";periodFilter.value="";customPeriod.hidden=true;render();});
 rows.addEventListener("click",e=>{const btn=e.target.closest("[data-open]");const row=e.target.closest(".operation-row");const id=btn?.dataset.open||row?.dataset.id;if(id){const o=operations.find(x=>x.id===id);if(o)openOperation(o)}});
 closeOperationModalBtn.addEventListener("click",closeModal);closeOperationBtn.addEventListener("click",closeModal);modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});

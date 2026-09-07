@@ -22,24 +22,20 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.4</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.5</div>
     </aside>
 
     <main class="workspace calculator-workspace">
-      <div class="calculator-page-head">
-        <div>
-          <h1>Kalkulation</h1>
-          <p>Frachtpreise vergleichen, Transport planen und direkt Folgeaktionen auslösen.</p>
-        </div>
-      </div>
 <div class="workspace-grid">
         <div class="main-column">
           <div id="fatalError" class="notice danger"></div>
 
           <section class="calculator-shell card">
-        <form id="calculatorForm" class="calculator-form" novalidate>
-          <section class="workflow-section destination-section">
-            <div class="section-head section-head-main mode-row">
+            <div class="masterdata-toolbar calculator-toolbar">
+              <div>
+                <h1>Kalkulation</h1>
+                <p>Frachtpreise vergleichen, Transport planen und direkt Folgeaktionen auslösen.</p>
+              </div>
               <div class="calculation-mode inline-mode-switch" role="group" aria-label="Kalkulationsmodus">
                 <button type="button" class="mode-option" data-mode="price">
                   <span class="mode-title">Preisauskunft</span>
@@ -51,6 +47,8 @@
                 </button>
               </div>
             </div>
+        <form id="calculatorForm" class="calculator-form" novalidate>
+          <section class="workflow-section destination-section">
             <div class="form-grid destination-grid">
               <div class="field">
                 <label for="destCountry">Land</label>

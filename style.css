@@ -3007,3 +3007,41 @@ html.local-demo-mode .sidebar-demo-label::after{
 .tariff-context-menu button:hover{background:#eef6f8;color:#087694;}
 @media(max-width:1150px){.operations-filterbar{grid-template-columns:1fr 1fr}.operations-filterbar .search-box{grid-column:1/-1}.operation-custom-period{justify-content:flex-start;flex-wrap:wrap}.surcharge-filterbar{grid-template-columns:1fr 1fr}.surcharge-filterbar .search-box{grid-column:1/-1}}
 @media(max-width:720px){.calculator-page-head{padding:0 2px}.operation-custom-period{padding-left:16px;padding-right:16px}.operation-custom-period .field{min-width:100%;}.surcharge-filterbar{grid-template-columns:1fr}.surcharge-filterbar .search-box{grid-column:auto}.provider-form-section-head{flex-direction:column}}
+
+
+/* v6.5 – Seitenkonsistenz, Zeitraum-KPIs und Stammdaten-Aktionen */
+.calculator-workspace{padding-top:16px;}
+.calculator-toolbar{padding-bottom:18px;border-bottom:1px solid #e6edef;}
+.calculator-toolbar .calculation-mode{margin-left:auto;}
+.calculator-shell>.calculator-form{padding-top:0;}
+
+.operation-custom-period{align-items:flex-end;}
+.operation-custom-period .compact-button{height:42px;}
+
+.modal-actions-split{justify-content:space-between;}
+.modal-actions-right{display:flex;gap:8px;margin-left:auto;}
+.danger-outline{
+  min-height:38px;padding:0 13px;border:1px solid #e2bcbc;border-radius:9px;background:#fff;
+  color:#9b4e4e;font-weight:800;font-size:11px;cursor:pointer;
+}
+.danger-outline:hover{background:#fff5f5;border-color:#d59f9f;}
+
+.record-context-menu{
+  position:fixed;z-index:120;width:190px;padding:6px;background:#fff;border:1px solid #dbe5e9;
+  border-radius:10px;box-shadow:0 12px 28px rgba(17,56,69,.16);
+}
+.record-context-menu button{
+  display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;
+  border-radius:7px;color:#315563;font-size:11px;font-weight:700;cursor:pointer;
+}
+.record-context-menu button:hover{background:#eef6f8;color:#087694;}
+.record-context-menu .danger-menu-action{color:#a24f4f;}
+.record-context-menu .danger-menu-action:hover{background:#fff1f1;color:#923f3f;}
+
+@media(max-width:720px){
+  .calculator-toolbar{align-items:flex-start;gap:12px;}
+  .calculator-toolbar .calculation-mode{margin-left:0;width:100%;}
+  .modal-actions-split{flex-direction:column-reverse;align-items:stretch;}
+  .modal-actions-right{margin-left:0;}
+  .modal-actions-right>*{flex:1;}
+}

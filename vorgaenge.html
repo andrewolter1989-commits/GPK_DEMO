@@ -20,7 +20,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.4</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.5</div>
   </aside>
 
   <main class="workspace masterdata-workspace operations-workspace">
@@ -40,7 +40,7 @@
         <div class="provider-kpi"><span>Offene Anfragen</span><strong id="openCount">0</strong></div>
         <div class="provider-kpi"><span>Warten auf Antwort</span><strong id="waitingCount">0</strong></div>
         <div class="provider-kpi"><span>Gebucht</span><strong id="bookedCount">0</strong></div>
-        <div class="provider-kpi"><span>Diese Woche</span><strong id="weekCount">0</strong></div>
+        <div class="provider-kpi"><span id="periodKpiLabel">Gesamt</span><strong id="weekCount">0</strong></div>
       </div>
 
       <div class="operations-tabs" role="tablist" aria-label="Vorgangsarten">
@@ -78,6 +78,7 @@
       <div class="operation-custom-period" id="operationCustomPeriod" hidden>
         <div class="field"><label for="operationDateFrom">Von</label><input id="operationDateFrom" type="date"></div>
         <div class="field"><label for="operationDateTo">Bis</label><input id="operationDateTo" type="date"></div>
+        <button class="primary compact-button" id="applyOperationDates" type="button">Zeitraum anwenden</button>
         <button class="secondary compact-button" id="clearOperationDates" type="button">Zeitraum löschen</button>
       </div>
 

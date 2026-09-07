@@ -46,7 +46,7 @@ function render(){
       <td><span class="status-pill ${x.status}">${x.status==="active" ? "Aktiv" : "Inaktiv"}</span></td>
       <td class="row-actions">
         <button class="icon-button" data-edit="${x.id}" title="Bearbeiten">✎</button>
-        <button class="icon-button more-button" title="Weitere Aktionen">•••</button>
+        <button class="icon-button more-button" data-more="${x.id}" title="Weitere Aktionen">•••</button>
       </td>
     </tr>
   `).join("") || `<tr><td colspan="6" class="empty-state">Keine Entladestellen für diesen Filter gefunden.</td></tr>`;
@@ -73,6 +73,7 @@ function openModal(item=null){
   document.getElementById("timeWindow").value = item?.time ?? "";
   document.getElementById("activeState").value = item?.status ?? "active";
   document.getElementById("notes").value = item?.notes ?? "";
+  document.getElementById("deleteLocationBtn").hidden = !item;
   modal.hidden = false;
   document.body.classList.add("modal-open");
 }
@@ -87,12 +88,52 @@ document.getElementById("closeModalBtn").addEventListener("click",closeModal);
 document.getElementById("cancelModalBtn").addEventListener("click",closeModal);
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
 
+function closeLocationContextMenu(){
+  document.getElementById("locationContextMenu")?.remove();
+}
+function openLocationContextMenu(button,id){
+  closeLocationContextMenu();
+  const item=locations.find(x=>x.id===Number(id)); if(!item)return;
+  const menu=document.createElement("div");
+  menu.id="locationContextMenu"; menu.className="record-context-menu";
+  menu.innerHTML=`
+    <button type="button" data-action="edit">Bearbeiten</button>
+    <button type="button" data-action="toggle">${item.status==="active"?"Deaktivieren":"Aktivieren"}</button>
+    <button type="button" class="danger-menu-action" data-action="delete">Löschen</button>`;
+  document.body.appendChild(menu);
+  const r=button.getBoundingClientRect();
+  menu.style.left=Math.max(8,r.right-menu.offsetWidth)+"px";
+  menu.style.top=(r.bottom+6)+"px";
+  menu.addEventListener("click",ev=>{
+    const action=ev.target.closest("[data-action]")?.dataset.action;if(!action)return;
+    closeLocationContextMenu();
+    if(action==="edit")openModal(item);
+    if(action==="toggle"){
+      item.status=item.status==="active"?"inactive":"active";
+      GPK.write(GPK.KEYS.locations,locations);render();
+      showToast(`Entladestelle ${item.status==="active"?"aktiviert":"deaktiviert"}.`);
+    }
+    if(action==="delete")deleteLocation(item.id);
+  });
+}
+function deleteLocation(id){
+  const item=locations.find(x=>x.id===Number(id));if(!item)return;
+  if(!confirm(`Entladestelle "${item.name}" wirklich löschen? Bestehende Vorgänge bleiben in der Historie erhalten.`))return;
+  locations=locations.filter(x=>x.id!==Number(id));
+  GPK.write(GPK.KEYS.locations,locations);
+  if(editingId===Number(id))closeModal();
+  editingId=null;render();showToast("Entladestelle wurde gelöscht.");
+}
 rows.addEventListener("click",e=>{
-  const btn = e.target.closest("[data-edit]");
-  if(!btn) return;
-  const item = locations.find(x=>x.id===Number(btn.dataset.edit));
-  if(item) openModal(item);
+  const edit=e.target.closest("[data-edit]");
+  const more=e.target.closest("[data-more]");
+  if(edit){const item=locations.find(x=>x.id===Number(edit.dataset.edit));if(item)openModal(item);return;}
+  if(more){openLocationContextMenu(more,more.dataset.more);return;}
 });
+document.addEventListener("click",e=>{
+  if(!e.target.closest("#locationContextMenu")&&!e.target.closest("[data-more]"))closeLocationContextMenu();
+});
+document.getElementById("deleteLocationBtn").addEventListener("click",()=>deleteLocation(editingId));
 
 form.addEventListener("submit",e=>{
   e.preventDefault();

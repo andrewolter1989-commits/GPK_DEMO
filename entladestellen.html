@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.4</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.5</div>
     </aside>
 
     <main class="workspace masterdata-workspace">
@@ -148,9 +148,10 @@
             <textarea id="notes" rows="3" placeholder="Rampe, Zufahrt, Avis, interne Notiz ..."></textarea>
           </div>
         </div>
-        <div class="modal-actions">
-          <button class="secondary compact-button" id="cancelModalBtn" type="button">Abbrechen</button>
-          <button class="primary compact-button" type="submit">Entladestelle speichern</button>
+        <div class="modal-actions modal-actions-split">
+          <button class="danger-outline compact-button" id="deleteLocationBtn" type="button" hidden>Entladestelle löschen</button>
+          <div class="modal-actions-right"><button class="secondary compact-button" id="cancelModalBtn" type="button">Abbrechen</button>
+          <button class="primary compact-button" type="submit">Entladestelle speichern</button></div>
         </div>
       </form>
     </section>
