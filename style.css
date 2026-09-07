@@ -3217,3 +3217,65 @@ html.local-demo-mode .sidebar-demo-label::after{
 }
 
 .surcharge-calc-box{padding:10px 11px;border:1px solid #dfe7ea;border-radius:10px;background:#f9fcfd}.surcharge-calc-box select{background:#fff}
+
+
+/* v6.10 – einheitliches Seitenraster auf allen Hauptseiten */
+:root{
+  --gpk-page-max:1560px;
+  --gpk-page-gap:24px;
+}
+.product-shell > main.workspace,
+.masterdata-workspace,
+.operations-workspace,
+.dashboard-workspace,
+.invoice-workspace,
+.settings-workspace,
+.calculator-workspace{
+  width:min(calc(100% - 48px),var(--gpk-page-max)) !important;
+  max-width:var(--gpk-page-max) !important;
+  margin:0 auto !important;
+  padding:24px 0 36px !important;
+  box-sizing:border-box !important;
+}
+
+/* gleicher linker/rechter Startpunkt der weißen Hauptflächen */
+.masterdata-card,
+.calculator-shell.masterdata-card,
+.dashboard-shell,
+.invoice-workspace > .invoice-card,
+.invoice-workspace > .invoice-entry-grid,
+.invoice-workspace > .invoice-kpis,
+.settings-layout{
+  margin-left:0 !important;
+  margin-right:0 !important;
+}
+
+/* ruhiger Wechsel: gleiche Rundung der primären weißen Flächen */
+.masterdata-card,
+.calculator-shell,
+.dashboard-card,
+.invoice-card,
+.settings-panel.card{
+  border-radius:16px !important;
+}
+
+/* Provider-Modal: Backdrop ist bewusst nicht klickbar zum Schließen */
+#providerModal.modal-backdrop{
+  cursor:default;
+}
+#providerModal .location-modal{
+  cursor:default;
+}
+
+@media(max-width:900px){
+  .product-shell > main.workspace,
+  .masterdata-workspace,
+  .operations-workspace,
+  .dashboard-workspace,
+  .invoice-workspace,
+  .settings-workspace,
+  .calculator-workspace{
+    width:calc(100% - 24px) !important;
+    padding-top:12px !important;
+  }
+}

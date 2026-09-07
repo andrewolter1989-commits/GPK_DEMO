@@ -108,6 +108,6 @@ periodFilter?.addEventListener("change",()=>{customPeriod.hidden=periodFilter.va
 applyOperationDates?.addEventListener("click",render);
 clearOperationDates?.addEventListener("click",()=>{dateFrom.value="";dateTo.value="";periodFilter.value="";customPeriod.hidden=true;render();});
 rows.addEventListener("click",e=>{const btn=e.target.closest("[data-open]");const row=e.target.closest(".operation-row");const id=btn?.dataset.open||row?.dataset.id;if(id){const o=operations.find(x=>x.id===id);if(o)openOperation(o)}});
-closeOperationModalBtn.addEventListener("click",closeModal);closeOperationBtn.addEventListener("click",closeModal);modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+closeOperationModalBtn.addEventListener("click",closeModal);closeOperationBtn.addEventListener("click",closeModal);
 demoActionBtn.addEventListener("click",()=>{const t=document.getElementById("operationToast");t.textContent="Status-Workflow wird beim technischen Schritt angebunden.";t.hidden=false;setTimeout(()=>t.hidden=true,2400)});
 render();

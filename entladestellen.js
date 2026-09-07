@@ -86,7 +86,7 @@ function closeModal(){
 document.getElementById("newLocationBtn").addEventListener("click",()=>openModal());
 document.getElementById("closeModalBtn").addEventListener("click",closeModal);
 document.getElementById("cancelModalBtn").addEventListener("click",closeModal);
-modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
+
 
 function closeLocationContextMenu(){
   document.getElementById("locationContextMenu")?.remove();
