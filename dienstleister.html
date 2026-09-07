@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.3</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.4</div>
     </aside>
 
     <main class="workspace masterdata-workspace">
@@ -99,49 +99,31 @@
       </div>
 
       <form id="providerForm">
-        <div class="location-form-grid">
-          <div class="field span-2">
-            <label for="providerName">Name</label>
-            <input id="providerName" required placeholder="z. B. LIT">
+        <div class="provider-form-section">
+          <div class="provider-form-section-head"><strong>Unternehmen</strong></div>
+          <div class="location-form-grid">
+            <div class="field span-2"><label for="providerName">Name</label><input id="providerName" required placeholder="z. B. LIT"></div>
+            <div class="field"><label for="providerAlias">Alias / Kürzel</label><input id="providerAlias" placeholder="LIT"></div>
+            <div class="field"><label for="providerStatus">Status</label><select id="providerStatus"><option value="active">Aktiv</option><option value="inactive">Inaktiv</option></select></div>
+            <div class="field span-2"><label for="providerStreet">Straße / Hausnummer</label><input id="providerStreet" placeholder="Straße 1"></div>
+            <div class="field"><label for="providerZip">PLZ</label><input id="providerZip" placeholder="24939"></div>
+            <div class="field"><label for="providerCity">Ort</label><input id="providerCity" placeholder="Flensburg"></div>
+            <div class="field"><label for="providerCountry">Land</label><input id="providerCountry" placeholder="DE"></div>
+            <div class="field"><label for="providerLogo">Logo-Datei</label><input id="providerLogo" placeholder="z. B. lit.png"></div>
           </div>
-          <div class="field">
-            <label for="providerAlias">Alias / Kürzel</label>
-            <input id="providerAlias" placeholder="LIT">
+        </div>
+
+        <div class="provider-form-section">
+          <div class="provider-form-section-head">
+            <div><strong>Ansprechpartner & E-Mail-Routing</strong><small>Mehrere Kontakte möglich. Zweck und Länder steuern später automatisch Buchungs- und Anfrage-E-Mails.</small></div>
+            <button class="secondary compact-button" id="addProviderContactBtn" type="button">+ Ansprechpartner hinzufügen</button>
           </div>
-          <div class="field">
-            <label for="providerStatus">Status</label>
-            <select id="providerStatus">
-              <option value="active">Aktiv</option>
-              <option value="inactive">Inaktiv</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="providerContact">Ansprechpartner</label>
-            <input id="providerContact" placeholder="Name">
-          </div>
-          <div class="field">
-            <label for="providerPhone">Telefon</label>
-            <input id="providerPhone" placeholder="+49 ...">
-          </div>
-          <div class="field span-2">
-            <label for="providerEmail">E-Mail</label>
-            <input id="providerEmail" type="email" placeholder="dispo@spediteur.de">
-          </div>
-          <div class="field">
-            <label for="providerRates">Anzahl Tarife</label>
-            <input id="providerRates" type="number" min="0" value="0">
-          </div>
-          <div class="field">
-            <label for="providerFloater">Floater</label>
-            <input id="providerFloater" placeholder="z. B. 8,5 %">
-          </div>
-          <div class="field span-2">
-            <label for="providerLogo">Logo-Datei</label>
-            <input id="providerLogo" placeholder="z. B. lit.png">
-          </div>
-          <div class="field span-2">
-            <label for="providerNotes">Interne Hinweise</label>
-            <textarea id="providerNotes" rows="3" placeholder="Besonderheiten, Regionen, Hinweise ..."></textarea>
+          <div id="providerContacts" class="provider-contacts"></div>
+        </div>
+
+        <div class="provider-form-section">
+          <div class="location-form-grid">
+            <div class="field span-2"><label for="providerNotes">Interne Hinweise</label><textarea id="providerNotes" rows="3" placeholder="Besonderheiten, Regionen, Hinweise ..."></textarea></div>
           </div>
         </div>
         <div class="modal-actions">

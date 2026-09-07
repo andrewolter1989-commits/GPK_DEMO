@@ -54,7 +54,7 @@ function getUserPermissions(uid,role){const r=db.prepare("SELECT permission FROM
 function requirePermission(permission){return (req,res,next)=>{const a=getUserPermissions(req.auth.uid,req.auth.role);if(!(a.includes("*")||a.includes(permission)))return res.status(403).json({error:"Keine Berechtigung für diese Aktion"});next()}}
 function audit(req,action,type,id,summary,before=null,after=null){const u=db.prepare("SELECT name FROM users WHERE id=?").get(req.auth.uid);db.prepare(`INSERT INTO audit_logs(company_id,user_id,user_name,action,entity_type,entity_id,summary,before_json,after_json) VALUES(?,?,?,?,?,?,?,?,?)`).run(req.auth.cid,req.auth.uid,u?.name||"",action,type,String(id||""),summary||"",before?JSON.stringify(before):null,after?JSON.stringify(after):null)}
 
-app.get("/api/health",(req,res)=>res.json({ok:true,version:"6.3"}));
+app.get("/api/health",(req,res)=>res.json({ok:true,version:"6.4"}));
 
 app.post("/api/login",(req,res)=>{
   const {email,password}=req.body||{};
@@ -210,4 +210,4 @@ app.get("/api/dashboard",auth,requirePermission("dashboard.view"),(req,res)=>{
 app.use(express.static(ROOT,{extensions:["html"]}));
 app.get("/",(req,res)=>res.sendFile(path.join(ROOT,"login.html")));
 
-app.listen(PORT,()=>console.log(`GP Kollund v6.3 läuft auf http://localhost:${PORT}`));
+app.listen(PORT,()=>console.log(`GP Kollund v6.4 läuft auf http://localhost:${PORT}`));

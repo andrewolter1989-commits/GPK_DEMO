@@ -22,6 +22,10 @@ const rows=document.getElementById("operationRows");
 const search=document.getElementById("operationSearch");
 const statusFilter=document.getElementById("operationStatusFilter");
 const userFilter=document.getElementById("operationUserFilter");
+const periodFilter=document.getElementById("operationPeriodFilter");
+const dateFrom=document.getElementById("operationDateFrom");
+const dateTo=document.getElementById("operationDateTo");
+const customPeriod=document.getElementById("operationCustomPeriod");
 const modal=document.getElementById("operationModal");
 const detail=document.getElementById("operationDetail");
 
@@ -29,11 +33,33 @@ const labels={price:"Preisanfrage",availability:"Verfügbarkeit",booking:"Buchun
 const statuses={open:"Offen",waiting:"Warten auf Antwort",confirmed:"Bestätigt",booked:"Gebucht",closed:"Abgeschlossen"};
 function esc(v=""){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 function euro(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n)}
+function operationDate(o){
+  if(o.createdAt){ const d=new Date(o.createdAt); if(!isNaN(d)) return d; }
+  const raw=String(o.created||"").match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if(raw) return new Date(Number(raw[3]),Number(raw[2])-1,Number(raw[1]));
+  return null;
+}
+function periodMatches(o){
+  const d=operationDate(o); if(!periodFilter?.value || !d) return !periodFilter?.value || !!d;
+  const now=new Date(); now.setHours(23,59,59,999);
+  const startDay=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate());
+  const value=periodFilter.value;
+  if(value==="today") return startDay(d).getTime()===startDay(now).getTime();
+  if(value==="week"){ const n=startDay(now); const day=(n.getDay()+6)%7; const from=new Date(n); from.setDate(n.getDate()-day); return d>=from && d<=now; }
+  if(value==="month") return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  if(value==="30days"){ const from=new Date(now); from.setDate(from.getDate()-29); from.setHours(0,0,0,0); return d>=from && d<=now; }
+  if(value==="custom"){
+    const from=dateFrom?.value ? new Date(dateFrom.value+"T00:00:00") : null;
+    const to=dateTo?.value ? new Date(dateTo.value+"T23:59:59") : null;
+    return (!from||d>=from)&&(!to||d<=to);
+  }
+  return true;
+}
 function render(){
   const q=search.value.trim().toLowerCase(), sf=statusFilter.value, uf=userFilter.value;
   const filtered=operations.filter(o=>{
     const hay=`${o.id} ${o.relation} ${o.provider} ${o.customer} ${o.user} ${o.transport}`.toLowerCase();
-    return (!activeType||o.type===activeType)&&(!q||hay.includes(q))&&(!sf||o.status===sf)&&(!uf||o.user===uf);
+    return (!activeType||o.type===activeType)&&(!q||hay.includes(q))&&(!sf||o.status===sf)&&(!uf||o.user===uf)&&periodMatches(o);
   });
   openCount.textContent=operations.filter(o=>o.status==="open").length;
   waitingCount.textContent=operations.filter(o=>o.status==="waiting").length;
@@ -71,7 +97,9 @@ function closeModal(){modal.hidden=true;document.body.classList.remove("modal-op
 document.querySelectorAll(".operations-tab").forEach(btn=>btn.addEventListener("click",()=>{
   document.querySelectorAll(".operations-tab").forEach(x=>x.classList.toggle("active",x===btn));activeType=btn.dataset.type;render();
 }));
-[search,statusFilter,userFilter].forEach(x=>x.addEventListener("input",render));
+[search,statusFilter,userFilter,dateFrom,dateTo].forEach(x=>x?.addEventListener("input",render));
+periodFilter?.addEventListener("change",()=>{customPeriod.hidden=periodFilter.value!=="custom";render();});
+clearOperationDates?.addEventListener("click",()=>{dateFrom.value="";dateTo.value="";periodFilter.value="";customPeriod.hidden=true;render();});
 rows.addEventListener("click",e=>{const btn=e.target.closest("[data-open]");const row=e.target.closest(".operation-row");const id=btn?.dataset.open||row?.dataset.id;if(id){const o=operations.find(x=>x.id===id);if(o)openOperation(o)}});
 closeOperationModalBtn.addEventListener("click",closeModal);closeOperationBtn.addEventListener("click",closeModal);modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
 demoActionBtn.addEventListener("click",()=>{const t=document.getElementById("operationToast");t.textContent="Status-Workflow wird beim technischen Schritt angebunden.";t.hidden=false;setTimeout(()=>t.hidden=true,2400)});

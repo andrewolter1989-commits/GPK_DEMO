@@ -2965,3 +2965,45 @@ html.local-demo-mode .sidebar-demo-label::after{
 @media(max-width:760px){.role-overview{grid-template-columns:1fr}.user-admin-row{grid-template-columns:42px minmax(0,1fr) 90px}.user-admin-row .role-pill{display:none}.user-actions{grid-column:2/4;justify-content:flex-start;}}
 
 .permission-hidden{display:none!important}.permission-editor{margin-top:4px;border:1px solid #dfe8ec;border-radius:11px;background:#f9fcfd;padding:13px}.permission-editor-head{display:flex;justify-content:space-between;gap:14px;margin-bottom:12px}.permission-editor-head strong{display:block;color:#173f4d;font-size:12px}.permission-editor-head small{display:block;color:#81949d;font-size:9px;margin-top:3px}.permission-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.permission-group{border:1px solid #e4ecef;background:#fff;border-radius:9px;padding:10px}.permission-group>strong{display:block;margin-bottom:7px;color:#173f4d;font-size:10px;text-transform:uppercase}.permission-group label{display:block;margin:6px 0;color:#496874;font-size:10px}.audit-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:18px 20px 12px}.audit-table{min-width:980px}.dashboard-user-stats{margin-top:14px;overflow:hidden}@media(max-width:800px){.permission-grid,.audit-summary-grid{grid-template-columns:1fr}}
+
+
+/* v6.4 – Seiten-Polish und besprochene Anpassungen */
+.side-nav .nav-item{transition:background-color .16s ease,color .16s ease,transform .16s ease;cursor:pointer;}
+.side-nav .nav-item:hover{background:rgba(255,255,255,.075);color:#fff;}
+.side-nav .nav-item.active{background:rgba(255,255,255,.13);color:#fff;}
+.side-nav .nav-item.active:hover{background:rgba(255,255,255,.17);}
+
+.calculator-workspace{padding-top:24px;}
+.calculator-page-head{width:min(100%,1560px);margin:0 auto 12px;padding:0 4px;}
+.calculator-page-head h1{margin:0;color:#153b4a;font-size:24px;letter-spacing:-.02em;}
+.calculator-page-head p{margin:5px 0 0;color:#718793;font-size:14px;}
+
+.operations-filterbar{grid-template-columns:minmax(320px,1fr) 180px 180px 180px;}
+.operation-custom-period{display:flex;justify-content:flex-end;align-items:flex-end;gap:10px;padding:0 26px 16px;}
+.operation-custom-period[hidden]{display:none!important;}
+.operation-custom-period .field{min-width:170px;}
+.operation-custom-period input{height:42px;}
+
+#providerModal .location-modal{width:min(900px,100%);}
+.provider-form-section{padding:18px 24px;border-bottom:1px solid #e6edef;}
+.provider-form-section:last-of-type{border-bottom:0;}
+.provider-form-section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;color:#173f4d;}
+.provider-form-section-head strong{font-size:13px;}
+.provider-form-section-head small{display:block;margin-top:3px;color:#82959e;font-size:10px;max-width:560px;line-height:1.4;}
+.provider-contacts{display:grid;gap:10px;}
+.provider-contact-card{padding:13px;border:1px solid #dfe8ec;border-radius:11px;background:#f9fcfd;}
+.provider-contact-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;color:#315563;font-size:11px;}
+.contact-purpose-list{display:flex;flex-wrap:wrap;gap:12px;padding:9px 10px;border:1px solid #d6e1e5;border-radius:9px;background:#fff;}
+.contact-purpose-list label{display:flex;align-items:center;gap:5px;color:#496874;font-size:10px;font-weight:700;}
+
+.tariff-inner-toolbar{padding-top:18px;}
+.tariff-inner-toolbar h2{margin:0;color:#163f4e;font-size:18px;}
+.tariff-inner-toolbar p{margin:4px 0 0;color:#788d97;font-size:12px;}
+.surcharge-filterbar{grid-template-columns:minmax(300px,1fr) 190px 160px;}
+.surcharge-table{min-width:1060px;}
+.tariff-context-menu{position:fixed;z-index:80;width:190px;padding:6px;background:#fff;border:1px solid #dbe5e9;border-radius:10px;box-shadow:0 12px 28px rgba(17,56,69,.16);}
+.tariff-context-menu[hidden]{display:none!important;}
+.tariff-context-menu button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:7px;color:#315563;font-size:11px;font-weight:700;cursor:pointer;}
+.tariff-context-menu button:hover{background:#eef6f8;color:#087694;}
+@media(max-width:1150px){.operations-filterbar{grid-template-columns:1fr 1fr}.operations-filterbar .search-box{grid-column:1/-1}.operation-custom-period{justify-content:flex-start;flex-wrap:wrap}.surcharge-filterbar{grid-template-columns:1fr 1fr}.surcharge-filterbar .search-box{grid-column:1/-1}}
+@media(max-width:720px){.calculator-page-head{padding:0 2px}.operation-custom-period{padding-left:16px;padding-right:16px}.operation-custom-period .field{min-width:100%;}.surcharge-filterbar{grid-template-columns:1fr}.surcharge-filterbar .search-box{grid-column:auto}.provider-form-section-head{flex-direction:column}}

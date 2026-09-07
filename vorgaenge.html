@@ -20,7 +20,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.3</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.4</div>
   </aside>
 
   <main class="workspace masterdata-workspace operations-workspace">
@@ -66,6 +66,19 @@
           <option value="Vertrieb">Vertrieb</option>
           <option value="Andre Wolter">Andre Wolter</option>
         </select>
+        <select id="operationPeriodFilter" title="Zeitraum">
+          <option value="">Alle Zeiträume</option>
+          <option value="today">Heute</option>
+          <option value="week">Diese Woche</option>
+          <option value="month">Dieser Monat</option>
+          <option value="30days">Letzte 30 Tage</option>
+          <option value="custom">Eigener Zeitraum</option>
+        </select>
+      </div>
+      <div class="operation-custom-period" id="operationCustomPeriod" hidden>
+        <div class="field"><label for="operationDateFrom">Von</label><input id="operationDateFrom" type="date"></div>
+        <div class="field"><label for="operationDateTo">Bis</label><input id="operationDateTo" type="date"></div>
+        <button class="secondary compact-button" id="clearOperationDates" type="button">Zeitraum löschen</button>
       </div>
 
       <div class="masterdata-meta">
