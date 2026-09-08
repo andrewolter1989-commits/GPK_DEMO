@@ -449,7 +449,24 @@
 
   async function analyzeFile(file){
     const sheets=await readWorkbook(file);let blocks=[];
-    for(const sheet of sheets){try{blocks.push(...analyzeSheet(sheet.name,sheet.rows));}catch(err){console.warn("Tariferkennung",sheet.name,err);}}
+    for(const sheet of sheets){
+      try{
+        const found=analyzeSheet(sheet.name,sheet.rows);
+        blocks.push(...found);
+        /* Sicherheitsnetz für klassische Stückgut-95-Zonen-Vordrucke:
+           PLZ / Zone + 1 PLL, 2 PLL ... muss als eigener PALLET_STEP-Block erhalten bleiben. */
+        if(/stueckgut|stückgut/i.test(sheet.name) && !found.some(b=>b.model==="PALLET_STEP")){
+          for(let i=0;i<Math.min(sheet.rows.length,40);i++){
+            const row=sheet.rows[i]||[];const rt=lower(rowText(row));
+            if(/plz\s*\/\s*zone/.test(rt) && row.some(v=>/\b1\s*pll\b/i.test(text(v))) && row.filter(v=>/\b\d+\s*pll\b/i.test(text(v))).length>=2){
+              const rescued=parseHorizontalMatrix(sheet.name,sheet.rows,i,"PALLET_STEP");
+              if(rescued && !found.some(x=>overlap(x,rescued))){rescued.modelLabel="Paletten / Stellplätze";blocks.push(rescued);}
+              break;
+            }
+          }
+        }
+      }catch(err){console.warn("Tariferkennung",sheet.name,err);}
+    }
     blocks=blocks.filter(b=>b.rates.length).sort((a,b)=>a.sheet.localeCompare(b.sheet)||a.headerRow-b.headerRow);
     const provider=detectProvider(file.name,sheets);
     return {fileName:file.name,sheetCount:sheets.length,provider,blocks,rates:blocks.flatMap(b=>b.rates),zones:dedupeZones(blocks.flatMap(b=>b.zones)),sheets:sheets.map(s=>s.name)};
@@ -469,7 +486,7 @@
           <div class="auto-import-body">
             <div class="auto-import-blocks"><div class="import-section-head"><div><h3>Importauswahl</h3><p>Automatische Kandidaten sind vorausgewählt. REVIEW-Blöcke müssen bewusst aktiviert werden.</p></div></div><div id="gpkTariffAutoBlocks" class="auto-import-block-list"></div></div>
             <div class="auto-import-preview">
-              <div class="import-section-head"><div><h3>Ratenblatt prüfen</h3><p id="gpkTariffAutoPreviewMeta"></p></div><div class="preview-toggle"><button class="secondary compact-button" id="gpkTariffEditToggle" type="button">Bearbeiten</button><button class="secondary compact-button" id="gpkTariffAddZone" type="button" hidden>+ Zone</button><button class="preview-toggle-btn active" data-auto-preview="rates" type="button">Ratenblatt</button><button class="preview-toggle-btn" data-auto-preview="zones" type="button">Zonenblatt</button></div></div>
+              <div class="import-section-head"><div><h3>Ratenblatt prüfen</h3><p id="gpkTariffAutoPreviewMeta"></p></div><div class="preview-toggle"><button class="secondary compact-button" id="gpkTariffEditToggle" type="button">Bearbeiten</button><button class="secondary compact-button" id="gpkTariffAddZone" type="button" hidden>+ Zone</button><button class="secondary compact-button" id="gpkTariffAutoNumberZones" type="button" hidden>Zonen 1–n</button><button class="preview-toggle-btn active" data-auto-preview="rates" type="button">Ratenblatt</button><button class="preview-toggle-btn" data-auto-preview="zones" type="button">Zonenblatt</button></div></div>
               <div class="auto-preview-filters"><div><span class="auto-filter-label">Land</span><div id="gpkTariffCountryTabs" class="auto-filter-tabs"></div></div><div><span class="auto-filter-label">Bereich</span><div id="gpkTariffBlockTabs" class="auto-filter-tabs"></div></div></div>
               <div class="auto-preview-context" id="gpkTariffPreviewContext"></div>
               <div class="masterdata-table-wrap auto-preview-wrap"><table class="masterdata-table auto-preview-table tariff-matrix-table"><thead id="gpkTariffAutoPreviewHead"></thead><tbody id="gpkTariffAutoPreviewRows"></tbody></table></div>
@@ -478,16 +495,29 @@
           <div class="modal-actions"><button class="secondary compact-button" id="gpkTariffAutoCancel" type="button">Abbrechen</button><button class="primary compact-button" id="gpkTariffAutoConfirm" type="button">Auswahl importieren</button></div>
         </section>
       </div>`);
-    document.getElementById("gpkTariffAutoCancel").addEventListener("click",close);
+    document.getElementById("gpkTariffAutoCancel").addEventListener("click",()=>close(true));
     document.querySelectorAll("[data-auto-preview]").forEach(btn=>btn.addEventListener("click",()=>{state.preview=btn.dataset.autoPreview;document.querySelectorAll("[data-auto-preview]").forEach(x=>x.classList.toggle("active",x===btn));renderPreview();}));
     document.getElementById("gpkTariffEditToggle").addEventListener("click",()=>{state.editing=!state.editing;syncEditControls();renderPreview();});
     document.getElementById("gpkTariffAddZone").addEventListener("click",addManualZone);
-    document.getElementById("gpkTariffRefreshProviders").addEventListener("click",()=>{const current=text(document.getElementById("gpkTariffAutoProvider").value);renderProviderList(current);updateConfirm();});
-    document.getElementById("gpkTariffCreateProvider").addEventListener("click",()=>window.open("dienstleister.html?new=1","_blank","noopener"));
+    document.getElementById("gpkTariffAutoNumberZones").addEventListener("click",autoNumberZones);
+    document.getElementById("gpkTariffRefreshProviders").addEventListener("click",()=>{const current=text(document.getElementById("gpkTariffAutoProvider").value);renderProviderList(current);updateConfirm();persistDraft();});
+    document.getElementById("gpkTariffCreateProvider").addEventListener("click",()=>{persistDraft();window.open("dienstleister.html?new=1&return=tarife","_blank");});
     document.getElementById("gpkTariffAutoConfirm").addEventListener("click",confirmImport);
   }
 
+  const DRAFT_KEY="gpk_tariff_import_draft_v1";
   const state={file:null,analysis:null,selected:new Set(),preview:"rates",country:"",blockId:"",editing:false,_matrix:null};
+  function persistDraft(){
+    if(!state.analysis)return;
+    try{sessionStorage.setItem(DRAFT_KEY,JSON.stringify({fileName:state.file?.name||state.analysis.fileName||"Tarif.xlsx",analysis:state.analysis,selected:[...state.selected],preview:state.preview,country:state.country,blockId:state.blockId,provider:text(document.getElementById("gpkTariffAutoProvider")?.value||"")}));}catch(_){ }
+  }
+  function clearDraft(){try{sessionStorage.removeItem(DRAFT_KEY);}catch(_){ }}
+  function restoreDraft(){
+    let d=null;try{d=JSON.parse(sessionStorage.getItem(DRAFT_KEY)||"null");}catch(_){ }
+    if(!d?.analysis)return false;
+    installModal();state.file={name:d.fileName||d.analysis.fileName||"Tarif.xlsx"};state.analysis=d.analysis;state.selected=new Set(d.selected||[]);state.preview=d.preview||"rates";state.country=d.country||"";state.blockId=d.blockId||"";state.editing=false;state._matrix=null;
+    document.getElementById("gpkTariffAutoFile").textContent=state.file.name;document.getElementById("gpkTariffAutoImport").hidden=false;document.body.classList.add("modal-open");renderProviderList(d.provider||state.analysis.provider||"");renderSummary();renderBlocks();ensurePreviewSelection();renderPreview();syncEditControls();updateConfirm();return true;
+  }
   function allProviderNames(){
     const p=(GPK.read(GPK.KEYS.providers,[])||[]).map(x=>x.name).filter(Boolean);
     return [...new Set(["DHL Freight","DB Schenker","Dachser","Raben","DSV","DPD","GLS","Hellmann","Noerpel","Tombers","Böckmann","Berghegger","Marathon Logistics","Emons",...p])].sort();
@@ -502,7 +532,7 @@
     const wrap=document.getElementById("gpkTariffAutoBlocks");
     if(!state.analysis.blocks.length){wrap.innerHTML=`<div class="empty-state auto-import-empty"><strong>Kein unterstützter Tarifblock erkannt.</strong><span>Die Datei kann trotzdem später über ein manuelles Mapping ergänzt werden.</span></div>`;return;}
     wrap.innerHTML=state.analysis.blocks.map((b,idx)=>`<label class="auto-block-card ${b.status==='REVIEW'?'review':''}"><input type="checkbox" data-auto-block="${esc(b.id)}" ${state.selected.has(b.id)?'checked':''}><span class="auto-block-main"><span class="auto-block-title"><strong>${esc(blockAreaLabel(b))}</strong><span class="confidence-pill ${b.status==='REVIEW'?'review':'auto'}">${Math.round(b.confidence*100)} % · ${b.status==='REVIEW'?'REVIEW':'AUTO'}</span></span><span class="auto-block-meta">${esc(b.sheet)} · ${esc(b.modelLabel||b.model)} · Zeile ${b.headerRow} · ${esc(b.summary)}</span></span></label>`).join("");
-    wrap.querySelectorAll("[data-auto-block]").forEach(cb=>cb.addEventListener("change",()=>{if(cb.checked)state.selected.add(cb.dataset.autoBlock);else state.selected.delete(cb.dataset.autoBlock);ensurePreviewSelection();renderPreview();updateConfirm();}));
+    wrap.querySelectorAll("[data-auto-block]").forEach(cb=>cb.addEventListener("change",()=>{if(cb.checked)state.selected.add(cb.dataset.autoBlock);else state.selected.delete(cb.dataset.autoBlock);ensurePreviewSelection();renderPreview();updateConfirm();persistDraft();}));
   }
   function selectedBlocks(){return state.analysis?state.analysis.blocks.filter(b=>state.selected.has(b.id)):[];}
   function blockCountries(block){
@@ -560,11 +590,13 @@
     const cols=[...map.values()].sort(zoneSort);
     cols.forEach((col,i)=>{
       const manualRegion=(col.rules||[]).map(z=>text(z.manualRegionCode)).find(Boolean);
-      const manualZone=(col.rules||[]).map(z=>text(z.manualZoneLabel)).find(Boolean);
+      const manualNo=(col.rules||[]).map(z=>Number(z.manualZoneNumber)).find(n=>Number.isInteger(n)&&n>=1&&n<=999);
+      const legacyLabel=(col.rules||[]).map(z=>text(z.manualZoneLabel)).find(Boolean);const legacyNo=legacyLabel?Number((legacyLabel.match(/\d+/)||[])[0]):null;
       const labels=[...new Set(col.rules.map(z=>compactZoneRegion(z,country)).filter(Boolean))];
       col.region=manualRegion||(labels.length<=2?labels.join(" / "):`${labels[0]} +${labels.length-1}`);
       if(!col.region)col.region=compactZoneRegion({zone:col.key},country);
-      col.displayZone=manualZone||`Zone ${i+1}`;
+      col.zoneNumber=(Number.isInteger(manualNo)?manualNo:(Number.isInteger(legacyNo)?legacyNo:i+1));
+      col.displayZone=`Zone ${col.zoneNumber}`;
     });
     return cols;
   }
@@ -577,7 +609,11 @@
     const lastBySeries=new Map();
     arr.forEach(row=>{
       const isFull=row.model==="FULL_LOAD"||/\b(?:ftl|kompl|komplettladung)\b/i.test(row.label);
-      if(isFull){row.from="";row.to="";row.members.forEach(r=>{r.chargeFrom="";r.chargeTo="";});return;}
+      if(isFull){
+        row.from=text(row.from);row.to=text(row.to);
+        row.members.forEach(r=>{if(r.chargeFrom==null)r.chargeFrom="";if(r.chargeTo==null)r.chargeTo="";});
+        return;
+      }
       const sk=[row.model,row.product,row.subservice,row.unit].join('|');const n=dimensionNumber(row.sample);
       if(n!=null && !row.from){const prev=lastBySeries.get(sk);const step=(row.model==="LDM_STEP"||row.model==="PER_LDM")?0.01:(row.model==="WEIGHT_STEP"||row.model==="PACKAGE_WEIGHT_ZONE")?0.01:0;row.from=prev==null?"0":String(round(prev+step,3));row.to=String(n);row.members.forEach(r=>{r.chargeFrom=row.from;r.chargeTo=row.to;});lastBySeries.set(sk,n);}else if(n!=null){lastBySeries.set(sk,n);row.members.forEach(r=>{if(!r.chargeFrom)r.chargeFrom=row.from;if(!r.chargeTo)r.chargeTo=row.to;});}
       if(!row.to&&row.label)row.to=row.label;
@@ -586,9 +622,9 @@
   }
 
   function syncEditControls(){
-    const toggle=document.getElementById("gpkTariffEditToggle"),add=document.getElementById("gpkTariffAddZone");
+    const toggle=document.getElementById("gpkTariffEditToggle"),add=document.getElementById("gpkTariffAddZone"),autoNo=document.getElementById("gpkTariffAutoNumberZones");
     if(toggle){toggle.textContent=state.editing?"Bearbeiten beenden":"Bearbeiten";toggle.classList.toggle("active",state.editing);}
-    if(add)add.hidden=!state.editing;
+    if(add)add.hidden=!state.editing;if(autoNo)autoNo.hidden=!state.editing;
   }
   function ensureZoneRule(block,col,country){
     if(col.rules?.length)return col.rules[0];
@@ -604,9 +640,16 @@
     const rg=postcodeRange(cp.country,cp.code);
     rules.forEach(z=>{z.manualRegionCode=code; if(cp.country)z.destCountry=cp.country;if(cp.code){z.ruleType="POSTCODE";z.destPostcodeFrom=rg.from;z.destPostcodeTo=rg.to;}});
   }
-  function updateZoneLabel(block,col,country,value){
+  function updateZoneNumber(block,col,country,value){
+    const n=Math.max(1,Math.min(999,Math.round(Number(value)||0)));if(!n)return;
     const rules=(col.rules?.length?col.rules:[ensureZoneRule(block,col,country)]);
-    rules.forEach(z=>z.manualZoneLabel=text(value));
+    rules.forEach(z=>{z.manualZoneNumber=n;delete z.manualZoneLabel;});
+  }
+  function autoNumberZones(){
+    const block=activeBlock();if(!block)return;const country=state.country;
+    const rates=(block.rates||[]).filter(r=>country==="ALL"?!text(r.destCountry):!text(r.destCountry)||text(r.destCountry).toUpperCase()===country);
+    const zones=dedupeZones((block.zones||[]).filter(z=>country==="ALL"?!text(z.destCountry):!text(z.destCountry)||text(z.destCountry).toUpperCase()===country));
+    buildZoneColumns(block,country,rates,zones).forEach((col,i)=>updateZoneNumber(block,col,country,i+1));persistDraft();renderPreview();
   }
   function addManualZone(){
     const block=activeBlock();if(!block)return;
@@ -616,12 +659,12 @@
     const code=text(raw).toUpperCase().replace(/\s+/g,"");if(!code)return;
     const cp=parseCountryPostcode([code],fallback),rg=postcodeRange(cp.country,cp.code);
     const key="MANUAL-"+makeId("z");
-    block.zones.push({id:makeId("zone"),blockId:block.id,zoneSet:block.sheet,ruleType:cp.code?"POSTCODE":"SERVICE_ZONE",originCountry:"",originPostcodeFrom:"",originPostcodeTo:"",destCountry:cp.country||fallback,destPostcodeFrom:rg.from,destPostcodeTo:rg.to,distanceFromKm:"",distanceToKm:"",originName:"",destinationName:"",zone:key,manualRegionCode:code,manualZoneLabel:`Zone ${buildZoneColumns(block,state.country,block.rates||[],block.zones||[]).length+1}`,priority:100,sourceRef:"MANUAL"});
+    block.zones.push({id:makeId("zone"),blockId:block.id,zoneSet:block.sheet,ruleType:cp.code?"POSTCODE":"SERVICE_ZONE",originCountry:"",originPostcodeFrom:"",originPostcodeTo:"",destCountry:cp.country||fallback,destPostcodeFrom:rg.from,destPostcodeTo:rg.to,distanceFromKm:"",distanceToKm:"",originName:"",destinationName:"",zone:key,manualRegionCode:code,manualZoneNumber:buildZoneColumns(block,state.country,block.rates||[],block.zones||[]).length+1,priority:100,sourceRef:"MANUAL"});
     renderPreview();
   }
   function setMatrixPrice(block,row,col,value){
     const n=num(value),zoneKey=col.key;
-    let rate=block.rates.find(r=>r.rateModel===row.model&&text(r.product)===row.product&&text(r.subservice)===row.subservice&&text(r.chargeFrom)===row.from&&text(r.chargeTo)===row.to&&text(r.chargeLabel)===row.label&&text(r.unit)===row.unit&&text(r.zone||r.relationName||r.sourceRef)===zoneKey);
+    let rate=(row.members||[]).find(r=>text(r.zone||r.relationName||r.sourceRef)===zoneKey)||block.rates.find(r=>r.rateModel===row.model&&text(r.product)===row.product&&text(r.subservice)===row.subservice&&text(r.chargeLabel)===row.label&&text(r.unit)===row.unit&&text(r.zone||r.relationName||r.sourceRef)===zoneKey);
     if(n===null){if(rate)block.rates=block.rates.filter(x=>x!==rate);return;}
     if(rate){rate.price=round(n,4);return;}
     const sample=row.sample||block.rates[0];if(!sample)return;
@@ -642,18 +685,18 @@
   function bindRateEditor(block,country){
     if(!state.editing)return;
     const m=state._matrix;if(!m)return;
-    document.querySelectorAll("[data-matrix-zone-code]").forEach(el=>el.addEventListener("change",()=>{const col=m.cols[Number(el.dataset.matrixZoneCode)];updateZoneCode(block,col,country,el.value);renderPreview();}));
-    document.querySelectorAll("[data-matrix-zone-label]").forEach(el=>el.addEventListener("change",()=>{const col=m.cols[Number(el.dataset.matrixZoneLabel)];updateZoneLabel(block,col,country,el.value);renderPreview();}));
-    document.querySelectorAll("[data-matrix-step]").forEach(el=>el.addEventListener("change",()=>{const row=m.rows[Number(el.dataset.matrixStep)];updateMatrixStep(block,row,el.value);renderPreview();}));
-    document.querySelectorAll("[data-matrix-boundary]").forEach(el=>el.addEventListener("change",()=>{const [ri,field]=el.dataset.matrixBoundary.split(":");updateMatrixBoundary(block,m.rows[Number(ri)],field,el.value);renderPreview();}));
-    document.querySelectorAll("[data-matrix-price]").forEach(el=>el.addEventListener("change",()=>{const [ri,ci]=el.dataset.matrixPrice.split(":").map(Number);setMatrixPrice(block,m.rows[ri],m.cols[ci],el.value);renderPreview();}));
+    document.querySelectorAll("[data-matrix-zone-code]").forEach(el=>el.addEventListener("change",()=>{const col=m.cols[Number(el.dataset.matrixZoneCode)];updateZoneCode(block,col,country,el.value);persistDraft();renderPreview();}));
+    document.querySelectorAll("[data-matrix-zone-number]").forEach(el=>el.addEventListener("change",()=>{const col=m.cols[Number(el.dataset.matrixZoneNumber)];updateZoneNumber(block,col,country,el.value);persistDraft();renderPreview();}));
+    document.querySelectorAll("[data-matrix-step]").forEach(el=>el.addEventListener("change",()=>{const row=m.rows[Number(el.dataset.matrixStep)];updateMatrixStep(block,row,el.value);persistDraft();renderPreview();}));
+    document.querySelectorAll("[data-matrix-boundary]").forEach(el=>el.addEventListener("change",()=>{const [ri,field]=el.dataset.matrixBoundary.split(":");updateMatrixBoundary(block,m.rows[Number(ri)],field,el.value);persistDraft();renderPreview();}));
+    document.querySelectorAll("[data-matrix-price]").forEach(el=>el.addEventListener("change",()=>{const [ri,ci]=el.dataset.matrixPrice.split(":").map(Number);setMatrixPrice(block,m.rows[ri],m.cols[ci],el.value);persistDraft();renderPreview();}));
   }
   function bindZoneEditor(block,country,cols){
     if(!state.editing)return;
     document.querySelectorAll("[data-zone-edit]").forEach(el=>el.addEventListener("change",()=>{
       const [ci,field]=el.dataset.zoneEdit.split(":");const col=cols[Number(ci)];const z=ensureZoneRule(block,col,country);const v=text(el.value);
       if(field==="code")updateZoneCode(block,col,country,v);
-      else if(field==="label")updateZoneLabel(block,col,country,v);
+      else if(field==="number")updateZoneNumber(block,col,country,v);
       else if(field==="country")z.destCountry=v.toUpperCase();
       else if(field==="from")z.destPostcodeFrom=v;
       else if(field==="to")z.destPostcodeTo=v;
@@ -672,12 +715,15 @@
     const head=document.getElementById("gpkTariffAutoPreviewHead"),body=document.getElementById("gpkTariffAutoPreviewRows");
     const palletOnly=block.model==="PALLET_STEP";
     const leftHead=palletOnly?`<th class="matrix-fixed-col matrix-step-col">Stufe</th>`:`<th class="matrix-fixed-col">von</th><th class="matrix-fixed-col">bis</th><th class="matrix-fixed-col">Einheit</th>`;
-    head.innerHTML=`<tr>${leftHead}${cols.map((c,ci)=>`<th class="matrix-zone-head" title="${esc((c.rules||[]).map(z=>[z.destCountry,z.destPostcodeFrom,z.destPostcodeTo,z.destinationName].filter(Boolean).join(' ')).join(' · '))}">${state.editing?`<input class="matrix-head-input matrix-region-input" data-matrix-zone-code="${ci}" value="${esc(c.region)}" aria-label="Zonenkurzcode"><input class="matrix-head-input matrix-zone-input" data-matrix-zone-label="${ci}" value="${esc(c.displayZone)}" aria-label="Zonenname">`:`<span class="matrix-region">${esc(c.region)}</span><span class="matrix-zone">${esc(c.displayZone)}</span>`}</th>`).join('')}</tr>`;
+    head.innerHTML=`<tr>${leftHead}${cols.map((c,ci)=>`<th class="matrix-zone-head" title="${esc((c.rules||[]).map(z=>[z.destCountry,z.destPostcodeFrom,z.destPostcodeTo,z.destinationName].filter(Boolean).join(' ')).join(' · '))}">${state.editing?`<input class="matrix-head-input matrix-region-input" data-matrix-zone-code="${ci}" value="${esc(c.region)}" aria-label="Zonenkurzcode"><label class="matrix-zone-number-wrap">Zone <input type="number" min="1" max="999" class="matrix-head-input matrix-zone-number-input" data-matrix-zone-number="${ci}" value="${esc(c.zoneNumber)}" aria-label="Zonennummer"></label>`:`<span class="matrix-region">${esc(c.region)}</span><span class="matrix-zone">Zone ${esc(c.zoneNumber)}</span>`}</th>`).join('')}</tr>`;
     body.innerHTML=rows.map((row,ri)=>{
       const isFull=row.model==="FULL_LOAD"||/\b(?:ftl|kompl|komplettladung)\b/i.test(row.label);
       let left;
       if(palletOnly&&!isFull){const stepLabel=row.label||([row.to,"PLL"].filter(Boolean).join(" "));left=`<td class="matrix-step-cell">${state.editing?`<input class="matrix-cell-input matrix-step-input" data-matrix-step="${ri}" value="${esc(stepLabel)}">`:`<strong>${esc(stepLabel||'—')}</strong>`}</td>`;}
-      else if(isFull){left=palletOnly?`<td class="matrix-step-cell"><strong>FTL</strong></td>`:`<td>—</td><td>—</td><td><strong>FTL</strong></td>`;}
+      else if(isFull){
+        if(palletOnly)left=`<td class="matrix-step-cell"><strong>FTL</strong></td>`;
+        else left=`<td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:from" value="${esc(row.from||'')}" placeholder="von">`:esc(row.from||'—')}</td><td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:to" value="${esc(row.to||'')}" placeholder="bis">`:esc(row.to||'—')}</td><td><strong>FTL</strong></td>`;
+      }
       else{left=`<td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:from" value="${esc(row.from||'')}">`:esc(row.from||'—')}</td><td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:to" value="${esc(row.to||'')}">`:esc(row.to||'—')}</td><td><strong>${esc(row.model==="LDM_STEP"?'LDM':row.unit||row.model)}</strong>${row.product?`<small>${esc(row.product)}</small>`:''}</td>`;}
       return `<tr>${left}${cols.map((c,ci)=>{const v=row.prices.get(c.key);return `<td class="matrix-price-cell">${state.editing?`<input class="matrix-cell-input matrix-price-input" data-matrix-price="${ri}:${ci}" value="${v==null?'':esc(String(v).replace('.',','))}" placeholder="—">`:(v==null?'—':new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:4}).format(Number(v)))}</td>`;}).join('')}</tr>`;
     }).join('')||`<tr><td colspan="${(palletOnly?1:3)+cols.length}" class="empty-state">Keine Preiszeilen für diese Auswahl.</td></tr>`;
@@ -692,10 +738,10 @@
     head.innerHTML="<tr><th>Zone</th><th>Kurzcode</th><th>Land</th><th>PLZ von</th><th>PLZ bis</th><th>Relation / Ziel</th><th>Typ</th></tr>";
     body.innerHTML=cols.map((col,ci)=>{
       const z=col.rules?.[0]||{};
-      const label=text(z.manualZoneLabel)||`Zone ${index.get(col.key)||ci+1}`;
+      const number=col.zoneNumber||index.get(col.key)||ci+1;
       const code=text(z.manualRegionCode)||col.region||compactZoneRegion(z,country);
-      if(state.editing)return `<tr><td><input class="zone-edit-input" data-zone-edit="${ci}:label" value="${esc(label)}"></td><td><input class="zone-edit-input" data-zone-edit="${ci}:code" value="${esc(code)}"></td><td><input class="zone-edit-input zone-country-input" data-zone-edit="${ci}:country" value="${esc(z.destCountry||country||'')}"></td><td><input class="zone-edit-input" data-zone-edit="${ci}:from" value="${esc(z.destPostcodeFrom||'')}"></td><td><input class="zone-edit-input" data-zone-edit="${ci}:to" value="${esc(z.destPostcodeTo||'')}"></td><td><input class="zone-edit-input" data-zone-edit="${ci}:target" value="${esc(z.destinationName||'')}"></td><td><small>${esc(z.ruleType||'POSTCODE')}</small></td></tr>`;
-      return `<tr><td><strong>${esc(label)}</strong></td><td><span class="transport-pill">${esc(code)}</span></td><td>${esc(z.destCountry||'—')}</td><td>${esc(z.destPostcodeFrom||'—')}</td><td>${esc(z.destPostcodeTo||'—')}</td><td>${esc(z.destinationName||z.zone||'—')}</td><td><small>${esc(z.ruleType||'—')}</small></td></tr>`;
+      if(state.editing)return `<tr><td><label class="zone-number-cell">Zone <input type="number" min="1" max="999" class="zone-edit-input zone-number-input" data-zone-edit="${ci}:number" value="${esc(number)}"></label></td><td><input class="zone-edit-input" data-zone-edit="${ci}:code" value="${esc(code)}"></td><td><input class="zone-edit-input zone-country-input" data-zone-edit="${ci}:country" value="${esc(z.destCountry||country||'')}"></td><td><input class="zone-edit-input" data-zone-edit="${ci}:from" value="${esc(z.destPostcodeFrom||'')}"></td><td><input class="zone-edit-input" data-zone-edit="${ci}:to" value="${esc(z.destPostcodeTo||'')}"></td><td><input class="zone-edit-input" data-zone-edit="${ci}:target" value="${esc(z.destinationName||'')}"></td><td><small>${esc(z.ruleType||'POSTCODE')}</small></td></tr>`;
+      return `<tr><td><strong>Zone ${esc(number)}</strong></td><td><span class="transport-pill">${esc(code)}</span></td><td>${esc(z.destCountry||'—')}</td><td>${esc(z.destPostcodeFrom||'—')}</td><td>${esc(z.destPostcodeTo||'—')}</td><td>${esc(z.destinationName||z.zone||'—')}</td><td><small>${esc(z.ruleType||'—')}</small></td></tr>`;
     }).join('')||`<tr><td colspan="7" class="empty-state">Keine Zonenregeln für diese Auswahl.</td></tr>`;
     bindZoneEditor(block,country,cols);
   }
@@ -705,10 +751,10 @@
     if(state.preview==="rates")renderRateMatrix(block,state.country);else renderZoneSheet(block,state.country);
   }
   function updateConfirm(){const btn=document.getElementById("gpkTariffAutoConfirm"),sel=document.getElementById("gpkTariffAutoProvider");const provider=text(sel?.value);const exists=providerMasterRecords().some(p=>text(p.name)===provider);btn.disabled=!state.selected.size||!exists;}
-  function close(){document.getElementById("gpkTariffAutoImport").hidden=true;document.body.classList.remove("modal-open");}
+  function close(clear=true){document.getElementById("gpkTariffAutoImport").hidden=true;document.body.classList.remove("modal-open");if(clear)clearDraft();}
   async function open(file){
     installModal();state.file=file;state.preview="rates";state.country="";state.blockId="";state.editing=false;state._matrix=null;document.getElementById("gpkTariffAutoFile").textContent=file.name;document.getElementById("gpkTariffAutoSummary").innerHTML='<div class="auto-loading"><span class="auto-spinner"></span><strong>Tarif wird analysiert …</strong></div>';document.getElementById("gpkTariffAutoBlocks").innerHTML="";document.getElementById("gpkTariffAutoPreviewRows").innerHTML="";document.getElementById("gpkTariffAutoImport").hidden=false;document.body.classList.add("modal-open");renderProviderList();syncEditControls();
-    try{state.analysis=await analyzeFile(file);state.selected=new Set(state.analysis.blocks.filter(b=>b.status==="AUTO_CANDIDATE").map(b=>b.id));renderProviderList(state.analysis.provider||"");const providerSelect=document.getElementById("gpkTariffAutoProvider");providerSelect.onchange=updateConfirm;renderSummary();renderBlocks();ensurePreviewSelection();renderPreview();updateConfirm();}
+    try{state.analysis=await analyzeFile(file);state.selected=new Set(state.analysis.blocks.filter(b=>b.status==="AUTO_CANDIDATE").map(b=>b.id));renderProviderList(state.analysis.provider||"");const providerSelect=document.getElementById("gpkTariffAutoProvider");providerSelect.onchange=()=>{updateConfirm();persistDraft();};renderSummary();renderBlocks();ensurePreviewSelection();renderPreview();updateConfirm();}
     catch(err){document.getElementById("gpkTariffAutoSummary").innerHTML=`<div class="auto-import-error"><strong>Analyse fehlgeschlagen</strong><span>${esc(err.message)}</span></div>`;document.getElementById("gpkTariffAutoConfirm").disabled=true;}
   }
   function chooseAndOpen(){const input=document.createElement("input");input.type="file";input.accept=".xlsx,.xls,.xlsm,.xlsb,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";input.addEventListener("change",()=>{if(input.files?.[0])open(input.files[0]);},{once:true});input.click();}
@@ -723,7 +769,7 @@
     const oldRates=GPK.read(RATE_KEY,[])||[],oldZones=GPK.read(ZONE_KEY,[])||[],oldImports=GPK.read(IMPORT_KEY,[])||[];
     GPK.write(RATE_KEY,[...newRates,...oldRates]);GPK.write(ZONE_KEY,[...newZones,...oldZones]);
     const batch={id:batchId,fileName:state.file.name,provider,providerId:providerRecord.id||null,createdAt:now,sheets:state.analysis.sheets,blocks:blocks.map(b=>({id:b.id,sheet:b.sheet,model:b.model,confidence:b.confidence,status:b.status,rates:b.rates.length,zones:b.zones.length})),ratesCount:newRates.length,zonesCount:newZones.length,reviewCount:blocks.filter(b=>b.status==="REVIEW").length};
-    GPK.write(IMPORT_KEY,[batch,...oldImports].slice(0,100));GPK.logImport?.({module:"Tarif-Autoimport",fileName:state.file.name,count:newRates.length,status:"success"});close();try{if(typeof render==="function")render();}catch(_){ }refreshPageStatus();if(window.rateToast){rateToast.textContent=`${newRates.length.toLocaleString('de-DE')} Preise und ${newZones.length.toLocaleString('de-DE')} Zonenregeln importiert.`;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3200);}
+    GPK.write(IMPORT_KEY,[batch,...oldImports].slice(0,100));GPK.logImport?.({module:"Tarif-Autoimport",fileName:state.file.name,count:newRates.length,status:"success"});close(true);try{if(typeof render==="function")render();}catch(_){ }refreshPageStatus();if(window.rateToast){rateToast.textContent=`${newRates.length.toLocaleString('de-DE')} Preise und ${newZones.length.toLocaleString('de-DE')} Zonenregeln importiert.`;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3200);}
   }
 
   function modelTransport(model){
@@ -796,7 +842,14 @@
       const zoneKeys=[];const zoneSamples=new Map();
       br.slice().sort((a,b)=>(a.sourceRow||0)-(b.sourceRow||0)).forEach(r=>{const k=rateZoneKey(r);if(!zoneSamples.has(k)){zoneKeys.push(k);zoneSamples.set(k,r);}});
       if(zoneKeys.length>MAX_ZONES)throw new Error(`Tarifblock ${br[0].sheet||blockIndex+1} enthält ${zoneKeys.length} Zonen. Der Benchmark unterstützt maximal ${MAX_ZONES}.`);
-      const zoneNo=new Map(zoneKeys.map((k,i)=>[k,i+1]));
+      const zoneNo=new Map();const usedZoneNos=new Set();
+      zoneKeys.forEach((k,i)=>{
+        const sample=zoneSamples.get(k);const zr=block.zones.find(z=>text(z.zone)&&text(z.zone)===text(sample?.zone))||{};
+        let n=Number(zr.manualZoneNumber);if(!Number.isInteger(n)||n<1)n=i+1;
+        if(n>MAX_ZONES)throw new Error(`Zone ${n} liegt außerhalb des Benchmarkbereichs 1–${MAX_ZONES}.`);
+        if(usedZoneNos.has(n))throw new Error(`Zonennummer ${n} ist in einem Tarifblock doppelt vergeben.`);
+        usedZoneNos.add(n);zoneNo.set(k,n);
+      });
       const first=br[0];const provider=text(first.provider)||"#ALL";const product=benchmarkProduct(first);const subservice=text(first.subservice)||text(first.sheet)||"#ALL";
       const costItem="Freight";const cllType=first.rateModel==="FULL_LOAD"?"FTL":first.rateModel==="PACKAGE_WEIGHT_ZONE"?"Parcel":"Weight";
       const importMeta=(GPK.read(IMPORT_KEY,[])||[]).find(x=>x.id===first.batchId);
@@ -829,7 +882,7 @@
       zoneKeys.forEach((zk,i)=>{
         const sample=zoneSamples.get(zk);const matching=block.zones.find(z=>text(z.zone)&&text(z.zone)===text(sample.zone))||block.zones.find(z=>text(z.sourceRef)&&text(sample.sourceRef)&&text(z.sourceRef).split("C")[0]===text(sample.sourceRef).split("C")[0]);
         const z=matching||{};
-        zoneOut.push([provider,text(z.originCountry)||text(sample.originCountry)||"#ALL",text(z.originPostcodeFrom)||0,text(z.originPostcodeTo)||99999,text(z.destCountry)||text(sample.destCountry)||"#ALL",text(z.destPostcodeFrom)||0,text(z.destPostcodeTo)||99999,i+1]);
+        zoneOut.push([provider,text(z.originCountry)||text(sample.originCountry)||"#ALL",text(z.originPostcodeFrom)||0,text(z.originPostcodeTo)||99999,text(z.destCountry)||text(sample.destCountry)||"#ALL",text(z.destPostcodeFrom)||0,text(z.destPostcodeTo)||99999,zoneNo.get(zk)||i+1]);
       });
     });
     return {rateOut,zoneOut,maxZones:150};
@@ -1043,7 +1096,7 @@
 
   window.GPKTariffImport={open,chooseAndOpen,analyzeFile,refreshPageStatus,appendImportedRows,exportRates,exportZones,compareWithBenchmark,publishBatchToCalculator,deleteImportedTariff,requestDeleteImportedTariff,buildBenchmarkData,keys:{rates:RATE_KEY,zones:ZONE_KEY,imports:IMPORT_KEY},_test:{analyzeSheet,parseExplicitClassicGrid,parseHorizontalMatrix,parseVerticalZoneMatrices,parseFixedRelations,dimensionValue,postcodeRange,expandPrefixExpression,buildBenchmarkData,parseExistingRates,compareRateSheets,parseExistingZones,compareZoneSheets,detectChargeRules,parseChargeRulesFromParamsSheet,parseChargeRulesFromFreeText}};
   document.addEventListener("DOMContentLoaded",()=>{
-    installModal();refreshPageStatus();const historyRows=document.getElementById("autoImportRows");if(historyRows&&!historyRows.dataset.compareHandlers){historyRows.dataset.compareHandlers="1";historyRows.addEventListener("click",async e=>{const c=e.target.closest("[data-auto-compare]");const d=e.target.closest("[data-auto-delete]");try{if(c)await compareWithBenchmark(c.dataset.autoCompare);if(d)requestDeleteImportedTariff(d.dataset.autoDelete);}catch(err){if(window.rateToast){rateToast.textContent=err.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3500);}}});}
+    installModal();if(!document.getElementById("gpkTariffAutoImport").hidden){/* already open */}else{restoreDraft();}refreshPageStatus();const historyRows=document.getElementById("autoImportRows");if(historyRows&&!historyRows.dataset.compareHandlers){historyRows.dataset.compareHandlers="1";historyRows.addEventListener("click",async e=>{const c=e.target.closest("[data-auto-compare]");const d=e.target.closest("[data-auto-delete]");try{if(c)await compareWithBenchmark(c.dataset.autoCompare);if(d)requestDeleteImportedTariff(d.dataset.autoDelete);}catch(err){if(window.rateToast){rateToast.textContent=err.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3500);}}});}
     ["rateSearch","rateProviderFilter","rateTransportFilter","rateStatusFilter"].forEach(id=>document.getElementById(id)?.addEventListener("input",()=>setTimeout(appendImportedRows,0)));
     const mainRows=document.getElementById("rateRows");if(mainRows&&!mainRows.dataset.autoImportHandlers){mainRows.dataset.autoImportHandlers="1";mainRows.addEventListener("click",async e=>{const c=e.target.closest("[data-auto-compare]");const b=e.target.closest("[data-auto-benchmark]");const z=e.target.closest("[data-auto-zones]");const d=e.target.closest("[data-auto-delete]");const f=e.target.closest("[data-auto-floater]");try{if(c)await compareWithBenchmark(c.dataset.autoCompare);if(b)await exportRates(b.dataset.autoBenchmark);if(z)await exportZones(z.dataset.autoZones);if(d)requestDeleteImportedTariff(d.dataset.autoDelete);if(f){if(window.GPKTariffUI?.openFloaterForProvider)window.GPKTariffUI.openFloaterForProvider(f.dataset.autoFloater);else location.href=`tarife.html?tab=floater&provider=${encodeURIComponent(f.dataset.autoFloater)}`;}}catch(err){if(window.rateToast){rateToast.textContent=err.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3500);}}});}
     document.getElementById("exportNormalizedRatesBtn")?.addEventListener("click",async()=>{try{await exportRates();}catch(e){if(window.rateToast){rateToast.textContent=e.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,2600);}}});

@@ -213,7 +213,7 @@ form.addEventListener("submit",e=>{e.preventDefault();const contacts=collectCont
 importProvidersBtn.addEventListener("click",()=>chooseImportFile(async file=>{try{await GPKImport.open("providers",file);gpkImportConfirmBtn.onclick=()=>{const result=GPKImport.confirm();providers=(GPK.read(GPK.KEYS.providers,[])||[]).map(p=>({...p,contacts:p.contacts||[]}));render();toast(result.message);};}catch(err){toast("Import fehlgeschlagen: "+err.message);}}));
 exportProvidersBtn.addEventListener("click",async()=>{try{await exportWorkbook("GP_Kollund_Dienstleister.xlsx",{"Dienstleister":providers.map(x=>({"Dienstleister":x.name,"Alias":x.alias,"Straße":x.street||"","PLZ":x.zip||"","Ort":x.city||"","Land":x.country||"","Ansprechpartner":primaryContact(x).name||"","E-Mail":primaryContact(x).emails||"","Telefon":primaryContact(x).phone||"","Anzahl Kontakte":(x.contacts||[]).length,"Anzahl Tarife":x.rates,"Floater":currentProviderFloater(x)||x.floater,"Aktiv":x.status==="active"?"Ja":"Nein","Logo":x.logo,"Hinweise":x.notes}))});toast("Dienstleister exportiert.")}catch(err){toast("Export fehlgeschlagen: "+err.message);}});render();
 
-/* v6.21 – Verknüpfung Tarife ↔ Dienstleister */
+/* v6.22 – Verknüpfung Tarife ↔ Dienstleister */
 (function handleProviderWorkflowQuery(){
   const q=new URLSearchParams(location.search);
   if(q.get("new")==="1")setTimeout(()=>openModal(),0);
