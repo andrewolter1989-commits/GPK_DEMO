@@ -3463,3 +3463,110 @@ body.price-mode .split-section{grid-template-columns:minmax(0,1fr) minmax(0,1fr)
 .tariff-kpis-three{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 .import-version-field{margin-top:12px;max-width:260px}.import-version-field label{display:block;font-weight:800;font-size:12px;margin-bottom:5px}.import-version-field input{width:100%;box-sizing:border-box}
 .tariff-table .provider-avatar-logo img{width:100%;height:100%;object-fit:contain;padding:3px;box-sizing:border-box}
+
+
+/* v6.29 – kompakter Tarifimport / mehr Platz für Matrix */
+.tariff-auto-import-modal{width:min(1460px,calc(100vw - 36px))!important}
+.tariff-import-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.modal-x-btn{border:0;background:transparent;color:#4d6872;font-size:28px;line-height:1;cursor:pointer;padding:0 4px}
+.modal-x-btn:hover{color:#003f4c}
+.auto-import-summary{display:none!important}
+.auto-import-summary-compact{display:flex;flex-wrap:wrap;gap:5px 10px;padding:8px 2px 12px;color:#6c848d;font-size:10px;border-bottom:1px solid #e8eff1;margin-bottom:9px}
+.auto-import-summary-compact strong{font-size:11px;color:#183f4d}
+.auto-import-summary-compact .review-text{color:#98651e;font-weight:800}
+.auto-import-body{grid-template-columns:250px minmax(0,1fr)!important;min-height:550px}
+.auto-import-blocks{min-width:0!important;padding:14px 10px 16px 14px!important}
+.compact-import-head{margin-bottom:5px!important}
+.compact-block-card{padding:8px 9px!important;min-height:38px;align-items:center!important}
+.compact-block-card .auto-block-meta{display:none!important}
+.compact-block-card.active-area{box-shadow:inset 3px 0 0 #00788f;background:#f3fafb}
+.compact-block-card .confidence-pill{min-height:19px;padding:0 5px;font-size:8px}
+.compact-country-panel{margin-top:14px;padding-top:12px;border-top:1px solid #e3ecef}
+.compact-country-tabs{margin-top:6px}
+.auto-import-preview{padding-left:12px!important;padding-right:14px!important}
+.matrix-row-actions{min-width:118px!important;white-space:nowrap}
+.matrix-row-actions button{width:24px!important;height:24px!important;padding:0!important;margin-right:2px!important}
+.field-error.success-message{color:#267153}
+@media(max-width:1050px){.auto-import-body{grid-template-columns:1fr!important}.auto-import-blocks{max-height:none!important}}
+
+.calculator-shipment-layout,
+body.price-mode .calculator-shipment-layout,
+body.planning-mode .calculator-shipment-layout{
+  grid-template-columns:minmax(300px,.72fr) minmax(0,1.28fr)!important;
+  gap:12px!important;
+}
+@media(max-width:1000px){
+  .calculator-shipment-layout,
+  body.price-mode .calculator-shipment-layout,
+  body.planning-mode .calculator-shipment-layout{grid-template-columns:1fr!important}
+}
+
+
+/* v6.30 – Statistiken / Heatmap */
+.statistics-workspace{width:min(calc(100% - 48px),1560px)!important;max-width:1560px!important;margin:0 auto!important;padding:24px 0 36px!important}
+.statistics-shell{background:#fff;border:1px solid #dbe6ea;border-radius:18px;overflow:hidden;box-shadow:0 12px 32px rgba(15,61,75,.05)}
+.statistics-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid #e3ebee}.statistics-head h1{margin:0;color:#103b4a;font-size:24px}.statistics-head p{margin:4px 0 0;color:#718994;font-size:13px}.statistics-head-actions{display:flex;gap:8px}
+.statistics-filters{display:grid;grid-template-columns:1.05fr 1fr 1.1fr 1fr 1fr 1fr auto;gap:10px;padding:14px 22px;border-bottom:1px solid #e3ebee;align-items:end}.statistics-filters label{display:grid;gap:6px}.statistics-filters label>span{font-size:10px;font-weight:800;color:#335867}.statistics-filters select{height:40px;border:1px solid #cddce1;border-radius:8px;background:#fff;color:#244a58;padding:0 10px}.statistics-reset{height:40px}
+.statistics-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:12px 22px 14px}.statistics-kpis article{border:1px solid #dce7eb;border-radius:12px;padding:12px 14px;background:#fbfdfe}.statistics-kpis span{display:block;color:#6d8792;font-size:10px;font-weight:800}.statistics-kpis strong{display:block;margin-top:6px;color:#0c3a49;font-size:21px}
+.statistics-main-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(330px,.95fr);gap:12px;padding:0 22px 12px}.statistics-side-stack{display:grid;gap:12px}.statistics-card{border:1px solid #dbe6ea;border-radius:12px;background:#fff;overflow:hidden}.statistics-card-head{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 14px 8px}.statistics-card-head h2{margin:0;color:#123e4d;font-size:15px}.statistics-card-head p{margin:3px 0 0;color:#718994;font-size:10px}.heatmap-legend{display:flex;align-items:center;gap:7px;color:#6f8790;font-size:9px}.heatmap-legend i{width:96px;height:10px;border-radius:999px;background:linear-gradient(90deg,#4cc36a,#e9df4f,#ff685e)}.heatmap-wrap{padding:2px 14px 16px;overflow:auto}.heatmap-table{width:100%;border-collapse:separate;border-spacing:0;font-size:10px}.heatmap-table th{padding:7px 8px;color:#355766;font-weight:800;text-align:center}.heatmap-table tbody th{text-align:left;background:#fff}.heatmap-table td{min-width:88px;padding:10px 8px;text-align:center;font-weight:800;color:#143f4c;border:1px solid rgba(255,255,255,.7)}.statistics-empty-note{padding:0 14px 14px;color:#7b8f97;font-size:10px}
+.insight-list{display:grid;gap:7px;padding:0 12px 12px}.insight-row{display:flex;gap:9px;align-items:flex-start;border:1px solid #e0e9ec;border-radius:9px;padding:8px 9px;background:#fbfdfe}.insight-icon{display:grid;place-items:center;width:26px;height:26px;flex:0 0 26px;border-radius:50%;font-weight:900}.insight-row.up .insight-icon{background:#ffe8e4;color:#d5534c}.insight-row.down .insight-icon{background:#e6f7eb;color:#23925c}.insight-row.info .insight-icon{background:#e8f4fb;color:#1a84b8}.insight-row strong{display:block;color:#204754;font-size:10px}.insight-row small{display:block;color:#718994;font-size:9px;margin-top:2px}
+.transport-bars{display:grid;gap:8px;padding:0 14px 14px}.transport-bar-row{display:grid;grid-template-columns:92px 1fr 38px;align-items:center;gap:8px;font-size:10px}.transport-bar-row strong{color:#284d5a}.transport-bar-track{height:10px;border-radius:999px;background:#eaf0f2;overflow:hidden}.transport-bar-track i{display:block;height:100%;background:#218ba7;border-radius:999px}.transport-bar-row b{text-align:right;color:#315563}
+.statistics-bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 22px 12px}.statistics-table-wrap{overflow:auto}.statistics-table{width:100%;border-collapse:collapse;font-size:10px}.statistics-table th{padding:8px 14px;text-align:left;color:#5f7a85;border-top:1px solid #e6edef;border-bottom:1px solid #e6edef}.statistics-table td{padding:8px 14px;color:#345763;border-bottom:1px solid #edf2f4}.statistics-table tr:last-child td{border-bottom:0}.stats-avatar,.stats-country-badge{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#e9f5f7;color:#067087;font-weight:900;font-size:9px;margin-right:8px}.stats-country-badge{width:26px;height:26px;margin-right:0}.quote-cell{display:grid;grid-template-columns:1fr 34px;gap:8px;align-items:center}.quote-cell>span{height:10px;background:#eaf0f2;border-radius:999px;overflow:hidden}.quote-cell i{display:block;height:100%;background:#218ba7}.quote-cell b{font-size:9px}.statistics-workspace .dashboard-user-stats{margin:0 22px 22px}
+@media(max-width:1200px){.statistics-filters{grid-template-columns:repeat(4,minmax(0,1fr))}.statistics-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.statistics-main-grid{grid-template-columns:1fr}.statistics-bottom-grid{grid-template-columns:1fr}}
+@media(max-width:720px){.statistics-workspace{width:calc(100% - 20px)!important}.statistics-head{align-items:flex-start;gap:12px;flex-direction:column}.statistics-filters{grid-template-columns:1fr 1fr;padding:12px}.statistics-kpis{grid-template-columns:1fr 1fr;padding:12px}.statistics-main-grid,.statistics-bottom-grid{padding-left:12px;padding-right:12px}.statistics-workspace .dashboard-user-stats{margin-left:12px;margin-right:12px}}
+
+
+/* v6.31 – Advanced Freight Analytics */
+.statistics-advanced-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(380px,.75fr);gap:12px;margin-top:12px}
+.statistics-inline-filter{display:flex;align-items:center;gap:8px}
+.statistics-inline-filter span{font-size:10px;font-weight:800;color:#718995;text-transform:uppercase;letter-spacing:.04em}
+.statistics-inline-filter select{min-width:150px;height:36px;border:1px solid #c8d9de;border-radius:8px;background:#fff;padding:0 30px 0 10px;color:#173f4d;font-weight:700}
+.provider-country-heatmap-wrap{overflow:auto}
+.provider-country-heatmap{width:100%;border-collapse:separate;border-spacing:2px;font-size:12px}
+.provider-country-heatmap th{background:#f7fafb;color:#274c59;font-weight:800;padding:8px;white-space:nowrap}
+.provider-country-heatmap tbody th{text-align:left;min-width:150px}
+.provider-country-cell{text-align:center;font-weight:800;padding:11px 8px;min-width:74px;border-radius:4px;color:#153b48}
+.savings-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.savings-kpis>div,.tariff-monitor-kpis>div{border:1px solid #dce7ea;border-radius:9px;background:#fbfdfe;padding:10px 12px}
+.savings-kpis span,.tariff-monitor-kpis span{display:block;color:#738b95;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.savings-kpis strong,.tariff-monitor-kpis strong{display:block;margin-top:4px;font-size:20px;color:#073d4b}
+.compact-savings-table .statistics-table td{padding-top:8px;padding-bottom:8px}
+.compact-savings-table small,.tariff-monitor-table small{display:block;color:#7a929b;margin-top:2px}
+.saving-positive{color:#087768}
+.statistics-footnote{display:block;margin-top:9px;color:#718891;line-height:1.35}
+.tariff-monitor-card{margin-top:12px}
+.statistics-link-button{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.tariff-monitor-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-bottom:12px}
+.tariff-monitor-table-wrap{max-height:360px;overflow:auto}
+.tariff-monitor-table td{vertical-align:middle}
+.tariff-provider-name{display:inline-block;vertical-align:middle;margin-left:6px}
+.mini-tariff-chip{display:inline-block;padding:3px 6px;border-radius:999px;background:#edf5f7;border:1px solid #d2e3e7;color:#315c68;font-size:9px;font-weight:800;margin:1px 2px 1px 0}
+.monitor-status{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;border:1px solid transparent}
+.monitor-status.active{background:#e9f7f1;color:#087153;border-color:#c7e8da}
+.monitor-status.review{background:#fff3dd;color:#8a5d11;border-color:#f0dbaf}
+.monitor-status.missing{background:#f9ecee;color:#934552;border-color:#ecd1d6}
+.monitor-status.warn{background:#fff3dd;color:#8a5d11;border-color:#f0dbaf}
+.monitor-status.inactive{background:#f2f4f5;color:#72828a;border-color:#e1e6e8}
+@media(max-width:1200px){.statistics-advanced-grid{grid-template-columns:1fr}.tariff-monitor-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.tariff-monitor-kpis,.savings-kpis{grid-template-columns:1fr 1fr}.statistics-inline-filter{align-items:flex-start;flex-direction:column}}
+
+
+/* v6.32 – Rechnungsprüfung / Zonenvergleich / Tarifprüfung */
+.audit-grid{margin-top:12px}
+.audit-kpis,.plausibility-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.audit-kpis>div,.plausibility-kpis>div{border:1px solid #dce7ea;border-radius:9px;background:#fbfdfe;padding:10px 12px}
+.audit-kpis span,.plausibility-kpis span{display:block;color:#738b95;font-size:10px;font-weight:800;text-transform:uppercase}
+.audit-kpis strong,.plausibility-kpis strong{display:block;margin-top:4px;font-size:20px;color:#073d4b}
+.invoice-heatmap-wrap,.zone-compare-wrap{overflow:auto}
+.zone-compare-card,.plausibility-card{margin-top:12px}
+.zone-compare-controls{display:flex;gap:8px;flex-wrap:wrap}
+.zone-compare-controls label{display:flex;flex-direction:column;gap:4px}
+.zone-compare-controls span{font-size:9px;font-weight:800;color:#738b95;text-transform:uppercase}
+.zone-compare-controls select{height:34px;border:1px solid #c9dade;border-radius:8px;background:#fff;padding:0 28px 0 9px;color:#173f4d;font-weight:700}
+.zone-compare-table tbody th{min-width:110px;text-align:left}
+.plausibility-kpis{grid-template-columns:repeat(3,minmax(0,1fr));max-width:560px}
+.plaus-status{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800}
+.plaus-status.critical{background:#f9e7e9;color:#963f4d}
+.plaus-status.warning{background:#fff2da;color:#8a5c10}
+.plaus-status.info{background:#eaf4f7;color:#356674}
+@media(max-width:900px){.audit-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.zone-compare-controls{width:100%}}

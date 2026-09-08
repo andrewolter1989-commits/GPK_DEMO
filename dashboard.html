@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>GP Kollund – Auswertungen</title>
+  <title>GP Kollund – Statistiken</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,149 +11,145 @@
   <aside class="sidebar">
     <div class="brand-block"><img class="brand-logo" src="logo.png" alt="GP Kollund – Make logistics smarter"></div>
     <nav class="side-nav" aria-label="Hauptnavigation">
-        <a class="nav-item" href="index.html"><span class="nav-icon">⌁</span><span>Kalkulation</span></a>
-        <a class="nav-item" href="vorgaenge.html"><span class="nav-icon">↗</span><span>Anfragen & Buchungen</span></a>
-        <a class="nav-item" href="entladestellen.html"><span class="nav-icon">◎</span><span>Entladestellen</span></a>
-        <a class="nav-item" href="dienstleister.html"><span class="nav-icon">▦</span><span>Dienstleister</span></a>
-        <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a>
-        <a class="nav-item active" href="dashboard.html"><span class="nav-icon">▥</span><span>Auswertungen</span></a>
-        <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
-        <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
-      </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.28</div>
+      <a class="nav-item" href="index.html"><span class="nav-icon">⌁</span><span>Kalkulation</span></a>
+      <a class="nav-item" href="vorgaenge.html"><span class="nav-icon">↗</span><span>Anfragen & Buchungen</span></a>
+      <a class="nav-item" href="entladestellen.html"><span class="nav-icon">◎</span><span>Entladestellen</span></a>
+      <a class="nav-item" href="dienstleister.html"><span class="nav-icon">▦</span><span>Dienstleister</span></a>
+      <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a>
+      <a class="nav-item active" href="dashboard.html"><span class="nav-icon">▥</span><span>Statistiken</span></a>
+      <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
+      <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
+    </nav>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.32</div>
   </aside>
 
-  <main class="workspace dashboard-workspace">
-    <div class="dashboard-head">
-      <div>
-        <h1>Auswertungen</h1>
-        <p>Kosten, Buchungen und Dienstleister-Performance im Überblick.</p>
-      </div>
-      <div class="dashboard-period">
-        <select id="periodSelect">
-          <option value="30">Letzte 30 Tage</option>
-          <option value="90">Letzte 90 Tage</option>
-          <option value="365">Dieses Jahr</option>
-        </select>
-        <button class="secondary compact-button" id="exportDashboardBtn" type="button">Exportieren</button>
-      </div>
-    </div>
+  <main class="workspace dashboard-workspace statistics-workspace">
+    <section class="statistics-shell">
+      <header class="statistics-head">
+        <div><h1>Statistiken</h1><p>Kosten, Sendungen und Auslastung analysieren.</p></div>
+        <div class="statistics-head-actions"><button class="secondary compact-button" id="exportDashboardBtn" type="button">⇩&nbsp; Exportieren</button><button class="secondary compact-button" id="refreshDashboardBtn" type="button">↻&nbsp; Aktualisieren</button></div>
+      </header>
 
-    <section class="dashboard-kpis">
-      <article class="kpi-card">
-        <span>Kalkulationen</span>
-        <strong id="kpiCalculations">124</strong>
-        <small>+18 % zum Vormonat</small>
-      </article>
-      <article class="kpi-card">
-        <span>Buchungen</span>
-        <strong id="kpiBookings">41</strong>
-        <small>33,1 % Buchungsquote</small>
-      </article>
-      <article class="kpi-card">
-        <span>Ø Transportpreis</span>
-        <strong id="kpiAvgPrice">1.086 €</strong>
-        <small>-3,8 % zum Vormonat</small>
-      </article>
-      <article class="kpi-card">
-        <span>Einsparung</span>
-        <strong id="kpiSavings">8.740 €</strong>
-        <small>gegenüber zweitbestem Angebot</small>
-      </article>
-      <article class="kpi-card">
-        <span>Offene Vorgänge</span>
-        <strong id="kpiOpen">9</strong>
-        <small>3 warten auf Antwort</small>
-      </article>
-      <article class="kpi-card">
-        <span>Rechnungsabweichung</span>
-        <strong id="kpiInvoice">1,9 %</strong>
-        <small>Vorschau für spätere Prüfung</small>
-      </article>
-    </section>
+      <section class="statistics-filters">
+        <label><span>Zeitraum</span><select id="periodSelect"><option value="30">Letzte 30 Tage</option><option value="90">Letzte 90 Tage</option><option value="365">Dieses Jahr</option><option value="all">Gesamt</option></select></label>
+        <label><span>Land</span><select id="countryFilter"><option value="">Alle Länder</option></select></label>
+        <label><span>Dienstleister</span><select id="providerFilter"><option value="">Alle Dienstleister</option></select></label>
+        <label><span>Tariftyp</span><select id="tariffFilter"><option value="">Alle Tariftypen</option></select></label>
+        <label><span>Transportart</span><select id="transportFilter"><option value="">Alle Transportarten</option></select></label>
+        <label><span>Kennzahl</span><select id="metricFilter"><option value="avg">Ø Kosten</option><option value="total">Gesamtkosten</option><option value="count">Sendungen</option><option value="perPallet">€/Palette</option></select></label>
+        <button class="secondary compact-button statistics-reset" id="resetDashboardFilters" type="button">Zurücksetzen</button>
+      </section>
 
-    <section class="dashboard-grid">
-      <article class="dashboard-card wide-card">
-        <div class="chart-head">
-          <div><h2>Transportkosten-Entwicklung</h2><p>Durchschnittlicher Gesamtpreis pro Monat</p></div>
-          <span class="chart-badge">EUR</span>
-        </div>
-        <div class="bar-chart" id="costChart">
-          <div class="bar-col"><div class="bar-value">1.142 €</div><div class="bar" style="height:72%"></div><span>Apr</span></div>
-          <div class="bar-col"><div class="bar-value">1.118 €</div><div class="bar" style="height:67%"></div><span>Mai</span></div>
-          <div class="bar-col"><div class="bar-value">1.097 €</div><div class="bar" style="height:62%"></div><span>Jun</span></div>
-          <div class="bar-col"><div class="bar-value">1.074 €</div><div class="bar" style="height:56%"></div><span>Jul</span></div>
-          <div class="bar-col"><div class="bar-value">1.061 €</div><div class="bar" style="height:52%"></div><span>Aug</span></div>
-          <div class="bar-col active"><div class="bar-value">1.086 €</div><div class="bar" style="height:58%"></div><span>Sep</span></div>
-        </div>
-      </article>
+      <section class="statistics-kpis">
+        <article><span>Sendungen</span><strong id="statShipments">0</strong></article>
+        <article><span>Gesamtkosten</span><strong id="statTotalCost">0 €</strong></article>
+        <article><span>Ø Kosten / Sendung</span><strong id="statAvgCost">0 €</strong></article>
+        <article><span>Ø Paletten</span><strong id="statAvgPallets">—</strong></article>
+        <article><span>Ø Gewicht</span><strong id="statAvgWeight">—</strong></article>
+        <article><span>Länder</span><strong id="statCountries">0</strong></article>
+      </section>
 
-      <article class="dashboard-card">
-        <div class="chart-head">
-          <div><h2>Transportarten</h2><p>Anteil der Kalkulationen</p></div>
+      <section class="statistics-main-grid">
+        <article class="statistics-card heatmap-card">
+          <div class="statistics-card-head"><div><h2>Kosten-Heatmap</h2><p id="heatmapSubtitle">Wo sind die Kosten hoch? Länder × Palettenklassen</p></div><div class="heatmap-legend"><span>niedrig</span><i></i><span>hoch</span></div></div>
+          <div class="heatmap-wrap"><table class="heatmap-table"><thead><tr><th></th><th>1 PLL</th><th>2 PLL</th><th>3 PLL</th><th>4–6 PLL</th><th>7–10 PLL</th><th>11+ PLL</th></tr></thead><tbody id="heatmapBody"></tbody></table></div>
+          <div class="statistics-empty-note" id="heatmapHint" hidden>Für die Heatmap werden Palettenwerte aus neuen Kalkulationen verwendet.</div>
+        </article>
+
+        <div class="statistics-side-stack">
+          <article class="statistics-card insights-card"><div class="statistics-card-head"><div><h2>Auffälligkeiten</h2></div></div><div id="insightRows" class="insight-list"></div></article>
+          <article class="statistics-card transport-card"><div class="statistics-card-head"><div><h2>Transportarten</h2></div></div><div id="transportBars" class="transport-bars"></div></article>
         </div>
-        <div class="donut-wrap">
-          <div class="donut-chart">
-            <div class="donut-center"><strong>124</strong><span>gesamt</span></div>
+      </section>
+
+      <section class="statistics-bottom-grid">
+        <article class="statistics-card"><div class="statistics-card-head"><div><h2>Dienstleister-Benchmark</h2></div></div><div class="statistics-table-wrap"><table class="statistics-table"><thead><tr><th>Dienstleister</th><th>Ø Kosten</th><th>Bestpreisquote</th></tr></thead><tbody id="providerBenchmarkRows"></tbody></table></div></article>
+        <article class="statistics-card"><div class="statistics-card-head"><div><h2>Kosten-Hotspots</h2></div></div><div class="statistics-table-wrap"><table class="statistics-table"><thead><tr><th>Land</th><th>Zone</th><th>Ø Kosten</th><th>Sendungen</th></tr></thead><tbody id="hotspotRows"></tbody></table></div></article>
+      </section>
+
+      <section class="statistics-advanced-grid">
+        <article class="statistics-card provider-country-card">
+          <div class="statistics-card-head">
+            <div><h2>Dienstleister × Land</h2><p>Wo gewinnt welcher Dienstleister den Preisvergleich?</p></div>
+            <label class="statistics-inline-filter"><span>Kennzahl</span><select id="providerCountryMetric"><option value="winRate">Bestpreisquote</option><option value="avgPrice">Ø Bestpreis</option><option value="wins">Bestpreis-Siege</option></select></label>
           </div>
-          <div class="donut-legend">
-            <div><span class="legend-dot l1"></span><strong>FTL</strong><small>46 %</small></div>
-            <div><span class="legend-dot l2"></span><strong>Teilladung</strong><small>31 %</small></div>
-            <div><span class="legend-dot l3"></span><strong>Mega</strong><small>15 %</small></div>
-            <div><span class="legend-dot l4"></span><strong>Jumbo</strong><small>8 %</small></div>
+          <div class="provider-country-heatmap-wrap"><table class="provider-country-heatmap"><thead id="providerCountryHead"></thead><tbody id="providerCountryBody"></tbody></table></div>
+          <div class="statistics-empty-note" id="providerCountryHint" hidden>Die Matrix nutzt die in Kalkulationen gespeicherten Bestpreis-Gewinner.</div>
+        </article>
+
+        <article class="statistics-card savings-card">
+          <div class="statistics-card-head"><div><h2>Einsparungsanalyse</h2><p>Bestpreis gegenüber dem zweitbesten Angebot.</p></div></div>
+          <div class="savings-kpis">
+            <div><span>Potenzial</span><strong id="savingPotential">0 €</strong></div>
+            <div><span>Ø Vorteil</span><strong id="savingAverage">0 €</strong></div>
+            <div><span>Fälle mit Vorteil</span><strong id="savingCases">0</strong></div>
+            <div><span>Max. Vorteil</span><strong id="savingMax">0 €</strong></div>
+          </div>
+          <div class="statistics-table-wrap compact-savings-table"><table class="statistics-table"><thead><tr><th>Relation</th><th>Bestpreis</th><th>2. Preis</th><th>Vorteil</th></tr></thead><tbody id="savingOpportunityRows"></tbody></table></div>
+          <small class="statistics-footnote">Potenzial = Differenz zwischen Bestpreis und zweitbestem Angebot. Eine tatsächlich realisierte Einsparung ist erst nach Verknüpfung mit der Buchung eindeutig messbar.</small>
+        </article>
+      </section>
+
+      <section class="statistics-card tariff-monitor-card">
+        <div class="statistics-card-head"><div><h2>Tarifmonitor</h2><p>Tarifabdeckung, Versionen und offene Pflegepunkte.</p></div><a class="secondary compact-button statistics-link-button" href="tarife.html">Tarife öffnen</a></div>
+        <div class="tariff-monitor-kpis">
+          <div><span>Dienstleister</span><strong id="tariffProviderCount">0</strong></div>
+          <div><span>mit Tarifset</span><strong id="tariffCoveredCount">0</strong></div>
+          <div><span>ohne Tarifset</span><strong id="tariffMissingCount">0</strong></div>
+          <div><span>Review offen</span><strong id="tariffReviewCount">0</strong></div>
+          <div><span>Tarif-Länder</span><strong id="tariffCountryCount">0</strong></div>
+        </div>
+        <div class="statistics-table-wrap tariff-monitor-table-wrap"><table class="statistics-table tariff-monitor-table"><thead><tr><th>Dienstleister</th><th>Version</th><th>Importdatum</th><th>Bereiche</th><th>Länder</th><th>Status</th></tr></thead><tbody id="tariffMonitorRows"></tbody></table></div>
+      </section>
+
+      <section class="statistics-advanced-grid audit-grid">
+        <article class="statistics-card">
+          <div class="statistics-card-head"><div><h2>Rechnungsabweichungen</h2><p>Dienstleister × Fehlerart und größter Prüfbedarf.</p></div><a class="secondary compact-button statistics-link-button" href="rechnungspruefung.html">Rechnungsprüfung öffnen</a></div>
+          <div class="audit-kpis">
+            <div><span>Geprüft</span><strong id="auditChecked">0</strong></div>
+            <div><span>Abweichungen</span><strong id="auditDeviationCount">0</strong></div>
+            <div><span>Abweichungsbetrag</span><strong id="auditDeviationAmount">0 €</strong></div>
+            <div><span>Nicht zugeordnet</span><strong id="auditUnmatched">0</strong></div>
+          </div>
+          <div class="invoice-heatmap-wrap"><table class="provider-country-heatmap invoice-heatmap"><thead id="invoiceDeviationHead"></thead><tbody id="invoiceDeviationBody"></tbody></table></div>
+        </article>
+
+        <article class="statistics-card">
+          <div class="statistics-card-head"><div><h2>Top-Abweichungen</h2><p>Größte Soll-/Ist-Differenzen.</p></div></div>
+          <div class="statistics-table-wrap"><table class="statistics-table"><thead><tr><th>Dienstleister</th><th>Ursache</th><th>Abweichung</th></tr></thead><tbody id="auditTopRows"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="statistics-card zone-compare-card">
+        <div class="statistics-card-head">
+          <div><h2>Zonen-Preisvergleich</h2><p>Preisniveau je Zone und Dienstleister vergleichen.</p></div>
+          <div class="zone-compare-controls">
+            <label><span>Land</span><select id="zoneCompareCountry"><option value="">Alle</option></select></label>
+            <label><span>Tariftyp</span><select id="zoneCompareModel"><option value="">Alle</option></select></label>
+            <label><span>Kennzahl</span><select id="zoneCompareMetric"><option value="price">Preis</option><option value="index">Preisindex</option><option value="gap">Abstand Bestpreis</option></select></label>
           </div>
         </div>
-      </article>
+        <div class="zone-compare-wrap"><table class="provider-country-heatmap zone-compare-table"><thead id="zoneCompareHead"></thead><tbody id="zoneCompareBody"></tbody></table></div>
+      </section>
 
-      <article class="dashboard-card">
-        <div class="chart-head">
-          <div><h2>Dienstleister-Performance</h2><p>Buchungen und Ø Preis</p></div>
+      <section class="statistics-card plausibility-card">
+        <div class="statistics-card-head"><div><h2>Tarif-Plausibilitätsprüfung</h2><p>Automatische Hinweise zu Zonen, Staffeln und Preissprüngen.</p></div><a class="secondary compact-button statistics-link-button" href="tarife.html">Tarife bearbeiten</a></div>
+        <div class="plausibility-kpis">
+          <div><span>Kritisch</span><strong id="plausCritical">0</strong></div>
+          <div><span>Warnungen</span><strong id="plausWarning">0</strong></div>
+          <div><span>Hinweise</span><strong id="plausInfo">0</strong></div>
         </div>
-        <div class="ranking-list">
-          <div class="ranking-row"><span class="rank">1</span><div><strong>LIT</strong><small>14 Buchungen</small></div><b>982 €</b></div>
-          <div class="ranking-row"><span class="rank">2</span><div><strong>Transimeksa</strong><small>9 Buchungen</small></div><b>1.014 €</b></div>
-          <div class="ranking-row"><span class="rank">3</span><div><strong>DSV</strong><small>7 Buchungen</small></div><b>1.089 €</b></div>
-          <div class="ranking-row"><span class="rank">4</span><div><strong>Dachser</strong><small>6 Buchungen</small></div><b>1.132 €</b></div>
-          <div class="ranking-row"><span class="rank">5</span><div><strong>Raben</strong><small>5 Buchungen</small></div><b>1.168 €</b></div>
-        </div>
-      </article>
+        <div class="statistics-table-wrap"><table class="statistics-table"><thead><tr><th>Typ</th><th>Dienstleister</th><th>Land/Bereich</th><th>Hinweis</th></tr></thead><tbody id="plausibilityRows"></tbody></table></div>
+      </section>
 
-      <article class="dashboard-card">
-        <div class="chart-head">
-          <div><h2>Diesel / Floater</h2><p>Aktuelle Entwicklung</p></div>
-        </div>
-        <div class="metric-list">
-          <div><span>Aktuell gültige Floater</span><strong>5</strong></div>
-          <div><span>Ø Floater September</span><strong>8,1 %</strong></div>
-          <div><span>Höchster Floater</span><strong>9,2 %</strong></div>
-          <div><span>Nächster Wechsel</span><strong>15.09.</strong></div>
-        </div>
-        <a class="dashboard-link" href="tarife.html">Diesel / Floater öffnen →</a>
-      </article>
-
-      <article class="dashboard-card wide-card">
-        <div class="chart-head">
-          <div><h2>Top-Relationen</h2><p>Häufigste kalkulierte Zielgebiete</p></div>
-        </div>
-        <div class="relations-table">
-          <div class="relations-head"><span>Relation</span><span>Kalkulationen</span><span>Ø Preis</span><span>Bestpreisquote</span></div>
-          <div class="relations-row"><span>DE · 24xxx</span><span>28</span><span>948 €</span><span>71 %</span></div>
-          <div class="relations-row"><span>DE · 22xxx</span><span>21</span><span>1.036 €</span><span>67 %</span></div>
-          <div class="relations-row"><span>BE · 24xx</span><span>17</span><span>1.214 €</span><span>59 %</span></div>
-          <div class="relations-row"><span>NL · 50xx</span><span>14</span><span>1.188 €</span><span>64 %</span></div>
-          <div class="relations-row"><span>FR · 67xxx</span><span>11</span><span>1.462 €</span><span>55 %</span></div>
-        </div>
-      </article>
+      <section class="card dashboard-user-stats" id="bookingUserStatsCard" data-permission="dashboard.view"><div class="panel-head"><div><h2>Buchungen nach Benutzer</h2><p>Wer hat wie viele Touren gebucht?</p></div></div><div class="masterdata-table-wrap"><table class="masterdata-table"><thead><tr><th>Benutzer</th><th>Buchungen</th><th>Buchungsvolumen</th><th>Ø Preis</th></tr></thead><tbody id="bookingUserStatsRows"><tr><td colspan="4" class="empty-state">Daten werden geladen …</td></tr></tbody></table></div></section>
     </section>
-  <section class="card dashboard-user-stats" id="bookingUserStatsCard" data-permission="dashboard.view"><div class="panel-head"><div><h2>Buchungen nach Benutzer</h2><p>Wer hat wie viele Touren gebucht?</p></div></div><div class="masterdata-table-wrap"><table class="masterdata-table"><thead><tr><th>Benutzer</th><th>Buchungen</th><th>Buchungsvolumen</th><th>Ø Preis</th></tr></thead><tbody id="bookingUserStatsRows"><tr><td colspan="4" class="empty-state">Daten werden geladen …</td></tr></tbody></table></div></section>
-</main>
+  </main>
 </div>
-
 <div class="toast" id="dashboardToast" hidden></div>
-  <script src="gpk-core.js"></script>
-  <script src="api-client.js"></script>
-  <script src="gpk-data.js"></script>
-
+<script src="gpk-core.js"></script>
+<script src="api-client.js"></script>
+<script src="gpk-data.js"></script>
 <script src="dashboard.js"></script>
 </body>
 </html>
