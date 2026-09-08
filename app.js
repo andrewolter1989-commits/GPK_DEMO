@@ -25,6 +25,7 @@ const STATE = {
   recipientsById: {},
   providers: {},
   latestResults: [],
+  chargeRules: [],
 };
 
 let CALCULATION_MODE = "planning";
@@ -455,6 +456,7 @@ async function loadRates() {
 
   try {
     const published=JSON.parse(localStorage.getItem(PUBLISHED_TARIFF_KEY)||"[]");
+    STATE.chargeRules=(published||[]).flatMap(entry=>(entry.chargeRules||[]).map(rule=>({...rule,provider:entry.provider||rule.forwarder||"",batchId:entry.id||""})));
     const providers=new Set((published||[]).filter(x=>(x.rates||[]).length).map(x=>normalizeKey(x.provider)).filter(Boolean));
     if(providers.size) STATE.rates=STATE.rates.filter(r=>!providers.has(normalizeKey(r.forwarder)));
     (published||[]).forEach(entry=>(entry.rates||[]).forEach(pr=>{
@@ -570,6 +572,58 @@ function findZone(forwarder, destCountry, postalCode) {
   };
 }
 
+function isWeightRateModel(model) {
+  return ["WEIGHT_STEP", "PER_KG", "PER_100KG"].includes(String(model || "").toUpperCase());
+}
+
+function chargeRulesFor(forwarder, destCountry, model) {
+  if (!isWeightRateModel(model)) return [];
+  const fk = normalizeKey(forwarder);
+  return (STATE.chargeRules || []).filter((rule) => {
+    const rk = normalizeKey(rule.forwarder || rule.provider || "");
+    if (rk && rk !== fk) return false;
+    const dc = String(rule.destCountry || "").trim().toUpperCase();
+    if (dc && dc !== "#ALL" && dc !== String(destCountry || "").toUpperCase()) return false;
+    return ["KG_PER_CBM", "KG_PER_LDM", "MIN_KG_PER_PALLET"].includes(String(rule.type || "").toUpperCase());
+  });
+}
+
+function calculateChargeableWeight(forwarder, destCountry, model, input) {
+  const real = Number.isFinite(input.weight) ? input.weight : NaN;
+  if (!isWeightRateModel(model)) return { value: real, applied: false, basis: Number.isFinite(real) ? "Realgewicht" : "", candidates: [] };
+  const rules = chargeRulesFor(forwarder, destCountry, model);
+  if (!rules.length) return { value: real, applied: false, basis: Number.isFinite(real) ? "Realgewicht" : "", candidates: [] };
+
+  const candidates = [];
+  if (Number.isFinite(real)) candidates.push({ label: "Realgewicht", value: real });
+
+  rules.forEach((rule) => {
+    const type = String(rule.type || "").toUpperCase();
+    const factor = Number(rule.factor);
+    if (!Number.isFinite(factor) || factor <= 0) return;
+    if (type === "KG_PER_CBM" && Number.isFinite(input.volume)) {
+      candidates.push({ label: `${String(input.volume).replace('.', ',')} m³ × ${factor.toLocaleString('de-DE')} kg/m³`, value: input.volume * factor, rule });
+    }
+    if (type === "MIN_KG_PER_PALLET" && Number.isFinite(input.pallets)) {
+      candidates.push({ label: `${String(input.pallets).replace('.', ',')} PLL × ${factor.toLocaleString('de-DE')} kg`, value: input.pallets * factor, rule });
+    }
+    if (type === "KG_PER_LDM" && Number.isFinite(input.loadMeters)) {
+      const condition = String(rule.condition || "ALWAYS").toUpperCase();
+      if (condition === "NON_STACKABLE" && !input.nonStackable) return;
+      if (condition === "PALLET_THRESHOLD") {
+        const threshold = Number(rule.thresholdPallets);
+        if (!Number.isFinite(input.pallets) || !Number.isFinite(threshold) || input.pallets < threshold) return;
+      }
+      candidates.push({ label: `${String(input.loadMeters).replace('.', ',')} LDM × ${factor.toLocaleString('de-DE')} kg/LDM`, value: input.loadMeters * factor, rule });
+    }
+  });
+
+  if (!candidates.length) return { value: real, applied: false, basis: Number.isFinite(real) ? "Realgewicht" : "", candidates: [] };
+  candidates.sort((a,b)=>b.value-a.value);
+  const best=candidates[0];
+  return { value: best.value, applied: !Number.isFinite(real) || best.value > real + 0.0001, basis: best.label, candidates };
+}
+
 function rateMetricForModel(model, input) {
   const m = String(model || "LDM_STEP").toUpperCase();
   if (["WEIGHT_STEP", "PER_KG", "PER_100KG", "PACKAGE_WEIGHT_ZONE"].includes(m)) return input.weight;
@@ -579,10 +633,18 @@ function rateMetricForModel(model, input) {
   return NaN;
 }
 
+function rateMetricForRow(row, input) {
+  const model = String(row.model || "LDM_STEP").toUpperCase();
+  if (isWeightRateModel(model)) {
+    return calculateChargeableWeight(row.forwarder, row.destCountry, model, input).value;
+  }
+  return rateMetricForModel(model, input);
+}
+
 function getRateRows(forwarder, destCountry, input) {
   return STATE.rates.filter((row) => {
     if (normalizeKey(row.forwarder) !== normalizeKey(forwarder) || row.originCountry !== ORIGIN_COUNTRY || row.destCountry !== destCountry) return false;
-    const metric = rateMetricForModel(row.model, input);
+    const metric = rateMetricForRow(row, input);
     if (!Number.isFinite(metric)) return false;
     return metric >= row.from && metric <= row.to;
   });
@@ -608,7 +670,7 @@ function findRate(forwarder, destCountry, input, zone) {
   if (!tariffRows.length) return null;
 
   tariffRows.sort((a, b) => {
-    const am = rateMetricForModel(a.model, input), bm = rateMetricForModel(b.model, input);
+    const am = rateMetricForRow(a, input), bm = rateMetricForRow(b, input);
     const aw = a.to - a.from, bw = b.to - b.from;
     if (aw !== bw) return aw - bw;
     return (a.to - b.to) || (am - bm);
@@ -617,7 +679,8 @@ function findRate(forwarder, destCountry, input, zone) {
   for (const rateRow of tariffRows) {
     const tariffPrice = rateRow.zonePrices.get(zone);
     if (!Number.isFinite(tariffPrice) || isPlaceholderPrice(tariffPrice)) continue;
-    const metric = rateMetricForModel(rateRow.model, input);
+    const metric = rateMetricForRow(rateRow, input);
+    const chargeable = isWeightRateModel(rateRow.model) ? calculateChargeableWeight(rateRow.forwarder, rateRow.destCountry, rateRow.model, input) : null;
     const appliedBasePrice = calculateModelPrice(rateRow.model, tariffPrice, metric);
     if (!Number.isFinite(appliedBasePrice)) continue;
     return {
@@ -628,6 +691,7 @@ function findRate(forwarder, destCountry, input, zone) {
       priceSource: String(rateRow.model || "LDM_STEP"),
       metric,
       model: String(rateRow.model || "LDM_STEP"),
+      chargeable,
     };
   }
   return null;
@@ -709,6 +773,7 @@ function buildCalculationForForwarder(forwarder, destCountry, postalCode, input)
     priceSource: rateResult.priceSource,
     rateModel: rateResult.model,
     rateMetric: rateResult.metric,
+    chargeable: rateResult.chargeable || null,
   };
 }
 
@@ -797,6 +862,7 @@ function renderOfferCards(results) {
         <div><span>Floater</span><strong>${percent(result.floaterPercent)}</strong></div>
         <div><span>Floater €</span><strong>${money(result.floaterAmount)}</strong></div>
       </div>
+      ${result.chargeable && Number.isFinite(result.chargeable.value) && result.chargeable.candidates?.length ? `<div class="offer-chargeable-note"><strong>Frachtpflichtiges Gewicht: ${Math.ceil(result.chargeable.value).toLocaleString('de-DE')} kg</strong><br>${escapeHtml(result.chargeable.basis)}${result.chargeable.applied ? ' · Sperrigkeit/Mindestgewicht greift' : ' · Realgewicht bleibt maßgeblich'}</div>` : ''}
       <div class="offer-actions">
         ${createOfferAction("availability", result.forwarder, false)}
         ${createOfferAction("booking", result.forwarder, index === 0)}
@@ -880,6 +946,8 @@ function getCurrentWorkflowData(forwarder) {
   const effectiveLoadMeters = getEffectiveLoadMeters(shipmentType, document.getElementById("loadMeters")?.value || "");
   const weight = parseNumberFlexible(document.getElementById("shipmentWeight")?.value || "");
   const pallets = parseNumberFlexible(document.getElementById("shipmentPallets")?.value || "");
+  const volume = parseNumberFlexible(document.getElementById("shipmentVolume")?.value || "");
+  const nonStackable = Boolean(document.getElementById("shipmentNonStackable")?.checked);
   const recipient = getSelectedRecipient();
   const offer = getCurrentOffer(forwarder);
   const deliveryRaw = document.getElementById("deliveryDate")?.value || "";
@@ -889,6 +957,8 @@ function getCurrentWorkflowData(forwarder) {
   if (shipmentType === "teilladung" && Number.isFinite(effectiveLoadMeters)) transportParts.push(`${String(effectiveLoadMeters).replace(".", ",")} Ldm`);
   if (Number.isFinite(weight)) transportParts.push(`${weight.toLocaleString("de-DE")} kg`);
   if (Number.isFinite(pallets)) transportParts.push(`${String(pallets).replace(".", ",")} PLL`);
+  if (Number.isFinite(volume)) transportParts.push(`${String(volume).replace(".", ",")} m³`);
+  if (nonStackable) transportParts.push(`nicht stapelbar`);
   const transport = transportParts.join(" · ");
 
   return {
@@ -1068,6 +1138,8 @@ function initCalculatorPage() {
   const loadMetersInput = document.getElementById("loadMeters");
   const shipmentWeightInput = document.getElementById("shipmentWeight");
   const shipmentPalletsInput = document.getElementById("shipmentPallets");
+  const shipmentVolumeInput = document.getElementById("shipmentVolume");
+  const shipmentNonStackableInput = document.getElementById("shipmentNonStackable");
 const pickupDateInput = document.getElementById("pickupDate");
 const deliveryDateInput = document.getElementById("deliveryDate");
 const freeTextInput = document.getElementById("freeText");
@@ -1131,6 +1203,8 @@ const freeTextInput = document.getElementById("freeText");
       loadMeters: effectiveLoadMeters,
       weight: parseNumberFlexible(shipmentWeightInput?.value || ""),
       pallets: parseNumberFlexible(shipmentPalletsInput?.value || ""),
+      volume: parseNumberFlexible(shipmentVolumeInput?.value || ""),
+      nonStackable: Boolean(shipmentNonStackableInput?.checked),
     };
 
     const validationError = validateInput(input);
@@ -1185,6 +1259,7 @@ const freeTextInput = document.getElementById("freeText");
 document.getElementById("summaryLdm").textContent = Number.isFinite(input.loadMeters) ? String(input.loadMeters).replace('.', ',') : "—";
 document.getElementById("summaryWeight").textContent = Number.isFinite(input.weight) ? `${input.weight.toLocaleString("de-DE")} kg` : "—";
 document.getElementById("summaryPallets").textContent = Number.isFinite(input.pallets) ? String(input.pallets).replace('.', ',') : "—";
+document.getElementById("summaryVolume").textContent = Number.isFinite(input.volume) ? `${String(input.volume).replace('.', ',')} m³` : "—";
 document.getElementById("summaryPickupDate").textContent = formatDisplayDate(pickupDateInput.value);
 document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(deliveryDateInput.value);
     document.getElementById("summaryFreeText").textContent = freeTextInput.value.trim() || "—";

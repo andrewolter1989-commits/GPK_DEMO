@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.14</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.18</div>
     </aside>
 
     <main class="workspace masterdata-workspace calculator-workspace">
@@ -98,6 +98,11 @@
                   <label for="shipmentPallets">Paletten / Stellplätze</label>
                   <div class="input-suffix"><input id="shipmentPallets" type="text" inputmode="decimal" placeholder="z. B. 6" /><span>PLL</span></div>
                 </div>
+                <div class="field">
+                  <label for="shipmentVolume">Volumen</label>
+                  <div class="input-suffix"><input id="shipmentVolume" type="text" inputmode="decimal" placeholder="z. B. 3,2" /><span>m³</span></div>
+                </div>
+                <label class="sperrigkeit-check"><input id="shipmentNonStackable" type="checkbox" /><span><strong>Nicht stapelbar</strong><small>Nur relevant, wenn der gewählte Tarif dafür eine Sperrigkeitsregel vorsieht.</small></span></label>
               </div>
             </div>
 
@@ -134,6 +139,7 @@
           <div id="summaryLdmRow"><span>Lademeter</span><strong id="summaryLdm">—</strong></div>
           <div id="summaryWeightRow"><span>Gewicht</span><strong id="summaryWeight">—</strong></div>
           <div id="summaryPalletsRow"><span>Paletten</span><strong id="summaryPallets">—</strong></div>
+          <div id="summaryVolumeRow"><span>Volumen</span><strong id="summaryVolume">—</strong></div>
           <div class="wide"><span>Entladestelle</span><strong id="summaryRecipient">—</strong></div>
           <div><span>Abholung</span><strong id="summaryPickupDate">—</strong></div>
           <div><span>Lieferung</span><strong id="summaryDeliveryDate">—</strong></div>

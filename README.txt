@@ -1,4 +1,4 @@
-GP KOLLUND – Freight Rate Calculator Prototype v6.16
+GP KOLLUND – Freight Rate Calculator Prototype v6.18
 
 Diese Version baut auf der funktionsfähigen Demo v1 auf.
 
@@ -191,8 +191,24 @@ v6.15 – Tarifimport / Benchmark-Ausgabe
 - interne normalisierte Preislogik bleibt unverändert als Datenbasis
 
 
-v6.16 – Multi-Rate Preisrechner:
+v6.18 – Multi-Rate Preisrechner:
 - Freigegebene Autoimporte können jetzt WEIGHT_STEP, PER_KG, PER_100KG, LDM_STEP, PER_LDM, PALLET_STEP, PER_PALLET, FULL_LOAD und PACKAGE_WEIGHT_ZONE an den Preisrechner übergeben.
 - Kalkulation um Gewicht sowie Paletten/Stellplätze erweitert.
 - Direkte €/kg-, €/100kg-, €/LDM- und €/Palette-Logik wird im Preisrechner berechnet; Staffelmodelle wählen den passenden Fixpreis.
 - Distanz-/km-Tarife bleiben bewusst außen vor, bis eine verlässliche Kilometerquelle angebunden ist.
+
+
+v6.18 – Sperrigkeits-/Frachtgewichtslogik (erste Stufe):
+- Autoimport erkennt zusätzliche Umrechnungsregeln aus einem Benchmark-Params-Blatt (z. B. kg/m³, kg/LDM, Mindestgewicht je Palette, LDM ab x Paletten, nicht stapelbar).
+- Freigegebene Regeln werden zusammen mit dem Tarifset an den Preisrechner übergeben.
+- Die Regeln greifen bewusst nur bei gewichtsbasierten Tarifmodellen (WEIGHT_STEP, PER_KG, PER_100KG). Stellplatz- und LDM-Offerten werden nicht pauschal mit Gewichtssperrigkeit belastet.
+- Kalkulation hat neue optionale Eingaben Volumen (m³) und Nicht stapelbar.
+- Der Preisrechner ermittelt je Dienstleister das frachtpflichtige Gewicht aus den tatsächlich vorhandenen Regeln und zeigt die angewandte Basis in der Angebotskarte.
+- Ohne erkannte/freigegebene Params bleibt die bisherige Berechnung unverändert; es werden keine generischen Sperrigkeitsfaktoren erfunden.
+
+v6.18 – Importprüfung als Ratenblatt
+- Autoimport-Vorschau nach Land und Tarifbereich filterbar.
+- Ratenblatt als Matrix mit von/bis/Einheit und Zonen als Spalten.
+- Zonenheader zweizeilig, z. B. DE01 / Zone 1.
+- Separates Zonenblatt pro Land/Bereich bleibt verfügbar.
+- Sperrigkeiten/Umrechnungen werden beim Tarifimport nicht angewendet und bei neuen Importen nicht mitgeführt; sie gehören ausschließlich in die spätere Kalkulation.
