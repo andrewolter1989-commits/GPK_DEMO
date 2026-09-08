@@ -30,23 +30,6 @@ const STATE = {
 
 let CALCULATION_MODE = "planning";
 
-const CALC_FIELD_CONFIG_KEY = "gpk_calculator_field_config_v1";
-const DEFAULT_CALC_FIELD_CONFIG = {
-  pickupDate:false, deliveryDate:false, pallets:false, weight:false,
-  length:false, width:false, height:false, volume:false,
-  nonStackable:false, teilladungLdm:true
-};
-function getCalcFieldConfig(){
-  try{return {...DEFAULT_CALC_FIELD_CONFIG,...JSON.parse(localStorage.getItem(CALC_FIELD_CONFIG_KEY)||"{}")};}
-  catch(_){return {...DEFAULT_CALC_FIELD_CONFIG};}
-}
-function calcFieldLabel(key){
-  return ({pickupDate:"Abholdatum",deliveryDate:"Liefertermin",pallets:"Paletten / Stellplätze",
-    weight:"Gewicht",length:"Länge",width:"Breite",height:"Höhe",volume:"Volumen",
-    nonStackable:"Nicht stapelbar",teilladungLdm:"Lademeter"})[key]||key;
-}
-
-
 function setCalculationMode(mode) {
   CALCULATION_MODE = mode === "planning" ? "planning" : "price";
   document.body.classList.toggle("price-mode", CALCULATION_MODE === "price");
@@ -725,26 +708,12 @@ function getEffectiveLoadMeters(shipmentType, loadMetersInput) {
   return parseNumberFlexible(loadMetersInput);
 }
 
-function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weight, pallets, volume, nonStackable }) {
+function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weight, pallets }) {
   if (!destCountry) return "Bitte zuerst ein Land wählen.";
   if (!postalCode || String(postalCode).trim().length < 2) return "Bitte eine gültige PLZ eingeben.";
   if (CALCULATION_MODE === "planning" && !document.getElementById("recipientSelect")?.value) return "Bitte eine Entladestelle auswählen.";
   if (CALCULATION_MODE === "planning" && document.getElementById("recipientSelect")?.value === "manual" && !document.getElementById("recipientName")?.value?.trim()) return "Bitte bei einer neuen Entladestelle mindestens den Namen eingeben.";
   if (!SHIPMENT_TYPES[shipmentType]) return "Bitte eine Transportart wählen.";
-  const cfg=getCalcFieldConfig();
-  if (shipmentType === "teilladung" && cfg.teilladungLdm && !Number.isFinite(loadMeters)) return "Bitte Lademeter eingeben.";
-  const checks={
-    weight:Number.isFinite(weight),pallets:Number.isFinite(pallets),volume:Number.isFinite(volume),
-    pickupDate:Boolean(document.getElementById("pickupDate")?.value),
-    deliveryDate:Boolean(document.getElementById("deliveryDate")?.value),
-    length:Number.isFinite(parseNumberFlexible(document.getElementById("shipmentLength")?.value||"")),
-    width:Number.isFinite(parseNumberFlexible(document.getElementById("shipmentWidth")?.value||"")),
-    height:Number.isFinite(parseNumberFlexible(document.getElementById("shipmentHeight")?.value||"")),
-    nonStackable:Boolean(nonStackable)
-  };
-  for(const key of ["pickupDate","deliveryDate","pallets","weight","length","width","height","volume","nonStackable"]){
-    if(cfg[key] && !checks[key]) return `Bitte das Pflichtfeld „${calcFieldLabel(key)}“ ausfüllen.`;
-  }
   if (shipmentType === "teilladung" && !([loadMeters, weight, pallets].some(Number.isFinite))) return "Bitte mindestens Lademeter, Gewicht oder Paletten/Stellplätze eingeben.";
   return null;
 }
@@ -1170,9 +1139,6 @@ function initCalculatorPage() {
   const shipmentWeightInput = document.getElementById("shipmentWeight");
   const shipmentPalletsInput = document.getElementById("shipmentPallets");
   const shipmentVolumeInput = document.getElementById("shipmentVolume");
-  const shipmentLengthInput = document.getElementById("shipmentLength");
-  const shipmentWidthInput = document.getElementById("shipmentWidth");
-  const shipmentHeightInput = document.getElementById("shipmentHeight");
   const shipmentNonStackableInput = document.getElementById("shipmentNonStackable");
 const pickupDateInput = document.getElementById("pickupDate");
 const deliveryDateInput = document.getElementById("deliveryDate");
@@ -1216,32 +1182,6 @@ const freeTextInput = document.getElementById("freeText");
     messageBox.className = `notice ${kind}`;
     messageBox.style.display = text ? "block" : "none";
   }
-
-  function applyCalcFieldConfig(){
-    const cfg=getCalcFieldConfig();
-    document.querySelectorAll("[data-calc-field]").forEach(wrap=>{
-      const key=wrap.dataset.calcField;
-      wrap.classList.toggle("required-field",Boolean(cfg[key]));
-      const label=wrap.querySelector("label, strong");
-      if(label && cfg[key] && !label.querySelector?.(".required-star")){
-        if(label.tagName==="LABEL")label.insertAdjacentHTML("beforeend",' <span class="required-star">*</span>');
-      }
-    });
-    const ldmWrap=document.getElementById("loadMetersField");
-    ldmWrap?.classList.toggle("required-field",Boolean(cfg.teilladungLdm));
-  }
-  function autoCalculateVolume(){
-    const l=parseNumberFlexible(shipmentLengthInput?.value||"");
-    const w=parseNumberFlexible(shipmentWidthInput?.value||"");
-    const h=parseNumberFlexible(shipmentHeightInput?.value||"");
-    if([l,w,h].every(Number.isFinite) && l>0 && w>0 && h>0 && shipmentVolumeInput){
-      shipmentVolumeInput.value=String(Math.round((l*w*h/1000000)*1000)/1000).replace(".",",");
-      shipmentVolumeInput.dataset.autoCalculated="1";
-    }
-  }
-  [shipmentLengthInput,shipmentWidthInput,shipmentHeightInput].forEach(el=>el?.addEventListener("input",autoCalculateVolume));
-  shipmentVolumeInput?.addEventListener("input",()=>{shipmentVolumeInput.dataset.autoCalculated="0";});
-  applyCalcFieldConfig();
 
   countrySelect?.addEventListener("change", () => { updatePostalPlaceholder(); renderRecipientSelection(); });
   postalInput?.addEventListener("change", renderRecipientSelection);
@@ -1320,6 +1260,10 @@ document.getElementById("summaryLdm").textContent = Number.isFinite(input.loadMe
 document.getElementById("summaryWeight").textContent = Number.isFinite(input.weight) ? `${input.weight.toLocaleString("de-DE")} kg` : "—";
 document.getElementById("summaryPallets").textContent = Number.isFinite(input.pallets) ? String(input.pallets).replace('.', ',') : "—";
 document.getElementById("summaryVolume").textContent = Number.isFinite(input.volume) ? `${String(input.volume).replace('.', ',')} m³` : "—";
+const summaryWeightRow=document.getElementById("summaryWeightRow"),summaryPalletsRow=document.getElementById("summaryPalletsRow"),summaryVolumeRow=document.getElementById("summaryVolumeRow");
+if(summaryWeightRow)summaryWeightRow.style.display=Number.isFinite(input.weight)?"flex":"none";
+if(summaryPalletsRow)summaryPalletsRow.style.display=Number.isFinite(input.pallets)?"flex":"none";
+if(summaryVolumeRow)summaryVolumeRow.style.display=Number.isFinite(input.volume)?"flex":"none";
 document.getElementById("summaryPickupDate").textContent = formatDisplayDate(pickupDateInput.value);
 document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(deliveryDateInput.value);
     document.getElementById("summaryFreeText").textContent = freeTextInput.value.trim() || "—";

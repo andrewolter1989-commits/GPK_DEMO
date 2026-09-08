@@ -20,7 +20,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item active" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.23</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.18</div>
   </aside>
 
   <main class="workspace settings-workspace">
@@ -39,7 +39,6 @@
         <button class="settings-tab" data-tab="branding">Branding</button>
         <button class="settings-tab" data-tab="domains">Domains</button>
         <button class="settings-tab" data-tab="system">System</button>
-        <button class="settings-tab" data-tab="calculator">Kalkulationsfelder</button>
         <button class="settings-tab" data-tab="data">Datenstatus</button>
         <button class="settings-tab" data-tab="admin">Daten-Admin</button>
         <button class="settings-tab" data-tab="backend">Backend</button>
@@ -117,23 +116,6 @@
             <label class="setting-toggle"><div><strong>Floater automatisch anwenden</strong><small>Aktueller Floater wird zum Basispreis addiert.</small></div><input type="checkbox" checked><span></span></label>
             <label class="setting-toggle"><div><strong>Excel-Import validieren</strong><small>Fehlerhafte Datensätze vor Import anzeigen.</small></div><input type="checkbox" checked><span></span></label>
           </div>
-        </div>
-
-        <div class="settings-panel card" id="tab-calculator">
-          <div class="panel-head"><div><h2>Kalkulationsfelder</h2><p>Festlegen, welche Sendungsdaten im Preisrechner Pflichtfelder sind.</p></div></div>
-          <div class="setting-toggle-list calculator-field-settings">
-            <label class="setting-toggle"><div><strong>Lademeter bei Teilladung</strong><small>Wird nur eingeblendet, wenn Teilladung gewählt ist.</small></div><input type="checkbox" data-calc-required="teilladungLdm" checked><span></span></label>
-            <label class="setting-toggle"><div><strong>Gewicht</strong><small>Gewicht in kg als Pflichtfeld.</small></div><input type="checkbox" data-calc-required="weight"><span></span></label>
-            <label class="setting-toggle"><div><strong>Paletten / Stellplätze</strong><small>Anzahl PLL/Stellplätze als Pflichtfeld.</small></div><input type="checkbox" data-calc-required="pallets"><span></span></label>
-            <label class="setting-toggle"><div><strong>Volumen</strong><small>m³ als Pflichtfeld; kann aus den Maßen berechnet werden.</small></div><input type="checkbox" data-calc-required="volume"><span></span></label>
-            <label class="setting-toggle"><div><strong>Länge</strong><small>Abmessung in cm.</small></div><input type="checkbox" data-calc-required="length"><span></span></label>
-            <label class="setting-toggle"><div><strong>Breite</strong><small>Abmessung in cm.</small></div><input type="checkbox" data-calc-required="width"><span></span></label>
-            <label class="setting-toggle"><div><strong>Höhe</strong><small>Abmessung in cm.</small></div><input type="checkbox" data-calc-required="height"><span></span></label>
-            <label class="setting-toggle"><div><strong>Nicht stapelbar</strong><small>Kann als bewusst zu bestätigendes Pflichtfeld definiert werden.</small></div><input type="checkbox" data-calc-required="nonStackable"><span></span></label>
-            <label class="setting-toggle"><div><strong>Abholdatum</strong><small>Nur im Modus „Transport planen“.</small></div><input type="checkbox" data-calc-required="pickupDate"><span></span></label>
-            <label class="setting-toggle"><div><strong>Liefertermin</strong><small>Nur im Modus „Transport planen“.</small></div><input type="checkbox" data-calc-required="deliveryDate"><span></span></label>
-          </div>
-          <div class="settings-note">Diese Einstellungen steuern nur die Eingabeprüfung. Tarifumrechnungen/Sperrigkeiten werden dadurch nicht beim Import angewendet.</div>
         </div>
 
         <div class="settings-panel card" id="tab-data">

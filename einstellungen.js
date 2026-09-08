@@ -13,17 +13,7 @@ tabs.forEach(btn=>btn.addEventListener("click",()=>{
   tabs.forEach(x=>x.classList.toggle("active",x===btn));
   panels.forEach(p=>p.classList.toggle("active",p.id===`tab-${btn.dataset.tab}`));
 }));
-const CALC_FIELD_CONFIG_KEY="gpk_calculator_field_config_v1";
-function loadCalcFieldSettings(){
-  let cfg={teilladungLdm:true};try{cfg={...cfg,...JSON.parse(localStorage.getItem(CALC_FIELD_CONFIG_KEY)||"{}")};}catch(_){}
-  document.querySelectorAll("[data-calc-required]").forEach(el=>el.checked=Boolean(cfg[el.dataset.calcRequired]));
-}
-function saveCalcFieldSettings(){
-  const cfg={};document.querySelectorAll("[data-calc-required]").forEach(el=>cfg[el.dataset.calcRequired]=Boolean(el.checked));
-  localStorage.setItem(CALC_FIELD_CONFIG_KEY,JSON.stringify(cfg));
-}
-document.getElementById("saveSettingsBtn").addEventListener("click",()=>{saveCalcFieldSettings();showToast("Einstellungen wurden gespeichert.");});
-document.addEventListener("DOMContentLoaded",loadCalcFieldSettings);
+document.getElementById("saveSettingsBtn").addEventListener("click",()=>showToast("Einstellungen wurden in der Layout-Demo übernommen."));
 document.getElementById("addUserBtn").addEventListener("click",()=>showToast("Benutzerverwaltung wird beim Login-/Backend-Schritt angebunden."));
 document.getElementById("addDomainBtn").addEventListener("click",()=>showToast("Domain-Verwaltung wird beim Hosting-Schritt angebunden."));
 
