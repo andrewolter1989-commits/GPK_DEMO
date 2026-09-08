@@ -3363,3 +3363,18 @@ button.danger:hover{background:#8d3039;border-color:#8d3039}
 .matrix-zone-number-wrap,.zone-number-cell{display:flex;align-items:center;justify-content:center;gap:5px;font-size:10px;color:#5d7884;font-weight:700}
 .matrix-zone-number-input{width:58px!important;min-width:58px!important;text-align:center;margin:0!important}
 .zone-number-input{width:72px!important;min-width:72px!important;text-align:center}
+
+
+/* v6.23 – Kalkulationsfelder / Importvalidierung */
+.field-error{margin-top:6px;color:#a93b3b;font-size:12px;font-weight:700}
+.input-error{border-color:#c85151!important;box-shadow:0 0 0 2px rgba(200,81,81,.10)!important}
+.calculator-shipment-layout{align-items:stretch}
+.transport-panel-compact{display:flex;flex-direction:column;gap:18px}
+.transport-panel-compact #loadMetersField{max-width:330px}
+.shipment-details-panel{display:flex;flex-direction:column;gap:14px}
+.shipment-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.field-hint{display:block;margin-top:5px;color:#78909b;font-size:11px;line-height:1.3}
+.required-star{color:#a93b3b;font-weight:900}
+.required-field>label:first-child,.required-field strong{font-weight:800}
+@media (max-width:1100px){.shipment-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:720px){.shipment-detail-grid{grid-template-columns:1fr}}
