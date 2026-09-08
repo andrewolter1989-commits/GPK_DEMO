@@ -1,5 +1,6 @@
 const ORIGIN_COUNTRY = "DE";
 const DEFAULT_ZONE_MODE = "ALL";
+const PUBLISHED_TARIFF_KEY = "gpk_demo_published_tariffs_v1";
 const PRICE_SENTINEL = 99999; // alte Platzhalterwerte werden weiterhin ignoriert
 
 const POSTAL_PLACEHOLDERS = {
@@ -398,6 +399,17 @@ async function loadZones() {
       };
     })
     .filter((row) => Number.isFinite(row.zone));
+
+  try {
+    const published=JSON.parse(localStorage.getItem(PUBLISHED_TARIFF_KEY)||"[]");
+    const providers=new Set((published||[]).map(x=>normalizeKey(x.provider)).filter(Boolean));
+    if(providers.size) STATE.zones=STATE.zones.filter(z=>!providers.has(normalizeKey(z.forwarder)));
+    (published||[]).forEach(entry=>(entry.zones||[]).forEach(r=>{
+      const fromRaw=String(r[5]??"").trim(),toRaw=String(r[6]??"").trim(),dest=String(r[4]??"").trim();
+      const zone=Number.parseInt(String(r[7]??"").trim(),10);if(!Number.isFinite(zone))return;
+      STATE.zones.push({forwarder:String(r[0]??entry.provider??"").trim(),originCountry:String(r[1]??"").trim(),destCountry:dest,fromNorm:normalizePostalByCountry(dest,fromRaw),toNorm:normalizePostalByCountry(dest,toRaw),numericFrom:isNumericZoneValue(fromRaw)?Number.parseInt(fromRaw,10):null,numericTo:isNumericZoneValue(toRaw)?Number.parseInt(toRaw,10):null,zone});
+    }));
+  } catch(err){ console.warn("Freigegebene Zonen konnten nicht geladen werden",err); }
 }
 
 async function loadRates() {
@@ -435,10 +447,22 @@ async function loadRates() {
         from: parseNumberFlexible(row[iFrom]),
         to: parseNumberFlexible(row[iTo]),
         unit: String(row[iUnit] ?? "").trim(),
+        model: "LDM_STEP",
         zonePrices,
       };
     })
     .filter((row) => Number.isFinite(row.from) && Number.isFinite(row.to));
+
+  try {
+    const published=JSON.parse(localStorage.getItem(PUBLISHED_TARIFF_KEY)||"[]");
+    const providers=new Set((published||[]).filter(x=>(x.rates||[]).length).map(x=>normalizeKey(x.provider)).filter(Boolean));
+    if(providers.size) STATE.rates=STATE.rates.filter(r=>!providers.has(normalizeKey(r.forwarder)));
+    (published||[]).forEach(entry=>(entry.rates||[]).forEach(pr=>{
+      const b=pr.base||[];const from=Number(b[8]),to=Number(b[9]);if(!Number.isFinite(from)||!Number.isFinite(to))return;
+      const zonePrices=new Map();(pr.prices||[]).forEach((v,i)=>{const n=Number(v);if(Number.isFinite(n))zonePrices.set(i+1,n);});
+      STATE.rates.push({forwarder:String(b[0]??entry.provider??"").trim(),originCountry:String(b[6]??"").trim(),destCountry:String(b[7]??"").trim(),from,to,unit:String(b[11]??"LDM").trim(),model:String(pr.model||"LDM_STEP"),zonePrices});
+    }));
+  } catch(err){ console.warn("Freigegebene Tarife konnten nicht geladen werden",err); }
 
   STATE.forwarders = Array.from(new Set(
     STATE.rates
@@ -546,73 +570,67 @@ function findZone(forwarder, destCountry, postalCode) {
   };
 }
 
-function getRateRows(forwarder, destCountry, loadMeters) {
-  return STATE.rates.filter((row) => (
-    normalizeKey(row.forwarder) === normalizeKey(forwarder)
-    && row.originCountry === ORIGIN_COUNTRY
-    && row.destCountry === destCountry
-    && loadMeters >= row.from
-    && loadMeters <= row.to
-  ));
+function rateMetricForModel(model, input) {
+  const m = String(model || "LDM_STEP").toUpperCase();
+  if (["WEIGHT_STEP", "PER_KG", "PER_100KG", "PACKAGE_WEIGHT_ZONE"].includes(m)) return input.weight;
+  if (["PALLET_STEP", "PER_PALLET"].includes(m)) return input.pallets;
+  if (["LDM_STEP", "PER_LDM"].includes(m)) return input.loadMeters;
+  if (m === "FULL_LOAD") return 1;
+  return NaN;
 }
 
-function getMinimumRow(forwarder, destCountry, loadMeters) {
-  const minimumRows = getRateRows(forwarder, destCountry, loadMeters)
-    .filter((row) => normalizeKey(row.unit) === "minimum");
-
-  if (!minimumRows.length) return null;
-  minimumRows.sort((a, b) => (a.to - a.from) - (b.to - b.from));
-  return minimumRows[0];
+function getRateRows(forwarder, destCountry, input) {
+  return STATE.rates.filter((row) => {
+    if (normalizeKey(row.forwarder) !== normalizeKey(forwarder) || row.originCountry !== ORIGIN_COUNTRY || row.destCountry !== destCountry) return false;
+    const metric = rateMetricForModel(row.model, input);
+    if (!Number.isFinite(metric)) return false;
+    return metric >= row.from && metric <= row.to;
+  });
 }
 
 function isPlaceholderPrice(value) {
-  // Alte Platzhalter wie 99.999 bleiben aus Kompatibilitätsgründen ungültig.
   return Number.isFinite(value) && value >= PRICE_SENTINEL;
 }
 
-function findRate(forwarder, destCountry, loadMeters, zone) {
-  const tariffRows = getRateRows(forwarder, destCountry, loadMeters)
-    .filter((row) => normalizeKey(row.unit) !== "minimum");
+function calculateModelPrice(model, tariffPrice, metric) {
+  const m = String(model || "LDM_STEP").toUpperCase();
+  if (!Number.isFinite(tariffPrice)) return null;
+  if (m === "PER_KG") return tariffPrice * metric;
+  if (m === "PER_100KG") return tariffPrice * (metric / 100);
+  if (m === "PER_LDM") return tariffPrice * metric;
+  if (m === "PER_PALLET") return tariffPrice * metric;
+  return tariffPrice;
+}
 
+function findRate(forwarder, destCountry, input, zone) {
+  const tariffRows = getRateRows(forwarder, destCountry, input)
+    .filter((row) => normalizeKey(row.unit) !== "minimum");
   if (!tariffRows.length) return null;
 
-  tariffRows.sort((a, b) => (a.to - b.to) || (a.from - b.from));
-  const rateRow = tariffRows[0];
-  const tariffPrice = rateRow.zonePrices.get(zone);
+  tariffRows.sort((a, b) => {
+    const am = rateMetricForModel(a.model, input), bm = rateMetricForModel(b.model, input);
+    const aw = a.to - a.from, bw = b.to - b.from;
+    if (aw !== bw) return aw - bw;
+    return (a.to - b.to) || (am - bm);
+  });
 
-  if (!Number.isFinite(tariffPrice) || isPlaceholderPrice(tariffPrice)) {
+  for (const rateRow of tariffRows) {
+    const tariffPrice = rateRow.zonePrices.get(zone);
+    if (!Number.isFinite(tariffPrice) || isPlaceholderPrice(tariffPrice)) continue;
+    const metric = rateMetricForModel(rateRow.model, input);
+    const appliedBasePrice = calculateModelPrice(rateRow.model, tariffPrice, metric);
+    if (!Number.isFinite(appliedBasePrice)) continue;
     return {
       rateRow,
-      minimumRow: null,
-      tariffPrice: null,
+      tariffPrice,
       minimumPrice: null,
-      appliedBasePrice: null,
-      priceSource: null,
+      appliedBasePrice: round2(appliedBasePrice),
+      priceSource: String(rateRow.model || "LDM_STEP"),
+      metric,
+      model: String(rateRow.model || "LDM_STEP"),
     };
   }
-
-  const minimumRow = getMinimumRow(forwarder, destCountry, loadMeters);
-  const minimumPriceRaw = minimumRow ? minimumRow.zonePrices.get(zone) : null;
-  const minimumPrice = Number.isFinite(minimumPriceRaw) && !isPlaceholderPrice(minimumPriceRaw)
-    ? minimumPriceRaw
-    : null;
-
-  const appliedBasePrice = Number.isFinite(minimumPrice)
-    ? Math.max(tariffPrice, minimumPrice)
-    : tariffPrice;
-
-  let priceSource = "Tarif";
-  if (Number.isFinite(minimumPrice) && minimumPrice > tariffPrice) priceSource = "Minimum";
-  if (Number.isFinite(minimumPrice) && minimumPrice === tariffPrice) priceSource = "Tarif / Minimum gleich";
-
-  return {
-    rateRow,
-    minimumRow,
-    tariffPrice,
-    minimumPrice,
-    appliedBasePrice,
-    priceSource,
-  };
+  return null;
 }
 
 function getSelectedShipmentType() {
@@ -626,17 +644,17 @@ function getEffectiveLoadMeters(shipmentType, loadMetersInput) {
   return parseNumberFlexible(loadMetersInput);
 }
 
-function validateInput({ destCountry, postalCode, shipmentType, loadMeters }) {
+function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weight, pallets }) {
   if (!destCountry) return "Bitte zuerst ein Land wählen.";
   if (!postalCode || String(postalCode).trim().length < 2) return "Bitte eine gültige PLZ eingeben.";
   if (CALCULATION_MODE === "planning" && !document.getElementById("recipientSelect")?.value) return "Bitte eine Entladestelle auswählen.";
   if (CALCULATION_MODE === "planning" && document.getElementById("recipientSelect")?.value === "manual" && !document.getElementById("recipientName")?.value?.trim()) return "Bitte bei einer neuen Entladestelle mindestens den Namen eingeben.";
   if (!SHIPMENT_TYPES[shipmentType]) return "Bitte eine Transportart wählen.";
-  if (shipmentType === "teilladung" && !(loadMeters > 0)) return "Bei Teilladung muss Lademeter größer 0 sein.";
+  if (shipmentType === "teilladung" && !([loadMeters, weight, pallets].some(Number.isFinite))) return "Bitte mindestens Lademeter, Gewicht oder Paletten/Stellplätze eingeben.";
   return null;
 }
 
-function diagnoseNoResults(destCountry, postalCode, loadMeters) {
+function diagnoseNoResults(destCountry, postalCode, input) {
   const zoneHits = [];
   const tariffHits = [];
 
@@ -644,7 +662,7 @@ function diagnoseNoResults(destCountry, postalCode, loadMeters) {
     const zoneResult = findZone(forwarder, destCountry, postalCode);
     if (zoneResult) {
       zoneHits.push({ forwarder, zone: zoneResult.zone });
-      const rateResult = findRate(forwarder, destCountry, loadMeters, zoneResult.zone);
+      const rateResult = findRate(forwarder, destCountry, input, zoneResult.zone);
       if (rateResult && Number.isFinite(rateResult.appliedBasePrice)) {
         tariffHits.push(forwarder);
       }
@@ -655,18 +673,18 @@ function diagnoseNoResults(destCountry, postalCode, loadMeters) {
     return `Keine Zone gefunden. Für ${destCountry} ist die PLZ ${postalCode} in der zones.csv aktuell nicht abgedeckt.`;
   }
   if (!tariffHits.length) {
-    return `Zone gefunden (${zoneHits[0].zone}), aber kein passendes Tarifband in rates.csv für ${String(loadMeters).replace('.', ',')} Lademeter.`;
+    return `Zone gefunden (${zoneHits[0].zone}), aber kein passender Tarif für die eingegebenen Mengen. Bitte Gewicht, Lademeter oder Paletten prüfen.`;
   }
   return "Für diese Kombination wurde kein berechenbarer Dienstleister gefunden.";
 }
 
-function buildCalculationForForwarder(forwarder, destCountry, postalCode, loadMeters) {
+function buildCalculationForForwarder(forwarder, destCountry, postalCode, input) {
   const zoneResult = findZone(forwarder, destCountry, postalCode);
   if (!zoneResult) {
     return { forwarder, success: false, reason: "Keine Zone gefunden." };
   }
 
-  const rateResult = findRate(forwarder, destCountry, loadMeters, zoneResult.zone);
+  const rateResult = findRate(forwarder, destCountry, input, zoneResult.zone);
   if (!rateResult) {
     return { forwarder, success: false, reason: "Kein Tarifband gefunden." };
   }
@@ -689,6 +707,8 @@ function buildCalculationForForwarder(forwarder, destCountry, postalCode, loadMe
     floaterAmount,
     total,
     priceSource: rateResult.priceSource,
+    rateModel: rateResult.model,
+    rateMetric: rateResult.metric,
   };
 }
 
@@ -858,14 +878,18 @@ function getCurrentWorkflowData(forwarder) {
   const shipmentType = getSelectedShipmentType();
   const shipmentLabel = SHIPMENT_TYPES[shipmentType]?.label || shipmentType;
   const effectiveLoadMeters = getEffectiveLoadMeters(shipmentType, document.getElementById("loadMeters")?.value || "");
+  const weight = parseNumberFlexible(document.getElementById("shipmentWeight")?.value || "");
+  const pallets = parseNumberFlexible(document.getElementById("shipmentPallets")?.value || "");
   const recipient = getSelectedRecipient();
   const offer = getCurrentOffer(forwarder);
   const deliveryRaw = document.getElementById("deliveryDate")?.value || "";
   const pickupRaw = document.getElementById("pickupDate")?.value || "";
   const customer = recipient ? (recipient.name || recipient.company || formatRecipientOption(recipient)) : "Nicht angegeben";
-  const transport = shipmentType === "teilladung" && Number.isFinite(effectiveLoadMeters)
-    ? `${shipmentLabel} · ${String(effectiveLoadMeters).replace(".", ",")} Ldm`
-    : shipmentLabel;
+  const transportParts = [shipmentLabel];
+  if (shipmentType === "teilladung" && Number.isFinite(effectiveLoadMeters)) transportParts.push(`${String(effectiveLoadMeters).replace(".", ",")} Ldm`);
+  if (Number.isFinite(weight)) transportParts.push(`${weight.toLocaleString("de-DE")} kg`);
+  if (Number.isFinite(pallets)) transportParts.push(`${String(pallets).replace(".", ",")} PLL`);
+  const transport = transportParts.join(" · ");
 
   return {
     country,
@@ -987,6 +1011,10 @@ ich benötige für folgende Relation ${kind === "booking" ? "eine Buchung" : "ei
     bodyText += `Lademeter ${Number.isFinite(effectiveLoadMeters) ? String(effectiveLoadMeters).replace('.', ',') : "-"}
 `;
   }
+  const emailWeight = parseNumberFlexible(document.getElementById("shipmentWeight")?.value || "");
+  const emailPallets = parseNumberFlexible(document.getElementById("shipmentPallets")?.value || "");
+  if (Number.isFinite(emailWeight)) bodyText += `Gewicht ${emailWeight.toLocaleString("de-DE")} kg\n`;
+  if (Number.isFinite(emailPallets)) bodyText += `Paletten / Stellplätze ${String(emailPallets).replace('.', ',')}\n`;
 bodyText += `Abholdatum ${pickupDate}
 `;
 bodyText += `Liefertermin ${deliveryDate}
@@ -1038,6 +1066,8 @@ function initCalculatorPage() {
   const countrySelect = document.getElementById("destCountry");
   const postalInput = document.getElementById("postalCode");
   const loadMetersInput = document.getElementById("loadMeters");
+  const shipmentWeightInput = document.getElementById("shipmentWeight");
+  const shipmentPalletsInput = document.getElementById("shipmentPallets");
 const pickupDateInput = document.getElementById("pickupDate");
 const deliveryDateInput = document.getElementById("deliveryDate");
 const freeTextInput = document.getElementById("freeText");
@@ -1099,6 +1129,8 @@ const freeTextInput = document.getElementById("freeText");
       postalCode: postalInput.value.trim(),
       shipmentType,
       loadMeters: effectiveLoadMeters,
+      weight: parseNumberFlexible(shipmentWeightInput?.value || ""),
+      pallets: parseNumberFlexible(shipmentPalletsInput?.value || ""),
     };
 
     const validationError = validateInput(input);
@@ -1117,7 +1149,7 @@ const freeTextInput = document.getElementById("freeText");
     const errors = [];
 
     STATE.forwarders.forEach((forwarder) => {
-      const result = buildCalculationForForwarder(forwarder, input.destCountry, input.postalCode, input.loadMeters);
+      const result = buildCalculationForForwarder(forwarder, input.destCountry, input.postalCode, input);
       if (result.success) successfulResults.push(result);
       else errors.push(`${forwarder}: ${result.reason}`);
     });
@@ -1125,7 +1157,7 @@ const freeTextInput = document.getElementById("freeText");
     successfulResults.sort((a, b) => a.total - b.total || a.forwarder.localeCompare(b.forwarder, "de"));
 
     if (!successfulResults.length) {
-      showMessage(diagnoseNoResults(input.destCountry, input.postalCode, input.loadMeters), "danger");
+      showMessage(diagnoseNoResults(input.destCountry, input.postalCode, input), "danger");
       resultsSection.style.display = "none";
       document.body.classList.remove("has-results");
       if (detailComparisonSection) detailComparisonSection.style.display = "none";
@@ -1150,7 +1182,9 @@ const freeTextInput = document.getElementById("freeText");
       ? formatRecipientOption(selectedRecipient)
       : (CALCULATION_MODE === "price" ? "Nicht erforderlich · Preisauskunft" : "—");
     document.getElementById("summaryShipmentType").textContent = shipmentLabel;
-document.getElementById("summaryLdm").textContent = String(input.loadMeters).replace('.', ',');
+document.getElementById("summaryLdm").textContent = Number.isFinite(input.loadMeters) ? String(input.loadMeters).replace('.', ',') : "—";
+document.getElementById("summaryWeight").textContent = Number.isFinite(input.weight) ? `${input.weight.toLocaleString("de-DE")} kg` : "—";
+document.getElementById("summaryPallets").textContent = Number.isFinite(input.pallets) ? String(input.pallets).replace('.', ',') : "—";
 document.getElementById("summaryPickupDate").textContent = formatDisplayDate(pickupDateInput.value);
 document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(deliveryDateInput.value);
     document.getElementById("summaryFreeText").textContent = freeTextInput.value.trim() || "—";

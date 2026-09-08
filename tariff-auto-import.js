@@ -4,6 +4,7 @@
   const RATE_KEY = "gpk_demo_rate_output_v1";
   const ZONE_KEY = "gpk_demo_zone_rules_v1";
   const IMPORT_KEY = "gpk_demo_tariff_imports_v1";
+  const PUBLISHED_KEY = "gpk_demo_published_tariffs_v1";
 
   const MODEL_META = {
     WEIGHT_STEP:{label:"Gewichtsstaffel",unit:"EUR/SHIPMENT"},
@@ -412,17 +413,294 @@
     const oldRates=GPK.read(RATE_KEY,[])||[],oldZones=GPK.read(ZONE_KEY,[])||[],oldImports=GPK.read(IMPORT_KEY,[])||[];
     GPK.write(RATE_KEY,[...newRates,...oldRates]);GPK.write(ZONE_KEY,[...newZones,...oldZones]);
     const batch={id:batchId,fileName:state.file.name,provider,createdAt:now,sheets:state.analysis.sheets,blocks:blocks.map(b=>({id:b.id,sheet:b.sheet,model:b.model,confidence:b.confidence,status:b.status,rates:b.rates.length,zones:b.zones.length})),ratesCount:newRates.length,zonesCount:newZones.length,reviewCount:blocks.filter(b=>b.status==="REVIEW").length};
-    GPK.write(IMPORT_KEY,[batch,...oldImports].slice(0,100));GPK.logImport?.({module:"Tarif-Autoimport",fileName:state.file.name,count:newRates.length,status:"success"});close();refreshPageStatus();if(window.rateToast){rateToast.textContent=`${newRates.length.toLocaleString('de-DE')} Preise und ${newZones.length.toLocaleString('de-DE')} Zonenregeln importiert.`;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3200);}
+    GPK.write(IMPORT_KEY,[batch,...oldImports].slice(0,100));GPK.logImport?.({module:"Tarif-Autoimport",fileName:state.file.name,count:newRates.length,status:"success"});close();try{if(typeof render==="function")render();}catch(_){ }refreshPageStatus();if(window.rateToast){rateToast.textContent=`${newRates.length.toLocaleString('de-DE')} Preise und ${newZones.length.toLocaleString('de-DE')} Zonenregeln importiert.`;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3200);}
+  }
+
+  function modelTransport(model){
+    if(model==="FULL_LOAD")return "FTL";
+    if(["WEIGHT_STEP","PER_KG","PER_100KG","LDM_STEP","PER_LDM","PALLET_STEP","PER_PALLET","DISTANCE_STEP","PER_KM"].includes(model))return "Teilladung";
+    if(model==="PACKAGE_WEIGHT_ZONE")return "Paket";
+    return "Tarif";
+  }
+  function syncImportedProviderFilter(imports){
+    const sel=document.getElementById("rateProviderFilter");if(!sel)return;
+    const have=new Set([...sel.options].map(o=>o.value));
+    [...new Set(imports.map(x=>x.provider).filter(Boolean))].sort().forEach(name=>{if(have.has(name))return;const o=document.createElement("option");o.value=name;o.textContent=name;sel.appendChild(o);have.add(name);});
+  }
+  function filteredImports(imports){
+    const q=lower(document.getElementById("rateSearch")?.value||"");
+    const pf=text(document.getElementById("rateProviderFilter")?.value||"");
+    const tf=text(document.getElementById("rateTransportFilter")?.value||"");
+    const sf=text(document.getElementById("rateStatusFilter")?.value||"");
+    return imports.filter(x=>{
+      const models=(x.blocks||[]).map(b=>b.model);
+      const transports=new Set(models.map(modelTransport));
+      const hay=lower([x.provider,x.fileName,...(x.sheets||[]),...models].join(" "));
+      const status=x.reviewCount?"inactive":"active";
+      return (!q||hay.includes(q))&&(!pf||x.provider===pf)&&(!tf||transports.has(tf))&&(!sf||status===sf);
+    });
+  }
+  function appendImportedRows(){
+    const tbody=document.getElementById("rateRows");if(!tbody)return;
+    tbody.querySelectorAll("tr[data-auto-import-row]").forEach(x=>x.remove());
+    const imports=filteredImports(GPK.read(IMPORT_KEY,[])||[]);
+    if(imports.length && tbody.querySelector(".empty-state"))tbody.innerHTML="";
+    const html=imports.map(x=>{
+      const models=[...new Set((x.blocks||[]).map(b=>b.model))];
+      const sheets=[...new Set((x.blocks||[]).map(b=>b.sheet).filter(Boolean))];
+      return `<tr class="auto-main-table-row" data-auto-import-row="${esc(x.id)}"><td><div class="provider-name-cell"><div class="provider-avatar">${esc((x.provider||"AU").slice(0,2).toUpperCase())}</div><div><strong>${esc(x.provider)}</strong><small>${esc(x.fileName)}</small></div></div></td><td><strong class="table-main">Automatischer Import</strong><small>${esc(sheets.slice(0,3).join(" · ")||"Tarifset")}</small></td><td><strong class="table-main">${Number(x.zonesCount||0).toLocaleString("de-DE")} Zonen</strong><small>normalisiert</small></td><td><div class="auto-model-stack">${models.slice(0,3).map(m=>`<span class="transport-pill">${esc(m)}</span>`).join("")}${models.length>3?`<small>+${models.length-3}</small>`:""}</div></td><td><strong class="price-cell">${Number(x.ratesCount||0).toLocaleString("de-DE")}</strong><small>Preiszeilen</small></td><td><span class="muted-dash">—</span></td><td><strong class="auto-benchmark-label">Benchmark</strong></td><td><span class="status-pill ${x.reviewCount?'inactive':'active'}">${x.reviewCount?'Review':'Importiert'}</span></td><td class="row-actions"><button class="icon-button" data-auto-compare="${esc(x.id)}" title="Mit bestehendem Benchmark vergleichen">⇄</button><button class="icon-button" data-auto-benchmark="${esc(x.id)}" title="Benchmark-Vordruck exportieren">⇩</button><button class="icon-button" data-auto-zones="${esc(x.id)}" title="Zonen-CSV exportieren">⌗</button></td></tr>`;
+    }).join("");
+    if(html)tbody.insertAdjacentHTML("beforeend",html);
+    const visible=document.getElementById("visibleRateCount");if(visible){const count=[...tbody.querySelectorAll("tr")].filter(tr=>!tr.querySelector(".empty-state")).length;visible.textContent=count;}
+  }
+
+  function safeFilePart(v){return text(v||"Export").replace(/[^A-Za-z0-9ÄÖÜäöüß_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80)||"Export";}
+  function benchmarkProduct(r){if(text(r.product))return text(r.product);if(r.rateModel==="PACKAGE_WEIGHT_ZONE")return "Parcel";if(r.rateModel==="FULL_LOAD")return "FTL";return "Road";}
+  function benchmarkStep(model){if(["WEIGHT_STEP","PACKAGE_WEIGHT_ZONE","LDM_STEP"].includes(model))return 0.1;if(["PALLET_STEP","DISTANCE_STEP"].includes(model))return 1;if(model==="PER_LDM")return 0.1;return 1;}
+  function benchmarkPer(model){return model==="PER_100KG"?100:1;}
+  function benchmarkUnit(model,isFirst){
+    if(model==="PER_KG"||model==="PER_100KG")return "KG";
+    if(model==="PER_LDM")return "LDM";
+    if(model==="PER_KM")return "KM";
+    if(model==="PER_PALLET")return "PLL";
+    if(model==="FIXED_RELATION"||model==="FULL_LOAD")return "Shipment";
+    return isFirst?"Minimum":"Shipment";
+  }
+  function rateZoneKey(r){return text(r.zone)||text(r.relationName)||`${text(r.destCountry)||"#ALL"}|ROW${r.sourceRow||0}`;}
+  function buildBenchmarkData(rateRows,zoneRows){
+    const MAX_ZONES=150;
+    const blocks=[];const blockMap=new Map();
+    rateRows.forEach((r,idx)=>{const key=`${r.batchId||""}|${r.blockId||r.sheet||"block"}`;if(!blockMap.has(key)){const b={key,rates:[],zones:[],order:idx};blockMap.set(key,b);blocks.push(b);}blockMap.get(key).rates.push(r);});
+    zoneRows.forEach(z=>{const key=`${z.batchId||""}|${z.blockId||z.zoneSet||"block"}`;const b=blockMap.get(key);if(b)b.zones.push(z);});
+    const rateOut=[];const zoneOut=[];
+    blocks.sort((a,b)=>a.order-b.order).forEach((block,blockIndex)=>{
+      const br=block.rates;if(!br.length)return;
+      const zoneKeys=[];const zoneSamples=new Map();
+      br.slice().sort((a,b)=>(a.sourceRow||0)-(b.sourceRow||0)).forEach(r=>{const k=rateZoneKey(r);if(!zoneSamples.has(k)){zoneKeys.push(k);zoneSamples.set(k,r);}});
+      if(zoneKeys.length>MAX_ZONES)throw new Error(`Tarifblock ${br[0].sheet||blockIndex+1} enthält ${zoneKeys.length} Zonen. Der Benchmark unterstützt maximal ${MAX_ZONES}.`);
+      const zoneNo=new Map(zoneKeys.map((k,i)=>[k,i+1]));
+      const first=br[0];const provider=text(first.provider)||"#ALL";const product=benchmarkProduct(first);const subservice=text(first.subservice)||text(first.sheet)||"#ALL";
+      const costItem="Freight";const cllType=first.rateModel==="FULL_LOAD"?"FTL":first.rateModel==="PACKAGE_WEIGHT_ZONE"?"Parcel":"Weight";
+      const importMeta=(GPK.read(IMPORT_KEY,[])||[]).find(x=>x.id===first.batchId);
+      const version=text(first.version)||text(importMeta?.validity)||"EXT";
+      const originCountry=text(br.find(r=>text(r.originCountry))?.originCountry)||"#ALL";
+      const modelGroups=new Map();
+      br.forEach(r=>{const k=[r.rateModel,text(r.product),text(r.destCountry),r.chargeFrom??"",r.chargeTo??"",text(r.chargeLabel)].join("|");if(!modelGroups.has(k)){modelGroups.set(k,{model:r.rateModel,product:benchmarkProduct(r),destCountry:text(r.destCountry)||"#ALL",chargeFrom:r.chargeFrom,chargeTo:r.chargeTo,chargeLabel:r.chargeLabel,rates:[],sourceRow:r.sourceRow||0});}modelGroups.get(k).rates.push(r);});
+      const groups=[...modelGroups.values()].sort((a,b)=>{if(a.model==="FULL_LOAD"&&b.model!=="FULL_LOAD")return 1;if(b.model==="FULL_LOAD"&&a.model!=="FULL_LOAD")return -1;const an=Number(a.chargeTo),bn=Number(b.chargeTo);if(Number.isFinite(an)&&Number.isFinite(bn)&&an!==bn)return an-bn;return a.sourceRow-b.sourceRow;});
+      const previousByModel=new Map();
+      groups.forEach(g=>{
+        const direct=["PER_KG","PER_100KG","PER_LDM","PER_KM","PER_PALLET"].includes(g.model);
+        const fixed=["FIXED_RELATION","FULL_LOAD"].includes(g.model);
+        const step=benchmarkStep(g.model);let from,to;
+        if(g.chargeFrom!==""&&g.chargeFrom!=null)from=Number(g.chargeFrom);
+        if(g.chargeTo!==""&&g.chargeTo!=null&&Number.isFinite(Number(g.chargeTo)))to=Number(g.chargeTo);
+        if(direct){from=Number.isFinite(from)?from:0;to=Number.isFinite(to)?to:999999;}
+        else if(fixed){from=Number.isFinite(from)?from:0;to=Number.isFinite(to)?to:999999;}
+        else if(Number.isFinite(to)){const prev=previousByModel.get(g.model);if(!Number.isFinite(from))from=prev==null?0:round(prev+step,3);previousByModel.set(g.model,to);}
+        else {from=Number.isFinite(from)?from:0;to=999999;}
+        const prices=Array(MAX_ZONES).fill(null);
+        g.rates.forEach(r=>{const n=zoneNo.get(rateZoneKey(r));if(n)prices[n-1]=r.price;});
+        let unit="KG";
+        if(["LDM_STEP","PER_LDM"].includes(g.model))unit="LDM";
+        else if(["PALLET_STEP","PER_PALLET"].includes(g.model))unit="PLL";
+        else if(["DISTANCE_STEP","PER_KM"].includes(g.model))unit="KM";
+        else if(["FIXED_RELATION","FULL_LOAD"].includes(g.model))unit="Shipment";
+        // 1:1 zum bisherigen GPK-Benchmarkvordruck: 13 Stammdatenfelder, danach Zone 1..150.
+        rateOut.push({__block:block.key,__model:g.model,base:[provider,g.product||product,subservice,costItem,cllType,version,originCountry,g.destCountry||"#ALL",from,to,step,unit,1],prices});
+      });
+      zoneKeys.forEach((zk,i)=>{
+        const sample=zoneSamples.get(zk);const matching=block.zones.find(z=>text(z.zone)&&text(z.zone)===text(sample.zone))||block.zones.find(z=>text(z.sourceRef)&&text(sample.sourceRef)&&text(z.sourceRef).split("C")[0]===text(sample.sourceRef).split("C")[0]);
+        const z=matching||{};
+        zoneOut.push([provider,text(z.originCountry)||text(sample.originCountry)||"#ALL",text(z.originPostcodeFrom)||0,text(z.originPostcodeTo)||99999,text(z.destCountry)||text(sample.destCountry)||"#ALL",text(z.destPostcodeFrom)||0,text(z.destPostcodeTo)||99999,i+1]);
+      });
+    });
+    return {rateOut,zoneOut,maxZones:150};
+  }
+  function ensureExcelJS(){
+    if(window.ExcelJS)return Promise.resolve(window.ExcelJS);
+    if(window.__gpkExcelJSPromise)return window.__gpkExcelJSPromise;
+    window.__gpkExcelJSPromise=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js";s.onload=()=>resolve(window.ExcelJS);s.onerror=()=>reject(new Error("Excel-Exportbibliothek konnte nicht geladen werden."));document.head.appendChild(s);});
+    return window.__gpkExcelJSPromise;
+  }
+  async function saveExcelJSWorkbook(wb,filename){const buf=await wb.xlsx.writeBuffer();const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},0);}
+  function styleBenchmarkSheet(ws,headerCount,zoneStartCol){
+    ws.views=[{state:"frozen",ySplit:1,xSplit:zoneStartCol-1}];
+    ws.autoFilter={from:{row:1,column:1},to:{row:Math.max(1,ws.rowCount),column:headerCount}};
+    const header=ws.getRow(1);header.height=22;
+    header.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos",size:10,bold:true,color:{argb:"FFFFFFFF"}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF004251"}};cell.alignment={vertical:"middle",horizontal:"center"};cell.border={bottom:{style:"thin",color:{argb:"FFB8C9CD"}}};});
+    ws.eachRow((row,rowNo)=>{if(rowNo===1)return;row.height=18;row.eachCell({includeEmpty:true},cell=>{cell.font={name:"Aptos",size:9,color:{argb:"FF1F2933"}};cell.alignment={vertical:"middle"};cell.border={bottom:{style:"hair",color:{argb:"FFE6ECEE"}}};if(typeof cell.value==="number")cell.numFmt="0.00########";});});
+    for(let c=1;c<=headerCount;c++){const col=ws.getColumn(c);if(c===1)col.width=18;else if(c<=6)col.width=17;else if(c<=13)col.width=12;else col.width=11;}
+  }
+  async function exportRates(batchId=""){
+    const allRates=GPK.read(RATE_KEY,[])||[],allZones=GPK.read(ZONE_KEY,[])||[];
+    const rows=batchId?allRates.filter(r=>r.batchId===batchId):allRates;const zones=batchId?allZones.filter(z=>z.batchId===batchId):allZones;
+    if(!rows.length)throw new Error("Noch keine normalisierten Tarifpreise vorhanden.");
+    const data=buildBenchmarkData(rows,zones);const ExcelJS=await ensureExcelJS();const wb=new ExcelJS.Workbook();wb.creator="GP Kollund";wb.subject="Benchmark-Tarif";wb.created=new Date();
+    const rateHeaders=["Forwarder","Product","Sub-Service","Cost Item","CLL Type","Version","Origin CTRY","Dest CTRY","CHG from","CHG to","step","Unit","base",...Array.from({length:150},(_,i)=>`Zone ${i+1}`)];
+    const rws=wb.addWorksheet("Rates",{properties:{defaultRowHeight:18}});rws.addRow(rateHeaders);data.rateOut.forEach(r=>rws.addRow([...r.base,...r.prices]));styleBenchmarkSheet(rws,rateHeaders.length,14);
+    rws.getColumn(9).numFmt="0.00########";rws.getColumn(10).numFmt="0.00########";rws.getColumn(11).numFmt="0.00########";rws.getColumn(13).numFmt="0.00########";
+    const zoneHeaders=["Forwarder","Origin CTRY","Origin From","Origin To","Dest CTRY","Dest From","Dest To","Zone"];
+    const zws=wb.addWorksheet("Zones",{properties:{defaultRowHeight:18}});zws.addRow(zoneHeaders);data.zoneOut.forEach(r=>zws.addRow(r));styleBenchmarkSheet(zws,zoneHeaders.length,8);zws.views=[{state:"frozen",ySplit:1}];
+    [3,4,6,7].forEach(c=>zws.getColumn(c).numFmt="00000");
+    const imp=(GPK.read(IMPORT_KEY,[])||[]).find(x=>x.id===batchId);const stem=imp?`BM_${safeFilePart(imp.provider)}_${safeFilePart(imp.fileName.replace(/\.[^.]+$/,""))}`:"GPK_Benchmark_Import";
+    await saveExcelJSWorkbook(wb,stem+".xlsx");
+  }
+  function csvValue(v){const s=String(v??"");return /[;"\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;}
+  function downloadCsv(filename,rows){const csv="\ufeff"+rows.map(r=>r.map(csvValue).join(";")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},0);}
+  async function exportZones(batchId=""){
+    const allRates=GPK.read(RATE_KEY,[])||[],allZones=GPK.read(ZONE_KEY,[])||[];const rows=batchId?allRates.filter(r=>r.batchId===batchId):allRates;const zones=batchId?allZones.filter(z=>z.batchId===batchId):allZones;
+    if(!rows.length)throw new Error("Noch keine Zonenregeln vorhanden.");const data=buildBenchmarkData(rows,zones);
+    const csvRows=[["Forwarder","Origin CTRY","Dest CTRY","Dest From","Dest To","Zone"],...data.zoneOut.map(r=>[r[0],r[1],r[4],r[5],r[6],r[7]])];
+    const imp=(GPK.read(IMPORT_KEY,[])||[]).find(x=>x.id===batchId);const stem=imp?`Zones_${safeFilePart(imp.provider)}_${safeFilePart(imp.fileName.replace(/\.[^.]+$/,""))}`:"GPK_Zonen_Export";downloadCsv(stem+".csv",csvRows);
+  }
+
+  function normalizeHeader(v){return lower(v).replace(/[^a-z0-9]+/g," ").trim();}
+  function benchmarkSheetRows(wb,name){
+    const XLSX=window.XLSX;
+    const sheetName=wb.SheetNames.find(n=>normalizeHeader(n)===normalizeHeader(name))||wb.SheetNames.find(n=>normalizeHeader(n).includes(normalizeHeader(name)));
+    if(!sheetName)return {name:"",rows:[]};
+    return {name:sheetName,rows:XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:"",raw:true,blankrows:false})};
+  }
+  function findBenchmarkHeader(rows,type){
+    const wanted=type==="rates"?["forwarder","product","dest ctry","chg from","chg to","unit"]:["forwarder","dest ctry","dest from","dest to","zone"];
+    let best={idx:-1,score:0,map:{}};
+    rows.slice(0,30).forEach((row,idx)=>{
+      const map={};row.forEach((v,c)=>{const h=normalizeHeader(v);if(h)map[h]=c;});
+      const keys=Object.keys(map);let score=0;wanted.forEach(w=>{if(keys.some(k=>k===w||k.replace(/ /g,"")===w.replace(/ /g,"")))score++;});
+      if(type==="rates"&&keys.some(k=>/^zone\s*1$/.test(k)))score+=2;
+      if(score>best.score)best={idx,score,map};
+    });
+    return best.score>=3?best:null;
+  }
+  function headerIndex(map,...aliases){
+    const entries=Object.entries(map||{});
+    for(const a of aliases){const n=normalizeHeader(a);const hit=entries.find(([k])=>k===n||k.replace(/ /g,"")===n.replace(/ /g,""));if(hit)return hit[1];}
+    return -1;
+  }
+  function compareVal(v){const n=num(v);if(n!==null&&String(v).trim()!=="")return round(n,6);return lower(v);}
+  function sameVal(a,b,tol=0.01){
+    const an=num(a),bn=num(b);
+    if(an!==null&&bn!==null)return Math.abs(an-bn)<=tol;
+    return lower(a)===lower(b);
+  }
+  function generatedRateMatrix(data){
+    return data.rateOut.map((r,idx)=>({idx:idx+1,base:r.base,prices:r.prices}));
+  }
+  function parseExistingRates(rows){
+    const h=findBenchmarkHeader(rows,"rates");if(!h)return {header:null,records:[]};
+    const m=h.map;
+    const idx={
+      forwarder:headerIndex(m,"Forwarder"),product:headerIndex(m,"Product"),subservice:headerIndex(m,"Sub-Service","Subservice"),
+      costItem:headerIndex(m,"Cost Item"),cll:headerIndex(m,"CLL Type"),version:headerIndex(m,"Version"),origin:headerIndex(m,"Origin CTRY","Origin Country"),dest:headerIndex(m,"Dest CTRY","Destination CTRY"),
+      from:headerIndex(m,"CHG from","CHG From"),to:headerIndex(m,"CHG to","CHG To"),step:headerIndex(m,"step"),unit:headerIndex(m,"Unit"),base:headerIndex(m,"base")
+    };
+    const zoneCols=[];(rows[h.idx]||[]).forEach((v,c)=>{const mt=normalizeHeader(v).match(/^zone\s*(\d+)$/);if(mt)zoneCols.push({no:Number(mt[1]),col:c});});
+    const records=[];
+    for(let r=h.idx+1;r<rows.length;r++){
+      const row=rows[r]||[];if(nonEmpty(row).length===0)continue;
+      const base=[idx.forwarder,idx.product,idx.subservice,idx.costItem,idx.cll,idx.version,idx.origin,idx.dest,idx.from,idx.to,idx.step,idx.unit,idx.base].map(c=>c>=0?row[c]:"");
+      const prices=Array(150).fill(null);zoneCols.forEach(z=>{if(z.no>=1&&z.no<=150){const v=row[z.col];prices[z.no-1]=text(v)===""?null:v;}});
+      records.push({rowNo:r+1,base,prices});
+    }
+    return {header:h,records};
+  }
+  function rateCompareKey(base){
+    // Version and forwarder are intentionally omitted: old benchmark templates often use a different version label/provider spelling.
+    return [base[1],base[2],base[3],base[4],base[6],base[7],compareVal(base[8]),compareVal(base[9]),base[11]].map(v=>lower(v)).join("|");
+  }
+  function relaxedRateKey(base){return [base[1],base[4],base[7],compareVal(base[8]),compareVal(base[9]),base[11]].map(v=>lower(v)).join("|");}
+  function compareRateSheets(generated,existing){
+    const diffs=[];const exact=new Map(),relaxed=new Map();
+    existing.forEach(r=>{const k=rateCompareKey(r.base);if(!exact.has(k))exact.set(k,[]);exact.get(k).push(r);const rk=relaxedRateKey(r.base);if(!relaxed.has(rk))relaxed.set(rk,[]);relaxed.get(rk).push(r);});
+    const used=new Set();let matchedRows=0,matchedCells=0,diffCells=0,generatedPriceCells=0;
+    generated.forEach(g=>{
+      let candidates=exact.get(rateCompareKey(g.base))||[];if(!candidates.length)candidates=relaxed.get(relaxedRateKey(g.base))||[];
+      const e=candidates.find(x=>!used.has(x))||candidates[0];
+      if(!e){diffs.push({type:"Fehlende Rate",key:`${g.base[1]} · ${g.base[7]} · ${g.base[8]}–${g.base[9]} ${g.base[11]}`,field:"Zeile",generated:"vorhanden",existing:"fehlt"});return;}
+      used.add(e);matchedRows++;
+      for(let i=0;i<150;i++){
+        const gv=g.prices[i],ev=e.prices[i];if(gv==null&&ev==null)continue;if(gv!=null)generatedPriceCells++;
+        if(sameVal(gv,ev)){matchedCells++;continue;}diffCells++;
+        if(diffs.length<250)diffs.push({type:"Preisabweichung",key:`${g.base[1]} · ${g.base[7]} · ${g.base[8]}–${g.base[9]}`,field:`Zone ${i+1}`,generated:gv??"—",existing:ev??"—"});
+      }
+    });
+    const extra=existing.filter(r=>!used.has(r));extra.slice(0,100).forEach(e=>diffs.push({type:"Zusätzliche Rate",key:`${e.base[1]} · ${e.base[7]} · ${e.base[8]}–${e.base[9]} ${e.base[11]}`,field:"Zeile",generated:"fehlt",existing:`Zeile ${e.rowNo}`}));
+    return {generatedRows:generated.length,existingRows:existing.length,matchedRows,missingRows:generated.length-matchedRows,extraRows:extra.length,generatedPriceCells,matchedCells,diffCells,diffs};
+  }
+  function parseExistingZones(rows){
+    const h=findBenchmarkHeader(rows,"zones");if(!h)return {header:null,records:[]};const m=h.map;
+    const idx={forwarder:headerIndex(m,"Forwarder"),origin:headerIndex(m,"Origin CTRY"),ofrom:headerIndex(m,"Origin From"),oto:headerIndex(m,"Origin To"),dest:headerIndex(m,"Dest CTRY"),dfrom:headerIndex(m,"Dest From"),dto:headerIndex(m,"Dest To"),zone:headerIndex(m,"Zone")};
+    const records=[];for(let r=h.idx+1;r<rows.length;r++){const row=rows[r]||[];if(nonEmpty(row).length===0)continue;records.push({rowNo:r+1,vals:[idx.forwarder,idx.origin,idx.ofrom,idx.oto,idx.dest,idx.dfrom,idx.dto,idx.zone].map(c=>c>=0?row[c]:"")});}return {header:h,records};
+  }
+  function zoneKey(v){return [v[1],v[2],v[3],v[4],v[5],v[6],v[7]].map(compareVal).join("|");}
+  function compareZoneSheets(generated,existing){
+    const gm=new Map(),em=new Map();generated.forEach(v=>gm.set(zoneKey(v),v));existing.forEach(r=>em.set(zoneKey(r.vals),r));
+    const diffs=[];let matched=0;gm.forEach((v,k)=>{if(em.has(k))matched++;else if(diffs.length<150)diffs.push({type:"Fehlende Zone",key:`${v[4]} ${v[5]}–${v[6]}`,field:"Zone",generated:v[7],existing:"fehlt"});});
+    let extra=0;em.forEach((r,k)=>{if(!gm.has(k)){extra++;if(diffs.length<150)diffs.push({type:"Zusätzliche Zone",key:`${r.vals[4]} ${r.vals[5]}–${r.vals[6]}`,field:"Zone",generated:"fehlt",existing:r.vals[7]});}});
+    return {generatedRows:generated.length,existingRows:existing.length,matched,missing:generated.length-matched,extra,diffs};
+  }
+  function installCompareModal(){
+    if(document.getElementById("gpkBenchmarkCompare"))return;
+    document.body.insertAdjacentHTML("beforeend",`<div class="modal-backdrop" id="gpkBenchmarkCompare" hidden><section class="location-modal benchmark-compare-modal" role="dialog" aria-modal="true"><div class="modal-head"><div><span class="modal-eyebrow">Benchmark-Prüfung</span><h2>Import mit bestehendem Benchmark vergleichen</h2><small id="gpkBenchmarkCompareFile"></small></div></div><div id="gpkBenchmarkCompareSummary" class="benchmark-compare-summary"></div><div class="benchmark-compare-note" id="gpkBenchmarkCompareNote"></div><div class="masterdata-table-wrap benchmark-compare-wrap"><table class="masterdata-table"><thead><tr><th>Typ</th><th>Rate / Zone</th><th>Feld</th><th>Neu erzeugt</th><th>Bestehender Benchmark</th></tr></thead><tbody id="gpkBenchmarkCompareRows"></tbody></table></div><div class="modal-actions"><button class="secondary compact-button" id="gpkBenchmarkCompareClose" type="button">Schließen</button><button class="primary compact-button" id="gpkBenchmarkPublish" type="button">Für Preisrechner freigeben</button></div></section></div>`);
+    document.getElementById("gpkBenchmarkCompareClose").addEventListener("click",()=>{document.getElementById("gpkBenchmarkCompare").hidden=true;document.body.classList.remove("modal-open");});
+  }
+  function publishBatchToCalculator(batchId){
+    const allRates=GPK.read(RATE_KEY,[])||[],allZones=GPK.read(ZONE_KEY,[])||[],imports=GPK.read(IMPORT_KEY,[])||[];
+    const rows=allRates.filter(r=>r.batchId===batchId),zones=allZones.filter(z=>z.batchId===batchId);
+    if(!rows.length)throw new Error("Für diesen Import sind keine normalisierten Raten vorhanden.");
+    const data=buildBenchmarkData(rows,zones);
+    const supportedModels=new Set(["WEIGHT_STEP","PER_KG","PER_100KG","LDM_STEP","PER_LDM","PALLET_STEP","PER_PALLET","FULL_LOAD","PACKAGE_WEIGHT_ZONE"]);
+    const calculatorRows=data.rateOut.filter(r=>supportedModels.has(r.__model));
+    const provider=text(rows[0]?.provider)||text(imports.find(x=>x.id===batchId)?.provider)||"";
+    const published=GPK.read(PUBLISHED_KEY,[])||[];
+    const entry={id:batchId,provider,publishedAt:new Date().toISOString(),zones:data.zoneOut,rates:calculatorRows.map(r=>({base:r.base,prices:r.prices,model:r.__model}))};
+    const next=[entry,...published.filter(x=>x.id!==batchId)].slice(0,100);
+    GPK.write(PUBLISHED_KEY,next);
+    const imp=imports.find(x=>x.id===batchId);if(imp){imp.publishedAt=entry.publishedAt;imp.publishedZones=data.zoneOut.length;imp.publishedRates=calculatorRows.length;GPK.write(IMPORT_KEY,imports);}
+    refreshPageStatus();
+    return {zones:data.zoneOut.length,rates:calculatorRows.length,provider};
+  }
+
+  function renderCompareResult(batchId,file,result){
+    installCompareModal();const modal=document.getElementById("gpkBenchmarkCompare");modal.hidden=false;document.body.classList.add("modal-open");
+    document.getElementById("gpkBenchmarkCompareFile").textContent=file.name;
+    const r=result.rates,z=result.zones;const denom=Math.max(1,r.generatedPriceCells);const pct=Math.max(0,Math.min(100,Math.round((r.matchedCells/denom)*1000)/10));
+    document.getElementById("gpkBenchmarkCompareSummary").innerHTML=`<div><span>Raten erkannt</span><strong>${r.matchedRows}/${r.generatedRows}</strong></div><div><span>Preiszellen identisch</span><strong>${r.matchedCells.toLocaleString("de-DE")}</strong></div><div><span>Preisabweichungen</span><strong>${r.diffCells.toLocaleString("de-DE")}</strong></div><div><span>Zonen identisch</span><strong>${z.matched}/${z.generatedRows}</strong></div><div><span>Trefferquote Preise</span><strong>${pct.toLocaleString("de-DE")} %</strong></div>`;
+    document.getElementById("gpkBenchmarkCompareNote").innerHTML=`<strong>${r.missingRows+r.extraRows+z.missing+z.extra+r.diffCells===0?"Benchmark stimmt strukturell und preislich überein.":"Abweichungen gefunden."}</strong><span>Verglichen werden Rate-Modell/Produkt, Relation, CHG-Grenzen, Einheit, Zone 1–150 sowie das Zones-Blatt. Versionsbezeichnung und Schreibweise des Dienstleisters werden bei der Zeilenzuordnung bewusst nicht als harte Schlüssel verwendet.</span>`;
+    const diffs=[...r.diffs,...z.diffs];document.getElementById("gpkBenchmarkCompareRows").innerHTML=diffs.slice(0,200).map(d=>`<tr><td><span class="status-pill ${d.type.includes("Preis")||d.type.includes("Fehl")?"inactive":"active"}">${esc(d.type)}</span></td><td>${esc(d.key)}</td><td>${esc(d.field)}</td><td><strong>${esc(d.generated)}</strong></td><td><strong>${esc(d.existing)}</strong></td></tr>`).join("")||`<tr><td colspan="5" class="empty-state"><strong>Keine Abweichungen gefunden.</strong><small>Die erzeugten Daten entsprechen dem hochgeladenen Benchmark.</small></td></tr>`;
+    const imports=GPK.read(IMPORT_KEY,[])||[];const x=imports.find(i=>i.id===batchId);if(x){x.lastComparison={fileName:file.name,createdAt:new Date().toISOString(),priceMatchPct:pct,rateMissing:r.missingRows,rateExtra:r.extraRows,priceDiffs:r.diffCells,zoneMissing:z.missing,zoneExtra:z.extra};GPK.write(IMPORT_KEY,imports);refreshPageStatus();}
+    const publishBtn=document.getElementById("gpkBenchmarkPublish");
+    if(publishBtn){
+      const hasDiff=(r.missingRows+r.extraRows+z.missing+z.extra+r.diffCells)>0;
+      publishBtn.textContent=hasDiff?"Trotz Abweichungen freigeben":"Für Preisrechner freigeben";
+      publishBtn.onclick=()=>{try{const pub=publishBatchToCalculator(batchId);modal.hidden=true;document.body.classList.remove("modal-open");if(window.rateToast){rateToast.textContent=`${pub.provider}: ${pub.zones} Zonen${pub.rates?` und ${pub.rates} Preiszeilen`:""} für den Preisrechner freigegeben.`;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3800);}}catch(err){if(window.rateToast){rateToast.textContent=err.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3500);}}};
+    }
+  }
+  async function compareWithBenchmark(batchId){
+    const allRates=GPK.read(RATE_KEY,[])||[],allZones=GPK.read(ZONE_KEY,[])||[];const rows=allRates.filter(r=>r.batchId===batchId),zones=allZones.filter(z=>z.batchId===batchId);if(!rows.length)throw new Error("Für diesen Import sind keine normalisierten Raten vorhanden.");
+    const file=await new Promise(resolve=>{const inp=document.createElement("input");inp.type="file";inp.accept=".xlsx,.xls,.xlsm,.xlsb,.csv";inp.onchange=()=>resolve(inp.files?.[0]||null);inp.click();});if(!file)return;
+    const XLSX=await ensureXLSX();let wb;
+    if(file.name.toLowerCase().endsWith(".csv")){const txt=await file.text();wb=XLSX.read(txt,{type:"string"});}else{const buf=await file.arrayBuffer();wb=XLSX.read(buf,{type:"array",cellDates:false,cellFormula:false});}
+    const gr=buildBenchmarkData(rows,zones);const rateSheet=benchmarkSheetRows(wb,"Rates"),zoneSheet=benchmarkSheetRows(wb,"Zones");
+    if(!rateSheet.rows.length)throw new Error("Im Benchmark wurde kein Blatt 'Rates' gefunden.");
+    const er=parseExistingRates(rateSheet.rows);if(!er.header)throw new Error("Die Kopfzeile des Rates-Blatts konnte nicht erkannt werden.");
+    const ez=zoneSheet.rows.length?parseExistingZones(zoneSheet.rows):{records:[]};
+    const result={rates:compareRateSheets(generatedRateMatrix(gr),er.records),zones:compareZoneSheets(gr.zoneOut,ez.records||[])};renderCompareResult(batchId,file,result);
   }
 
   function refreshPageStatus(){
-    const imports=GPK.read(IMPORT_KEY,[])||[],rates=GPK.read(RATE_KEY,[])||[],zones=GPK.read(ZONE_KEY,[])||[];
-    const el=document.getElementById("autoTariffImportStats");if(el)el.innerHTML=`<strong>${imports.length}</strong> Importe · <strong>${rates.length.toLocaleString('de-DE')}</strong> normalisierte Preise · <strong>${zones.length.toLocaleString('de-DE')}</strong> Zonenregeln`;
-    const tbody=document.getElementById("autoImportRows");if(tbody)tbody.innerHTML=imports.slice(0,8).map(x=>`<tr><td><strong>${esc(x.provider)}</strong><small>${esc(x.fileName)}</small></td><td>${x.blocks.map(b=>`<span class="transport-pill">${esc(b.model)}</span>`).join(' ')}</td><td><strong>${Number(x.ratesCount||0).toLocaleString('de-DE')}</strong></td><td><strong>${Number(x.zonesCount||0).toLocaleString('de-DE')}</strong></td><td><span class="status-pill ${x.reviewCount?'inactive':'active'}">${x.reviewCount?x.reviewCount+' Review':'Erkannt'}</span></td><td><small>${new Date(x.createdAt).toLocaleString('de-DE')}</small></td></tr>`).join("")||`<tr><td colspan="6" class="empty-state">Noch kein Tarif automatisch importiert.</td></tr>`;
+    const imports=GPK.read(IMPORT_KEY,[])||[],ratesOut=GPK.read(RATE_KEY,[])||[],zonesOut=GPK.read(ZONE_KEY,[])||[];
+    const el=document.getElementById("autoTariffImportStats");if(el)el.innerHTML=`<strong>${imports.length}</strong> Importe · <strong>${ratesOut.length.toLocaleString('de-DE')}</strong> normalisierte Preise · <strong>${zonesOut.length.toLocaleString('de-DE')}</strong> Zonenregeln`;
+    const tbody=document.getElementById("autoImportRows");if(tbody)tbody.innerHTML=imports.slice(0,8).map(x=>`<tr><td><strong>${esc(x.provider)}</strong><small>${esc(x.fileName)}</small></td><td>${x.blocks.map(b=>`<span class="transport-pill">${esc(b.model)}</span>`).join(' ')}</td><td><strong>${Number(x.ratesCount||0).toLocaleString('de-DE')}</strong></td><td><strong>${Number(x.zonesCount||0).toLocaleString('de-DE')}</strong></td><td><span class="status-pill ${x.publishedAt?'active':(x.reviewCount?'inactive':'active')}">${x.publishedAt?'Im Rechner':(x.reviewCount?x.reviewCount+' Review':'Erkannt')}</span>${x.publishedAt?`<small>${Number(x.publishedZones||0)} Zonen · ${Number(x.publishedRates||0)} Raten</small>`:""}</td><td>${x.lastComparison?`<strong>${Number(x.lastComparison.priceMatchPct||0).toLocaleString('de-DE')} %</strong><small>${esc(x.lastComparison.fileName||'geprüft')}</small>`:`<button class="secondary compact-button auto-compare-history-btn" data-auto-compare="${esc(x.id)}" type="button">Benchmark prüfen</button>`}</td><td><small>${new Date(x.createdAt).toLocaleString('de-DE')}</small></td></tr>`).join("")||`<tr><td colspan="7" class="empty-state">Noch kein Tarif automatisch importiert.</td></tr>`;
+    syncImportedProviderFilter(imports);appendImportedRows();
   }
-  async function exportRates(){const rows=GPK.read(RATE_KEY,[])||[];if(!rows.length)throw new Error("Noch keine normalisierten Tarifpreise vorhanden.");await exportWorkbook("GP_Kollund_Rate_Output.xlsx",{"Rates":rows.map(r=>({"Dienstleister":r.provider,"Quelle":r.sourceFile,"Sheet":r.sheet,"Rate Model":r.rateModel,"Produkt":r.product,"Zielland":r.destCountry,"Zone":r.zone,"Relation":r.relationName,"CHG from":r.chargeFrom,"CHG to":r.chargeTo,"Stufe Original":r.chargeLabel,"Unit":r.unit,"Preis":r.price,"Währung":r.currency,"Priorität":r.priority,"Confidence":r.confidence,"Review":r.reviewStatus,"Source Ref":r.sourceRef}))});}
-  async function exportZones(){const rows=GPK.read(ZONE_KEY,[])||[];if(!rows.length)throw new Error("Noch keine Zonenregeln vorhanden.");await exportWorkbook("GP_Kollund_Zone_Output.xlsx",{"Zones":rows.map(z=>({"Dienstleister":z.provider,"Quelle":z.sourceFile,"Zone Set":z.zoneSet,"Rule Type":z.ruleType,"Origin CTRY":z.originCountry,"Origin PLZ von":z.originPostcodeFrom,"Origin PLZ bis":z.originPostcodeTo,"Dest CTRY":z.destCountry,"Dest PLZ von":z.destPostcodeFrom,"Dest PLZ bis":z.destPostcodeTo,"Distance from KM":z.distanceFromKm,"Distance to KM":z.distanceToKm,"Origin Name":z.originName,"Destination Name":z.destinationName,"Zone":z.zone,"Priority":z.priority,"Source Ref":z.sourceRef}))});}
 
-  window.GPKTariffImport={open,chooseAndOpen,analyzeFile,refreshPageStatus,exportRates,exportZones,keys:{rates:RATE_KEY,zones:ZONE_KEY,imports:IMPORT_KEY},_test:{analyzeSheet,parseHorizontalMatrix,parseVerticalZoneMatrices,parseFixedRelations,dimensionValue,postcodeRange,expandPrefixExpression}};
-  document.addEventListener("DOMContentLoaded",()=>{installModal();refreshPageStatus();document.getElementById("exportNormalizedRatesBtn")?.addEventListener("click",async()=>{try{await exportRates();}catch(e){if(window.rateToast){rateToast.textContent=e.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,2600);}}});document.getElementById("exportZoneRulesBtn")?.addEventListener("click",async()=>{try{await exportZones();}catch(e){if(window.rateToast){rateToast.textContent=e.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,2600);}}});});
+  window.GPKTariffImport={open,chooseAndOpen,analyzeFile,refreshPageStatus,appendImportedRows,exportRates,exportZones,compareWithBenchmark,publishBatchToCalculator,buildBenchmarkData,keys:{rates:RATE_KEY,zones:ZONE_KEY,imports:IMPORT_KEY},_test:{analyzeSheet,parseHorizontalMatrix,parseVerticalZoneMatrices,parseFixedRelations,dimensionValue,postcodeRange,expandPrefixExpression,buildBenchmarkData,parseExistingRates,compareRateSheets,parseExistingZones,compareZoneSheets}};
+  document.addEventListener("DOMContentLoaded",()=>{
+    installModal();refreshPageStatus();const historyRows=document.getElementById("autoImportRows");if(historyRows&&!historyRows.dataset.compareHandlers){historyRows.dataset.compareHandlers="1";historyRows.addEventListener("click",async e=>{const c=e.target.closest("[data-auto-compare]");if(!c)return;try{await compareWithBenchmark(c.dataset.autoCompare);}catch(err){if(window.rateToast){rateToast.textContent=err.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3500);}}});}
+    ["rateSearch","rateProviderFilter","rateTransportFilter","rateStatusFilter"].forEach(id=>document.getElementById(id)?.addEventListener("input",()=>setTimeout(appendImportedRows,0)));
+    const mainRows=document.getElementById("rateRows");if(mainRows&&!mainRows.dataset.autoImportHandlers){mainRows.dataset.autoImportHandlers="1";mainRows.addEventListener("click",async e=>{const c=e.target.closest("[data-auto-compare]");const b=e.target.closest("[data-auto-benchmark]");const z=e.target.closest("[data-auto-zones]");try{if(c)await compareWithBenchmark(c.dataset.autoCompare);if(b)await exportRates(b.dataset.autoBenchmark);if(z)await exportZones(z.dataset.autoZones);}catch(err){if(window.rateToast){rateToast.textContent=err.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3500);}}});}
+    document.getElementById("exportNormalizedRatesBtn")?.addEventListener("click",async()=>{try{await exportRates();}catch(e){if(window.rateToast){rateToast.textContent=e.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,2600);}}});
+    document.getElementById("exportZoneRulesBtn")?.addEventListener("click",async()=>{try{await exportZones();}catch(e){if(window.rateToast){rateToast.textContent=e.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,2600);}}});
+  });
 })();

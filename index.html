@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.11</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.14</div>
     </aside>
 
     <main class="workspace masterdata-workspace calculator-workspace">
@@ -85,9 +85,19 @@
                   <label class="transport-option"><input type="radio" name="shipmentType" value="jumbo" /><span>Jumbo</span></label>
                 </div>
               </fieldset>
-              <div class="field load-field" id="loadMetersField">
-                <label for="loadMeters">Lademeter</label>
-                <div class="input-suffix"><input id="loadMeters" type="text" inputmode="decimal" placeholder="z. B. 7,5" /><span>LDM</span></div>
+              <div class="rate-input-grid">
+                <div class="field load-field" id="loadMetersField">
+                  <label for="loadMeters">Lademeter</label>
+                  <div class="input-suffix"><input id="loadMeters" type="text" inputmode="decimal" placeholder="z. B. 7,5" /><span>LDM</span></div>
+                </div>
+                <div class="field">
+                  <label for="shipmentWeight">Gewicht</label>
+                  <div class="input-suffix"><input id="shipmentWeight" type="text" inputmode="decimal" placeholder="z. B. 1.250" /><span>kg</span></div>
+                </div>
+                <div class="field">
+                  <label for="shipmentPallets">Paletten / Stellplätze</label>
+                  <div class="input-suffix"><input id="shipmentPallets" type="text" inputmode="decimal" placeholder="z. B. 6" /><span>PLL</span></div>
+                </div>
               </div>
             </div>
 
@@ -122,6 +132,8 @@
           <div><span>PLZ</span><strong id="summaryPostal">—</strong></div>
           <div><span>Transportart</span><strong id="summaryShipmentType">—</strong></div>
           <div id="summaryLdmRow"><span>Lademeter</span><strong id="summaryLdm">—</strong></div>
+          <div id="summaryWeightRow"><span>Gewicht</span><strong id="summaryWeight">—</strong></div>
+          <div id="summaryPalletsRow"><span>Paletten</span><strong id="summaryPallets">—</strong></div>
           <div class="wide"><span>Entladestelle</span><strong id="summaryRecipient">—</strong></div>
           <div><span>Abholung</span><strong id="summaryPickupDate">—</strong></div>
           <div><span>Lieferung</span><strong id="summaryDeliveryDate">—</strong></div>
