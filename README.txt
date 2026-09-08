@@ -1,4 +1,4 @@
-GP KOLLUND – Freight Rate Calculator Prototype v6.19
+GP KOLLUND – Freight Rate Calculator Prototype v6.21
 
 Diese Version baut auf der funktionsfähigen Demo v1 auf.
 
@@ -191,14 +191,14 @@ v6.15 – Tarifimport / Benchmark-Ausgabe
 - interne normalisierte Preislogik bleibt unverändert als Datenbasis
 
 
-v6.19 – Multi-Rate Preisrechner:
+v6.21 – Multi-Rate Preisrechner:
 - Freigegebene Autoimporte können jetzt WEIGHT_STEP, PER_KG, PER_100KG, LDM_STEP, PER_LDM, PALLET_STEP, PER_PALLET, FULL_LOAD und PACKAGE_WEIGHT_ZONE an den Preisrechner übergeben.
 - Kalkulation um Gewicht sowie Paletten/Stellplätze erweitert.
 - Direkte €/kg-, €/100kg-, €/LDM- und €/Palette-Logik wird im Preisrechner berechnet; Staffelmodelle wählen den passenden Fixpreis.
 - Distanz-/km-Tarife bleiben bewusst außen vor, bis eine verlässliche Kilometerquelle angebunden ist.
 
 
-v6.19 – Sperrigkeits-/Frachtgewichtslogik (erste Stufe):
+v6.21 – Sperrigkeits-/Frachtgewichtslogik (erste Stufe):
 - Autoimport erkennt zusätzliche Umrechnungsregeln aus einem Benchmark-Params-Blatt (z. B. kg/m³, kg/LDM, Mindestgewicht je Palette, LDM ab x Paletten, nicht stapelbar).
 - Freigegebene Regeln werden zusammen mit dem Tarifset an den Preisrechner übergeben.
 - Die Regeln greifen bewusst nur bei gewichtsbasierten Tarifmodellen (WEIGHT_STEP, PER_KG, PER_100KG). Stellplatz- und LDM-Offerten werden nicht pauschal mit Gewichtssperrigkeit belastet.
@@ -206,7 +206,7 @@ v6.19 – Sperrigkeits-/Frachtgewichtslogik (erste Stufe):
 - Der Preisrechner ermittelt je Dienstleister das frachtpflichtige Gewicht aus den tatsächlich vorhandenen Regeln und zeigt die angewandte Basis in der Angebotskarte.
 - Ohne erkannte/freigegebene Params bleibt die bisherige Berechnung unverändert; es werden keine generischen Sperrigkeitsfaktoren erfunden.
 
-v6.19 – Importprüfung als Ratenblatt
+v6.21 – Importprüfung als Ratenblatt
 - Autoimport-Vorschau nach Land und Tarifbereich filterbar.
 - Ratenblatt als Matrix mit von/bis/Einheit und Zonen als Spalten.
 - Zonenheader zweizeilig, z. B. DE01 / Zone 1.

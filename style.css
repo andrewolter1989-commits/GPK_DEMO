@@ -3341,3 +3341,20 @@ html.local-demo-mode .sidebar-demo-label::after{
 .zone-edit-input{min-width:92px}
 .zone-country-input{min-width:58px;text-transform:uppercase}
 #gpkTariffEditToggle.active{background:#e7f4f6;border-color:#76b8c6;color:#00576a}
+
+
+/* v6.20 – Autoimport löschen */
+.danger-icon{color:#9a3f46!important}
+.danger-icon:hover{background:#fbefef!important;border-color:#e8c5c8!important;color:#7f2830!important}
+button.danger{background:#a43e47;color:#fff;border:1px solid #a43e47}
+button.danger:hover{background:#8d3039;border-color:#8d3039}
+.delete-import-modal{max-width:620px}
+.delete-import-copy{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px;padding:16px 18px;border:1px solid #e8d4d6;border-radius:12px;background:#fff8f8;color:#4d3134}
+.delete-import-copy span{color:#72575a;line-height:1.45}
+
+
+/* v6.21 – Tarifworkflow / editierbare Bereiche */
+.import-provider-select-row{display:flex;gap:8px;align-items:center}.import-provider-select-row select{flex:1;min-width:0}
+.import-provider-workflow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;color:#6e8791}.import-provider-workflow small{font-size:11px}.link-button,.table-link-button{border:0;background:transparent;color:#00738a;font:inherit;font-weight:700;padding:0;cursor:pointer}.link-button:hover,.table-link-button:hover{text-decoration:underline}
+.auto-floater-cell{display:flex;flex-direction:column;align-items:flex-start;gap:4px}.table-link-button{font-size:10px}.table-main-link{color:inherit;text-decoration:none}.table-main-link:hover{text-decoration:underline}
+.matrix-range-input{min-width:76px;text-align:right}

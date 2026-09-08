@@ -11,7 +11,7 @@ const defaultProviders = [
   {id:7,name:"Raben",alias:"RA",status:"active",street:"",zip:"",city:"",country:"DE",rates:12,floater:"7,5 %",logo:"",notes:"",contacts:[{id:71,name:"Disposition",emails:"dispo@raben.example",phone:"+49 000 700700",purposes:["booking","availability"],countries:"DE"}]},
   {id:8,name:"DSV",alias:"DS",status:"active",street:"",zip:"",city:"",country:"DK",rates:14,floater:"8,2 %",logo:"",notes:"",contacts:[{id:81,name:"Road",emails:"road@dsv.example",phone:"+45 000 800800",purposes:["booking","availability","price"],countries:"*"}]}
 ];
-let providers=GPK.read(GPK.KEYS.providers,null); if(!Array.isArray(providers)||!providers.length) providers=defaultProviders;
+let providers=GPK.read(GPK.KEYS.providers,null); if(!Array.isArray(providers)||!providers.length){providers=defaultProviders;GPK.write(GPK.KEYS.providers,providers);}
 providers=providers.map(p=>({...p,contacts:Array.isArray(p.contacts)?p.contacts:(p.contact||p.email||p.phone?[{id:Date.now()+Math.random(),name:p.contact||"",emails:p.email||"",phone:p.phone||"",purposes:["booking","availability","price"],countries:"*"}]:[])}));
 let editingId=null;
 const rows=document.getElementById("providerRows"),search=document.getElementById("providerSearch"),statusFilter=document.getElementById("providerStatusFilter"),rateFilter=document.getElementById("providerRateFilter"),modal=document.getElementById("providerModal"),form=document.getElementById("providerForm");
@@ -20,8 +20,11 @@ function initials(p){return(p.alias||p.name.split(/\s+/).map(x=>x[0]).join("").s
 function primaryContact(p){return (p.contacts||[])[0]||{};}
 function normalizedProviderName(v){return String(v||"").trim().toLowerCase();}
 function rateProviderName(r){return r?.provider ?? r?.provider_name ?? r?.Dienstleister ?? r?.dienstleister ?? "";}
-function rateCountry(r){return r?.country ?? r?.Land ?? r?.land ?? "";}
-function allStoredRates(){const r=GPK.read(GPK.KEYS.rates,[])||[];return Array.isArray(r)?r:[];}
+function rateCountry(r){return r?.country ?? r?.destCountry ?? r?.Land ?? r?.land ?? "";}
+function manualStoredRates(){const r=GPK.read(GPK.KEYS.rates,[])||[];return Array.isArray(r)?r:[];}
+function autoStoredRates(){const r=GPK.read("gpk_demo_rate_output_v1",[])||[];return Array.isArray(r)?r:[];}
+function autoTariffImports(){const r=GPK.read("gpk_demo_tariff_imports_v1",[])||[];return Array.isArray(r)?r:[];}
+function allStoredRates(){return [...manualStoredRates(),...autoStoredRates()];}
 function providerTariffCountries(providerName){
   const needle=normalizedProviderName(providerName);
   return [...new Set(allStoredRates()
@@ -30,10 +33,10 @@ function providerTariffCountries(providerName){
     .filter(Boolean))].sort();
 }
 function providerRateCount(providerName,fallback=0){
-  const rates=allStoredRates();
-  if(!rates.length) return Number(fallback)||0;
   const needle=normalizedProviderName(providerName);
-  return rates.filter(r=>normalizedProviderName(rateProviderName(r))===needle).length;
+  const manual=manualStoredRates().filter(r=>normalizedProviderName(rateProviderName(r))===needle).length;
+  const imported=autoTariffImports().filter(x=>normalizedProviderName(x.provider)===needle).length;
+  return manual+imported || Number(fallback)||0;
 }
 function currentProviderFloater(provider){
   const needle=normalizedProviderName(provider?.name);
@@ -209,3 +212,11 @@ form.addEventListener("submit",e=>{e.preventDefault();const contacts=collectCont
 [search,statusFilter,rateFilter].forEach(x=>x.addEventListener("input",render));
 importProvidersBtn.addEventListener("click",()=>chooseImportFile(async file=>{try{await GPKImport.open("providers",file);gpkImportConfirmBtn.onclick=()=>{const result=GPKImport.confirm();providers=(GPK.read(GPK.KEYS.providers,[])||[]).map(p=>({...p,contacts:p.contacts||[]}));render();toast(result.message);};}catch(err){toast("Import fehlgeschlagen: "+err.message);}}));
 exportProvidersBtn.addEventListener("click",async()=>{try{await exportWorkbook("GP_Kollund_Dienstleister.xlsx",{"Dienstleister":providers.map(x=>({"Dienstleister":x.name,"Alias":x.alias,"Straße":x.street||"","PLZ":x.zip||"","Ort":x.city||"","Land":x.country||"","Ansprechpartner":primaryContact(x).name||"","E-Mail":primaryContact(x).emails||"","Telefon":primaryContact(x).phone||"","Anzahl Kontakte":(x.contacts||[]).length,"Anzahl Tarife":x.rates,"Floater":currentProviderFloater(x)||x.floater,"Aktiv":x.status==="active"?"Ja":"Nein","Logo":x.logo,"Hinweise":x.notes}))});toast("Dienstleister exportiert.")}catch(err){toast("Export fehlgeschlagen: "+err.message);}});render();
+
+/* v6.21 – Verknüpfung Tarife ↔ Dienstleister */
+(function handleProviderWorkflowQuery(){
+  const q=new URLSearchParams(location.search);
+  if(q.get("new")==="1")setTimeout(()=>openModal(),0);
+  const wanted=(q.get("provider")||"").trim().toLowerCase();
+  if(wanted){setTimeout(()=>{providerSearch.value=q.get("provider")||"";render();},0);}
+})();
