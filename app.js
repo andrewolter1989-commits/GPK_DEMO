@@ -1250,7 +1250,7 @@ const freeTextInput = document.getElementById("freeText");
   }
   [shipmentLengthInput,shipmentWidthInput,shipmentHeightInput].forEach(el=>el?.addEventListener("input",autoCalculateVolume));
   shipmentVolumeInput?.addEventListener("input",()=>{shipmentVolumeInput.dataset.autoCalculated="0";});
-  shipmentVolumeModeBtn?.addEventListener("click",()=>{const show=Boolean(shipmentDimensions?.hidden);if(shipmentDimensions)shipmentDimensions.hidden=!show;shipmentVolumeModeBtn.textContent=show?"Maße schließen":"Maße";if(show)shipmentLengthInput?.focus();});
+  shipmentVolumeModeBtn?.addEventListener("click",()=>{const show=Boolean(shipmentDimensions?.hidden);if(shipmentDimensions)shipmentDimensions.hidden=!show;shipmentVolumeModeBtn.textContent=show?"Maße schließen":"Maße öffnen";if(show)shipmentLengthInput?.focus();});
   applyCalcFieldConfig();
 
   countrySelect?.addEventListener("change", () => { updatePostalPlaceholder(); renderRecipientSelection(); });

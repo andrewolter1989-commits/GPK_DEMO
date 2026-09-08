@@ -3428,3 +3428,33 @@ body.price-mode .split-section{grid-template-columns:minmax(0,1fr) minmax(0,1fr)
 .volume-input-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:stretch}.volume-mode-btn{min-width:72px}.shipment-dimensions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:10px 0 0}.shipment-dimensions[hidden]{display:none!important}.shipment-option-stack{display:grid;gap:8px}
 @media(max-width:1100px){.benchmark-meta-editor{grid-template-columns:repeat(2,minmax(120px,1fr))}.auto-import-body{grid-template-columns:1fr!important}.shipment-dimensions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.benchmark-meta-editor,.shipment-dimensions{grid-template-columns:1fr}}
+
+
+/* v6.26 – Importeditor / Zonen / Maße */
+.benchmark-meta-editor[hidden]{display:none!important}
+#gpkTariffBenchmarkMetaToggle.active{background:#e7f4f6;border-color:#76b8c6;color:#00576a}
+.draft-save-status{margin-right:auto;color:#62808b;font-size:12px;font-weight:700}
+.zone-row-actions{white-space:nowrap;min-width:132px}
+.zone-row-actions button,.matrix-row-actions button{width:27px;height:27px;border:1px solid #cbdde2;border-radius:6px;background:#fff;color:#174452;margin-right:3px;cursor:pointer}
+.zone-row-actions button:hover,.matrix-row-actions button:hover{background:#edf6f7}
+.auto-import-blocks{min-width:360px}
+.auto-import-body{grid-template-columns:minmax(340px,380px) minmax(0,1fr)}
+.shipment-top-grid{margin-bottom:0!important}
+.dimensions-toggle-under{margin-top:7px;width:100%}
+.shipment-dimensions{margin-top:10px;margin-bottom:10px}
+.shipment-secondary-grid{margin-top:0}
+@media(max-width:1180px){.auto-import-body{grid-template-columns:320px minmax(0,1fr)}}
+
+
+/* v6.27 – finaler Maße-/Importeditor-Polish */
+.shipment-top-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;margin-bottom:0!important}
+.dimensions-toggle-under{display:block;width:100%;margin-top:7px}
+.shipment-dimensions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:10px 0}
+.shipment-dimensions[hidden]{display:none!important}
+.shipment-secondary-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;margin-top:0!important}
+.shipment-secondary-grid>.field{grid-column:1}
+.benchmark-meta-editor[hidden]{display:none!important}
+#gpkTariffBenchmarkMetaToggle.active{background:#e7f4f6;border-color:#76b8c6;color:#00576a}
+.draft-save-status{margin-right:auto;color:#62808b;font-size:12px;font-weight:700}
+.zone-row-actions{white-space:nowrap;min-width:132px}
+@media(max-width:900px){.shipment-top-grid,.shipment-dimensions,.shipment-secondary-grid{grid-template-columns:1fr!important}.shipment-secondary-grid>.field{grid-column:auto}}
