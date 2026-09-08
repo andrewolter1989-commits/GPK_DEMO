@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.18</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.23</div>
     </aside>
 
     <main class="workspace masterdata-workspace calculator-workspace">
@@ -74,8 +74,8 @@
             </div>
           </section>
 
-          <section class="workflow-section split-section">
-            <div class="transport-panel">
+          <section class="workflow-section split-section calculator-shipment-layout">
+            <div class="transport-panel transport-panel-compact">
               <fieldset class="field transport-field">
                 <legend>Transportart</legend>
                 <div class="transport-switch" id="transportSwitch">
@@ -85,33 +85,27 @@
                   <label class="transport-option"><input type="radio" name="shipmentType" value="jumbo" /><span>Jumbo</span></label>
                 </div>
               </fieldset>
-              <div class="rate-input-grid">
-                <div class="field load-field" id="loadMetersField">
-                  <label for="loadMeters">Lademeter</label>
-                  <div class="input-suffix"><input id="loadMeters" type="text" inputmode="decimal" placeholder="z. B. 7,5" /><span>LDM</span></div>
-                </div>
-                <div class="field">
-                  <label for="shipmentWeight">Gewicht</label>
-                  <div class="input-suffix"><input id="shipmentWeight" type="text" inputmode="decimal" placeholder="z. B. 1.250" /><span>kg</span></div>
-                </div>
-                <div class="field">
-                  <label for="shipmentPallets">Paletten / Stellplätze</label>
-                  <div class="input-suffix"><input id="shipmentPallets" type="text" inputmode="decimal" placeholder="z. B. 6" /><span>PLL</span></div>
-                </div>
-                <div class="field">
-                  <label for="shipmentVolume">Volumen</label>
-                  <div class="input-suffix"><input id="shipmentVolume" type="text" inputmode="decimal" placeholder="z. B. 3,2" /><span>m³</span></div>
-                </div>
-                <label class="sperrigkeit-check"><input id="shipmentNonStackable" type="checkbox" /><span><strong>Nicht stapelbar</strong><small>Nur relevant, wenn der gewählte Tarif dafür eine Sperrigkeitsregel vorsieht.</small></span></label>
+              <div class="field load-field" id="loadMetersField">
+                <label for="loadMeters">Lademeter</label>
+                <div class="input-suffix"><input id="loadMeters" type="text" inputmode="decimal" placeholder="z. B. 7,5" /><span>LDM</span></div>
               </div>
             </div>
 
-            <div class="details-panel planning-only">
-              <div class="date-grid">
-                <div class="field"><label for="pickupDate">Abholdatum</label><input id="pickupDate" type="date" /></div>
-                <div class="field"><label for="deliveryDate">Liefertermin</label><input id="deliveryDate" type="date" /></div>
+            <div class="details-panel shipment-details-panel">
+              <div class="date-grid planning-only">
+                <div class="field" data-calc-field="pickupDate"><label for="pickupDate">Abholdatum</label><input id="pickupDate" type="date" /></div>
+                <div class="field" data-calc-field="deliveryDate"><label for="deliveryDate">Liefertermin</label><input id="deliveryDate" type="date" /></div>
               </div>
-              <div class="field"><label for="freeText">Zusatzinformationen</label><input id="freeText" type="text" placeholder="z. B. Referenz, Zeitfenster oder Hinweis" /></div>
+              <div class="shipment-detail-grid">
+                <div class="field" data-calc-field="pallets"><label for="shipmentPallets">Paletten / Stellplätze</label><div class="input-suffix"><input id="shipmentPallets" type="text" inputmode="decimal" placeholder="z. B. 6" /><span>PLL</span></div></div>
+                <div class="field" data-calc-field="weight"><label for="shipmentWeight">Gewicht</label><div class="input-suffix"><input id="shipmentWeight" type="text" inputmode="decimal" placeholder="z. B. 1.250" /><span>kg</span></div></div>
+                <div class="field" data-calc-field="length"><label for="shipmentLength">Länge</label><div class="input-suffix"><input id="shipmentLength" type="text" inputmode="decimal" placeholder="z. B. 120" /><span>cm</span></div></div>
+                <div class="field" data-calc-field="width"><label for="shipmentWidth">Breite</label><div class="input-suffix"><input id="shipmentWidth" type="text" inputmode="decimal" placeholder="z. B. 80" /><span>cm</span></div></div>
+                <div class="field" data-calc-field="height"><label for="shipmentHeight">Höhe</label><div class="input-suffix"><input id="shipmentHeight" type="text" inputmode="decimal" placeholder="z. B. 150" /><span>cm</span></div></div>
+                <div class="field" data-calc-field="volume"><label for="shipmentVolume">Volumen</label><div class="input-suffix"><input id="shipmentVolume" type="text" inputmode="decimal" placeholder="automatisch oder manuell" /><span>m³</span></div><small class="field-hint">Wird aus Länge × Breite × Höhe berechnet, sobald alle Maße vorhanden sind.</small></div>
+              </div>
+              <label class="sperrigkeit-check" data-calc-field="nonStackable"><input id="shipmentNonStackable" type="checkbox" /><span><strong>Nicht stapelbar</strong><small>Wird erst in der späteren Tarifberechnung ausgewertet.</small></span></label>
+              <div class="field planning-only"><label for="freeText">Zusatzinformationen</label><input id="freeText" type="text" placeholder="z. B. Referenz, Zeitfenster oder Hinweis" /></div>
             </div>
           </section>
 
