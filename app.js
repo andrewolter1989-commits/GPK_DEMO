@@ -34,7 +34,7 @@ const CALC_FIELD_CONFIG_KEY = "gpk_calculator_field_config_v1";
 const DEFAULT_CALC_FIELD_CONFIG = {
   pickupDate:false, deliveryDate:false, pallets:false, slots:false, weight:false,
   length:false, width:false, height:false, volume:false,
-  nonStackable:false, teilladungLdm:true
+  nonStackable:false, avis:false, teilladungLdm:true
 };
 function getCalcFieldConfig(){
   try{return {...DEFAULT_CALC_FIELD_CONFIG,...JSON.parse(localStorage.getItem(CALC_FIELD_CONFIG_KEY)||"{}")};}
@@ -43,7 +43,7 @@ function getCalcFieldConfig(){
 function calcFieldLabel(key){
   return ({pickupDate:"Abholdatum",deliveryDate:"Liefertermin",pallets:"Paletten / Stellplätze",
     weight:"Gewicht",pallets:"Paletten",slots:"Stellplätze",length:"Länge",width:"Breite",height:"Höhe",volume:"Volumen",
-    nonStackable:"Nicht stapelbar",teilladungLdm:"Lademeter"})[key]||key;
+    nonStackable:"Nicht stapelbar",avis:"Avis",teilladungLdm:"Lademeter"})[key]||key;
 }
 
 
@@ -725,7 +725,7 @@ function getEffectiveLoadMeters(shipmentType, loadMetersInput) {
   return parseNumberFlexible(loadMetersInput);
 }
 
-function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weight, pallets, slots, volume, nonStackable }) {
+function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weight, pallets, slots, volume, nonStackable, avis }) {
   if (!destCountry) return "Bitte zuerst ein Land wählen.";
   if (!postalCode || String(postalCode).trim().length < 2) return "Bitte eine gültige PLZ eingeben.";
   if (CALCULATION_MODE === "planning" && !document.getElementById("recipientSelect")?.value) return "Bitte eine Entladestelle auswählen.";
@@ -740,9 +740,9 @@ function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weig
     length:Number.isFinite(parseNumberFlexible(document.getElementById("shipmentLength")?.value||"")),
     width:Number.isFinite(parseNumberFlexible(document.getElementById("shipmentWidth")?.value||"")),
     height:Number.isFinite(parseNumberFlexible(document.getElementById("shipmentHeight")?.value||"")),
-    nonStackable:Boolean(nonStackable)
+    nonStackable:Boolean(nonStackable),avis:Boolean(avis)
   };
-  for(const key of ["pickupDate","deliveryDate","pallets","slots","weight","length","width","height","volume","nonStackable"]){
+  for(const key of ["pickupDate","deliveryDate","pallets","slots","weight","length","width","height","volume","nonStackable","avis"]){
     if(cfg[key] && !checks[key]) return `Bitte das Pflichtfeld „${calcFieldLabel(key)}“ ausfüllen.`;
   }
   if (shipmentType === "teilladung" && !([loadMeters, weight, pallets, slots].some(Number.isFinite))) return "Bitte mindestens Lademeter, Gewicht, Paletten oder Stellplätze eingeben.";
@@ -980,6 +980,7 @@ function getCurrentWorkflowData(forwarder) {
   const slots = parseNumberFlexible(document.getElementById("shipmentSlots")?.value || "");
   const volume = parseNumberFlexible(document.getElementById("shipmentVolume")?.value || "");
   const nonStackable = Boolean(document.getElementById("shipmentNonStackable")?.checked);
+  const avis = Boolean(document.getElementById("shipmentAvis")?.checked);
   const recipient = getSelectedRecipient();
   const offer = getCurrentOffer(forwarder);
   const deliveryRaw = document.getElementById("deliveryDate")?.value || "";
@@ -992,6 +993,7 @@ function getCurrentWorkflowData(forwarder) {
   if (Number.isFinite(slots)) transportParts.push(`${String(slots).replace(".", ",")} Stellplätze`);
   if (Number.isFinite(volume)) transportParts.push(`${String(volume).replace(".", ",")} m³`);
   if (nonStackable) transportParts.push(`nicht stapelbar`);
+  if (avis) transportParts.push(`Avis`);
   const transport = transportParts.join(" · ");
 
   return {
@@ -1178,6 +1180,9 @@ function initCalculatorPage() {
   const shipmentWidthInput = document.getElementById("shipmentWidth");
   const shipmentHeightInput = document.getElementById("shipmentHeight");
   const shipmentNonStackableInput = document.getElementById("shipmentNonStackable");
+  const shipmentAvisInput = document.getElementById("shipmentAvis");
+  const shipmentDimensions = document.getElementById("shipmentDimensions");
+  const shipmentVolumeModeBtn = document.getElementById("shipmentVolumeModeBtn");
 const pickupDateInput = document.getElementById("pickupDate");
 const deliveryDateInput = document.getElementById("deliveryDate");
 const freeTextInput = document.getElementById("freeText");
@@ -1245,6 +1250,7 @@ const freeTextInput = document.getElementById("freeText");
   }
   [shipmentLengthInput,shipmentWidthInput,shipmentHeightInput].forEach(el=>el?.addEventListener("input",autoCalculateVolume));
   shipmentVolumeInput?.addEventListener("input",()=>{shipmentVolumeInput.dataset.autoCalculated="0";});
+  shipmentVolumeModeBtn?.addEventListener("click",()=>{const show=Boolean(shipmentDimensions?.hidden);if(shipmentDimensions)shipmentDimensions.hidden=!show;shipmentVolumeModeBtn.textContent=show?"Maße schließen":"Maße";if(show)shipmentLengthInput?.focus();});
   applyCalcFieldConfig();
 
   countrySelect?.addEventListener("change", () => { updatePostalPlaceholder(); renderRecipientSelection(); });
@@ -1270,6 +1276,7 @@ const freeTextInput = document.getElementById("freeText");
       slots: parseNumberFlexible(shipmentSlotsInput?.value || ""),
       volume: parseNumberFlexible(shipmentVolumeInput?.value || ""),
       nonStackable: Boolean(shipmentNonStackableInput?.checked),
+      avis: Boolean(shipmentAvisInput?.checked),
     };
 
     const validationError = validateInput(input);
@@ -1324,7 +1331,9 @@ const freeTextInput = document.getElementById("freeText");
 document.getElementById("summaryLdm").textContent = Number.isFinite(input.loadMeters) ? String(input.loadMeters).replace('.', ',') : "—";
 document.getElementById("summaryWeight").textContent = Number.isFinite(input.weight) ? `${input.weight.toLocaleString("de-DE")} kg` : "—";
 document.getElementById("summaryPallets").textContent = Number.isFinite(input.pallets) ? String(input.pallets).replace('.', ',') : "—";
+document.getElementById("summarySlots").textContent = Number.isFinite(input.slots) ? String(input.slots).replace('.', ',') : "—";
 document.getElementById("summaryVolume").textContent = Number.isFinite(input.volume) ? `${String(input.volume).replace('.', ',')} m³` : "—";
+document.getElementById("summaryServices").textContent = [input.nonStackable?"Nicht stapelbar":"",input.avis?"Avis":""].filter(Boolean).join(" · ") || "—";
 document.getElementById("summaryPickupDate").textContent = formatDisplayDate(pickupDateInput.value);
 document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(deliveryDateInput.value);
     document.getElementById("summaryFreeText").textContent = freeTextInput.value.trim() || "—";
