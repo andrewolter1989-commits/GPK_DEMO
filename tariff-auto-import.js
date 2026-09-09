@@ -1003,10 +1003,16 @@
   }
   function persistImportData(newRates,newZones,batch,oldRates,oldZones,oldImports){
     let keepImports=[batch,...oldImports].slice(0,100),keepRates=[...newRates,...oldRates],keepZones=[...newZones,...oldZones];
-    const attempt=()=>{GPK.write(RATE_KEY,keepRates);GPK.write(ZONE_KEY,keepZones);GPK.write(IMPORT_KEY,keepImports);};
+    const attempt=()=>{
+      const okRates=GPK.write(RATE_KEY,keepRates),okZones=GPK.write(ZONE_KEY,keepZones),okImports=GPK.write(IMPORT_KEY,keepImports);
+      if(!okRates||!okZones||!okImports)throw new Error("STORAGE_QUOTA: Lokaler Speicher konnte nicht vollständig geschrieben werden.");
+      const savedRates=GPK.read(RATE_KEY,[])||[],savedZones=GPK.read(ZONE_KEY,[])||[],savedImports=GPK.read(IMPORT_KEY,[])||[];
+      const bid=batch?.id;
+      if(bid&&(!savedImports.some(x=>x.id===bid)||savedRates.filter(r=>r.batchId===bid).length<newRates.length||savedZones.filter(z=>z.batchId===bid).length<newZones.length))throw new Error("STORAGE_VERIFY: Tarifdaten konnten nicht vollständig verifiziert werden.");
+    };
     try{attempt();return;}
     catch(err){
-      if(!/quota|storage|exceed/i.test(String(err?.name||"")+" "+String(err?.message||"")))throw err;
+      if(!/quota|storage|exceed|STORAGE_/i.test(String(err?.name||"")+" "+String(err?.message||"")))throw err;
       /* Browser-LocalStorage ist begrenzt. Alte Autoimporte werden bei Bedarf
          batchweise entfernt; manuelle Tarife bleiben unangetastet. */
       while(keepImports.length>1){
@@ -1017,7 +1023,7 @@
           if(!/quota|storage|exceed/i.test(String(nextErr?.name||"")+" "+String(nextErr?.message||"")))throw nextErr;
         }
       }
-      throw new Error("Lokaler Speicher ist voll. Bitte alte importierte Tarifsets löschen oder den Backend-Modus verwenden.");
+      throw new Error("Lokaler Speicher ist voll. Ältere Autoimporte konnten nicht ausreichend bereinigt werden. Bitte alte Tarifversionen löschen oder den Backend-Modus verwenden.");
     }
   }
 
@@ -1043,6 +1049,9 @@
     const batch={id:batchId,fileName:state.file.name,provider,providerId:providerRecord.id||null,version:importVersion,createdAt:oldBatch?.createdAt||now,updatedAt:now,sheets:state.analysis.sheets,blocks:blocks.map(b=>({id:b.id,sheet:b.sheet,displayName:b.displayName||"",model:b.model,modelLabel:b.modelLabel,headerRow:b.headerRow,confidence:b.confidence,status:b.status,rates:b.rates.filter(r=>Number.isFinite(Number(r.price))).length,zones:b.zones.length,benchmarkMeta:{...benchmarkMetaFor(b,"ALL")},benchmarkMetaByCountry:JSON.parse(JSON.stringify(b.benchmarkMetaByCountry||{}))})),ratesCount:newRates.length,zonesCount:newZones.length,reviewCount:blocks.filter(b=>b.status==="REVIEW").length,publishedAt:oldBatch?.publishedAt||null,publishedZones:oldBatch?.publishedZones||0,publishedRates:oldBatch?.publishedRates||0,lastComparison:oldBatch?.lastComparison||null};
     try{
       persistImportData(newRates,newZones,batch,oldRates,oldZones,oldImports);
+      const persistedRates=(GPK.read(RATE_KEY,[])||[]).filter(r=>r.batchId===batchId).length;
+      const persistedZones=(GPK.read(ZONE_KEY,[])||[]).filter(z=>z.batchId===batchId).length;
+      if(persistedRates!==newRates.length||persistedZones!==newZones.length)throw new Error(`Import unvollständig gespeichert (${persistedRates}/${newRates.length} Preise, ${persistedZones}/${newZones.length} Zonen).`);
       GPK.logImport?.({module:"Tarif-Autoimport",fileName:state.file.name,count:newRates.length,status:"success"});
       state.editBatchId="";clearDraft(true);close(false);
       try{if(typeof render==="function")render();}catch(_){}

@@ -255,6 +255,16 @@ async function loadProviderConfig() {
   } catch {
     STATE.providers = {};
   }
+  try{
+    const localProviders=GPK.read(GPK.KEYS.providers,[])||[];
+    localProviders.forEach((p)=>{
+      const localLogo=GPK.providerLogoSrc?.(p)||"";
+      [p.name,p.alias].filter(Boolean).forEach((key)=>{
+        const nk=normalizeKey(key),base=STATE.providers[nk]||{};
+        STATE.providers[nk]={...base,name:p.name||base.name||key,short:p.alias||base.short||"",logo:localLogo||base.logo||""};
+      });
+    });
+  }catch(_){}
 }
 
 function getProviderMeta(forwarder) {

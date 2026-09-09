@@ -3658,3 +3658,23 @@ body.planning-mode .calculator-shipment-layout{
   .shipment-quick-row{grid-template-columns:1fr}
   .shipment-quick-row .quick-weight-field{grid-column:1}
 }
+
+/* v6.37 */
+.stats-avatar-logo{overflow:hidden;background:#fff!important;padding:2px}
+.stats-avatar-logo img{width:100%;height:100%;object-fit:contain;display:block}
+.tariff-show-link{margin-right:8px}
+.operation-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.operation-invoice-section{border-top:1px solid #dfe9ec;padding-top:14px;margin-top:14px}
+.operation-invoice-card{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:8px;align-items:center;border:1px solid #d7e4e8;border-radius:10px;background:#fbfdfe;padding:10px 12px}
+.operation-invoice-card>div span{display:block;font-size:9px;text-transform:uppercase;color:#7a9099;font-weight:800}
+.operation-invoice-card>div strong{display:block;margin-top:3px;color:#143e4b}
+.operation-invoice-card.ok{border-color:#bfe2d4;background:#f4fbf8}
+.operation-invoice-card.diff{border-color:#efd0d5;background:#fff8f8}
+.invoice-operation-status{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:800;white-space:nowrap;border:1px solid #d5e1e5;background:#f4f7f8;color:#627982}
+.invoice-operation-status.ok{background:#eaf8f1;border-color:#c7e8d9;color:#087153}
+.invoice-operation-status.diff{background:#fff0f1;border-color:#efcfd4;color:#9a4351}
+.invoice-operation-status.unmatched{background:#fff4dd;border-color:#efd9a9;color:#8d6115}
+.multi-country-tab{background:#fff!important;color:#174351!important;border-color:#cbdde2!important}
+.multi-country-tab.selected{background:#1485a0!important;color:#fff!important;border-color:#1485a0!important}
+.multi-country-tab.active-preview{background:#004251!important;color:#fff!important;border-color:#004251!important}
+@media(max-width:950px){.operation-invoice-card{grid-template-columns:repeat(2,minmax(0,1fr))}.operation-edit-grid{grid-template-columns:1fr}}

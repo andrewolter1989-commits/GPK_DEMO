@@ -33,6 +33,22 @@ const detail=document.getElementById("operationDetail");
 
 const labels={price:"Preisanfrage",availability:"Verfügbarkeit",booking:"Buchung"};
 const statuses={open:"Offen",waiting:"Warten auf Antwort",confirmed:"Bestätigt",booked:"Gebucht",closed:"Abgeschlossen"};
+let currentOperationId=null;
+function providerAvatarHtml(name){
+  const p=GPK.providerRecord?.(name),src=GPK.providerLogoSrc?.(p)||"",ini=GPK.providerInitials?.(name,p?.alias)||String(name||"?").slice(0,2).toUpperCase();
+  return src?`<div class="provider-avatar provider-avatar-logo"><img src="${esc(src)}" alt="${esc(name)} Logo" onerror="this.parentElement.classList.remove('provider-avatar-logo');this.remove();this.parentElement.textContent='${esc(ini)}'"></div>`:`<div class="provider-avatar">${esc(ini)}</div>`;
+}
+function invoiceChecks(){return GPK.read(GPK.KEYS.invoiceChecks,[])||[]}
+function invoiceForOperation(id){return invoiceChecks().filter(c=>String(c.operation||"")===String(id||"")).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0))[0]||null}
+function invoiceStatusHtml(o){
+  const c=invoiceForOperation(o.id);
+  if(!c)return `<span class="invoice-operation-status pending">Nicht geprüft</span>`;
+  if(c.status==="ok")return `<span class="invoice-operation-status ok">OK · ${esc(c.invoice||"Rechnung")}</span>`;
+  if(c.status==="diff")return `<span class="invoice-operation-status diff">Abweichung · ${esc(c.invoice||"")}</span>`;
+  return `<span class="invoice-operation-status unmatched">Nicht zugeordnet</span>`;
+}
+function saveOperations(){GPK.write(GPK.KEYS.operations,operations)}
+
 function esc(v=""){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 function euro(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n)}
 function operationDate(o){
@@ -75,16 +91,32 @@ function render(){
   rows.innerHTML=filtered.map(o=>`<tr class="operation-row" data-id="${o.id}">
     <td><div class="operation-id"><strong>${esc(o.id)}</strong><span class="operation-type ${o.type}">${labels[o.type]}</span>${o.createdAt?'<span class="workflow-new">Neu</span>':''}</div><small>${esc(o.created)}</small></td>
     <td><strong class="table-main">${esc(o.relation)}</strong><small>${esc(o.transport)}</small></td>
-    <td><div class="provider-name-cell"><div class="provider-avatar">${esc(o.provider.slice(0,2).toUpperCase())}</div><div><strong>${esc(o.provider)}</strong><small>${esc(o.customer)}</small></div></div></td>
+    <td><div class="provider-name-cell">${providerAvatarHtml(o.provider)}<div><strong>${esc(o.provider)}</strong><small>${esc(o.customer)}</small></div></div></td>
     <td><strong class="price-cell total-price">${euro(o.price)}</strong></td>
     <td><span class="operation-status ${o.status}">${statuses[o.status]}</span></td>
     <td><strong class="table-main">${esc(o.date)}</strong><small>Liefertermin</small></td>
     <td><span class="user-chip">${esc(o.user)}</span></td>
+    <td>${invoiceStatusHtml(o)}</td>
     <td class="row-actions"><button class="icon-button" data-open="${o.id}" title="Details">›</button></td>
-  </tr>`).join("")||`<tr><td colspan="8" class="empty-state">Keine Vorgänge für diesen Filter gefunden.</td></tr>`;
+  </tr>`).join("")||`<tr><td colspan="9" class="empty-state">Keine Vorgänge für diesen Filter gefunden.</td></tr>`;
 }
 function openOperation(o){
+  currentOperationId=o.id;
   operationModalTitle.textContent=o.id;
+  const inv=invoiceForOperation(o.id);
+  const invoiceBlock=inv?`
+    <div class="operation-invoice-card ${inv.status}">
+      <div><span>Rechnung</span><strong>${esc(inv.invoice||"—")}</strong></div>
+      <div><span>Prüfstatus</span><strong>${inv.status==="ok"?"OK":inv.status==="diff"?"Abweichung":"Nicht zugeordnet"}</strong></div>
+      <div><span>Soll</span><strong>${euro(inv.expected)}</strong></div>
+      <div><span>Ist</span><strong>${inv.actual?euro(inv.actual):"—"}</strong></div>
+      <div><span>Differenz</span><strong>${inv.diff?((inv.diff>0?"+":"")+euro(inv.diff)):"0 €"}</strong></div>
+      <a class="secondary compact-button operations-link" href="rechnungspruefung.html?operation=${encodeURIComponent(o.id)}">Prüfung öffnen</a>
+    </div>`:`
+    <div class="operation-invoice-card pending">
+      <div><span>Rechnung</span><strong>Noch nicht geprüft</strong></div>
+      <a class="secondary compact-button operations-link" href="rechnungspruefung.html?operation=${encodeURIComponent(o.id)}">Rechnung prüfen</a>
+    </div>`;
   detail.innerHTML=`
     <div class="operation-summary-grid">
       <div><span>Typ</span><strong>${labels[o.type]}</strong></div><div><span>Status</span><strong>${statuses[o.status]}</strong></div>
@@ -92,6 +124,11 @@ function openOperation(o){
       <div><span>Dienstleister</span><strong>${esc(o.provider)}</strong></div><div><span>Preis</span><strong>${euro(o.price)}</strong></div>
       <div><span>Empfänger</span><strong>${esc(o.customer)}</strong></div><div><span>Liefertermin</span><strong>${esc(o.date)}</strong></div>
     </div>
+    <div class="operation-edit-grid">
+      <div class="field"><label for="operationEditType">Vorgangsart</label><select id="operationEditType"><option value="price" ${o.type==="price"?"selected":""}>Preisanfrage</option><option value="availability" ${o.type==="availability"?"selected":""}>Verfügbarkeit angefragt</option><option value="booking" ${o.type==="booking"?"selected":""}>Buchung</option></select></div>
+      <div class="field"><label for="operationEditStatus">Status</label><select id="operationEditStatus"><option value="open" ${o.status==="open"?"selected":""}>Offen</option><option value="waiting" ${o.status==="waiting"?"selected":""}>Warten auf Antwort</option><option value="confirmed" ${o.status==="confirmed"?"selected":""}>Bestätigt</option><option value="booked" ${o.status==="booked"?"selected":""}>Gebucht</option><option value="closed" ${o.status==="closed"?"selected":""}>Abgeschlossen</option></select></div>
+    </div>
+    <div class="operation-invoice-section"><h3>Rechnungsprüfung</h3>${invoiceBlock}</div>
     <div class="operation-timeline">
       <h3>Verlauf</h3>
       <div class="timeline-item active"><span></span><div><strong>${esc(o.created)}</strong><p>${esc(o.note)}</p></div></div>
@@ -109,5 +146,11 @@ applyOperationDates?.addEventListener("click",render);
 clearOperationDates?.addEventListener("click",()=>{dateFrom.value="";dateTo.value="";periodFilter.value="";customPeriod.hidden=true;render();});
 rows.addEventListener("click",e=>{const btn=e.target.closest("[data-open]");const row=e.target.closest(".operation-row");const id=btn?.dataset.open||row?.dataset.id;if(id){const o=operations.find(x=>x.id===id);if(o)openOperation(o)}});
 closeOperationModalBtn.addEventListener("click",closeModal);closeOperationBtn.addEventListener("click",closeModal);
-demoActionBtn.addEventListener("click",()=>{const t=document.getElementById("operationToast");t.textContent="Status-Workflow wird beim technischen Schritt angebunden.";t.hidden=false;setTimeout(()=>t.hidden=true,2400)});
+demoActionBtn.addEventListener("click",()=>{
+  const o=operations.find(x=>x.id===currentOperationId);if(!o)return;
+  const type=document.getElementById("operationEditType")?.value,status=document.getElementById("operationEditStatus")?.value;
+  if(type)o.type=type;if(status)o.status=status;o.updatedAt=new Date().toISOString();
+  saveOperations();render();openOperation(o);
+  const t=document.getElementById("operationToast");t.textContent="Vorgang aktualisiert.";t.hidden=false;setTimeout(()=>t.hidden=true,2400);
+});
 render();

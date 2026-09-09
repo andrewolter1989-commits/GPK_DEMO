@@ -1,7 +1,7 @@
 
 window.GPK = window.GPK || {};
 
-GPK.VERSION = "6.36";
+GPK.VERSION = "6.37";
 
 GPK.KEYS = Object.freeze({
   locations: "gpk_demo_locations_v1",
@@ -53,6 +53,27 @@ GPK.dedupe = function(items, keyFn) {
   return [...map.values()];
 };
 
+
+GPK.providerRecord = function(name) {
+  const needle=String(name||"").trim().toLowerCase();
+  const list=GPK.read(GPK.KEYS.providers,[])||[];
+  return Array.isArray(list)?(list.find(p=>String(p?.name||"").trim().toLowerCase()===needle||String(p?.alias||"").trim().toLowerCase()===needle)||null):null;
+};
+GPK.providerInitials = function(name, alias="") {
+  const raw=String(alias||name||"?").replace(/[^A-Za-z0-9ÄÖÜäöüß\s-]/g," ").trim();
+  const parts=raw.split(/[\s-]+/).filter(Boolean);
+  if(!parts.length)return "?";
+  if(parts.length===1)return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
+};
+GPK.providerLogoSrc = function(providerOrName) {
+  const p=typeof providerOrName==="string"?GPK.providerRecord(providerOrName):providerOrName;
+  const logo=String(p?.logo||"").trim();
+  if(!logo)return "";
+  if(logo.startsWith("data:")||logo.startsWith("blob:"))return logo;
+  return logo.includes("/")?logo:`logos/${logo}`;
+};
+
 GPK.formatEuro = function(value, digits = 0) {
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
@@ -84,7 +105,7 @@ GPK.setActiveNavigation = function() {
 GPK.installDemoBadge = function() {
   const footer = document.querySelector(".sidebar-foot");
   if (!footer) return;
-  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.36 <span class="sidebar-demo-label">· Lokal</span>';
+  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.37 <span class="sidebar-demo-label">· Lokal</span>';
 };
 
 document.addEventListener("DOMContentLoaded", () => {

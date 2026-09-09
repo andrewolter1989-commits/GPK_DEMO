@@ -110,7 +110,7 @@ function render(){
     return `<tr>
       <td><div class="provider-name-cell">${providerAvatarMarkup(p)}<div><strong>${esc(p.name)}</strong><small>${esc(p.alias||"Kein Alias")} · ${esc(p.country||"—")} ${esc(p.city||"")}</small></div></div></td>
       <td><strong class="table-main">${esc(c.name||"—")}</strong><small>${esc(c.emails||c.phone||"Keine Kontaktdaten")}${(p.contacts||[]).length>1?` · +${p.contacts.length-1} weitere`:""}</small>${countries.length?`<small class="provider-tariff-countries">Tarif-Länder: ${countries.map(esc).join(", ")}</small>`:""}</td>
-      <td><strong class="provider-number">${p.rates}</strong><a class="inline-add-link" href="tarife.html?provider=${encodeURIComponent(p.name)}&new=1">+ Tarif hinzufügen</a></td>
+      <td><strong class="provider-number">${p.rates}</strong><a class="inline-add-link tariff-show-link" href="tarife.html?provider=${encodeURIComponent(p.name)}">Tarife anzeigen</a><a class="inline-add-link" href="tarife.html?provider=${encodeURIComponent(p.name)}&new=1">+ Tarif hinzufügen</a></td>
       <td><span class="floater-pill">${esc(p.currentFloater||p.floater||"—")}</span></td>
       <td><span class="status-pill ${p.status}">${p.status==="active"?"Aktiv":"Inaktiv"}</span></td>
       <td class="row-actions"><button class="icon-button" data-edit="${p.id}" title="Bearbeiten">✎</button><button class="icon-button more-button" data-provider-more="${p.id}" title="Weitere Aktionen">•••</button></td>
@@ -154,7 +154,7 @@ function collectContacts(){
 }
 function openModal(p=null){editingId=p?.id??null;providerModalTitle.textContent=p?"Dienstleister bearbeiten":"Neuer Dienstleister";providerName.value=p?.name??"";providerAlias.value=p?.alias??"";providerStatus.value=p?.status??"active";providerStreet.value=p?.street??"";providerZip.value=p?.zip??"";providerCity.value=p?.city??"";providerCountry.value=p?.country??"DE";providerLogo.value=p?.logo??"";updateProviderLogoPreview(providerLogo.value);providerNotes.value=p?.notes??"";renderContacts(p?.contacts||[]);deleteProviderBtn.hidden=!p;modal.hidden=false;document.body.classList.add("modal-open");}
 function closeModal(){modal.hidden=true;document.body.classList.remove("modal-open")}
-newProviderBtn.addEventListener("click",()=>openModal());cancelProviderModalBtn.addEventListener("click",closeModal);addProviderContactBtn.addEventListener("click",()=>providerContacts.insertAdjacentHTML("beforeend",contactRow({})));providerContacts.addEventListener("click",e=>{const b=e.target.closest(".remove-provider-contact");if(b&&providerContacts.children.length>1)b.closest(".provider-contact-card").remove();});function closeProviderContextMenu(){document.getElementById("providerContextMenu")?.remove();}
+newProviderBtn.addEventListener("click",()=>openModal());cancelProviderModalBtn.addEventListener("click",closeModal);document.getElementById("closeProviderModalX")?.addEventListener("click",closeModal);addProviderContactBtn.addEventListener("click",()=>providerContacts.insertAdjacentHTML("beforeend",contactRow({})));providerContacts.addEventListener("click",e=>{const b=e.target.closest(".remove-provider-contact");if(b&&providerContacts.children.length>1)b.closest(".provider-contact-card").remove();});function closeProviderContextMenu(){document.getElementById("providerContextMenu")?.remove();}
 function deleteProvider(id){
   const p=providers.find(x=>x.id===Number(id));if(!p)return;
   const rates=GPK.read(GPK.KEYS.rates,[])||[];
@@ -174,11 +174,12 @@ function openProviderContextMenu(button,id){
   closeProviderContextMenu();
   const p=providers.find(x=>x.id===Number(id));if(!p)return;
   const menu=document.createElement("div");menu.id="providerContextMenu";menu.className="record-context-menu";
-  menu.innerHTML=`<button type="button" data-action="edit">Bearbeiten</button><button type="button" data-action="toggle">${p.status==="active"?"Deaktivieren":"Aktivieren"}</button><button type="button" class="danger-menu-action" data-action="delete">Löschen</button>`;
+  menu.innerHTML=`<button type="button" data-action="tariffs">Tarife anzeigen</button><button type="button" data-action="edit">Bearbeiten</button><button type="button" data-action="toggle">${p.status==="active"?"Deaktivieren":"Aktivieren"}</button><button type="button" class="danger-menu-action" data-action="delete">Löschen</button>`;
   document.body.appendChild(menu);
   const r=button.getBoundingClientRect();menu.style.left=Math.max(8,r.right-menu.offsetWidth)+"px";menu.style.top=(r.bottom+6)+"px";
   menu.addEventListener("click",ev=>{
     const action=ev.target.closest("[data-action]")?.dataset.action;if(!action)return;closeProviderContextMenu();
+    if(action==="tariffs")location.href=`tarife.html?provider=${encodeURIComponent(p.name)}`;
     if(action==="edit")openModal(p);
     if(action==="toggle"){p.status=p.status==="active"?"inactive":"active";GPK.write(GPK.KEYS.providers,providers);render();toast(`Dienstleister ${p.status==="active"?"aktiviert":"deaktiviert"}.`);}
     if(action==="delete")deleteProvider(p.id);

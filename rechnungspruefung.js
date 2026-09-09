@@ -117,3 +117,5 @@ invoiceDropzone.addEventListener("drop",e=>{
 [statusFilter,search].forEach(x=>x.addEventListener("input",renderChecks));
 exportChecksBtn.addEventListener("click",()=>showToast("Export der Prüfungen wird im nächsten technischen Schritt angebunden."));
 renderChecks();
+
+(function(){const op=new URLSearchParams(location.search).get("operation");if(op&&document.getElementById("invOperation"))document.getElementById("invOperation").value=op;})();
