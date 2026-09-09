@@ -3678,3 +3678,67 @@ body.planning-mode .calculator-shipment-layout{
 .multi-country-tab.selected{background:#1485a0!important;color:#fff!important;border-color:#1485a0!important}
 .multi-country-tab.active-preview{background:#004251!important;color:#fff!important;border-color:#004251!important}
 @media(max-width:950px){.operation-invoice-card{grid-template-columns:repeat(2,minmax(0,1fr))}.operation-edit-grid{grid-template-columns:1fr}}
+
+
+/* v6.38 – Preiszusammensetzung, Audit-Log, Rechnungs-Deep-Link */
+.shipment-quick-row{
+  margin-top:-8px!important;
+  align-items:start!important;
+}
+.shipment-quick-row .quick-weight-field{margin-top:0!important}
+.shipment-quick-row .dimensions-toggle-under{margin-top:18px!important}
+
+.invoice-status-action{
+  appearance:none;
+  cursor:pointer;
+  font-family:inherit;
+}
+.invoice-status-action:hover{box-shadow:0 0 0 2px rgba(20,133,160,.10);border-color:#9ccbd5}
+
+.operation-price-section{
+  border-top:1px solid #dfe9ec;
+  border-bottom:1px solid #dfe9ec;
+  padding:14px 0;
+  margin:14px 0;
+}
+.operation-section-head h3{margin:0;color:#143e4b}
+.operation-section-head p{margin:3px 0 0;color:#78909a;font-size:11px}
+.operation-price-parts{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+.operation-price-parts>div{
+  border:1px solid #d9e6e9;
+  border-radius:9px;
+  background:#fbfdfe;
+  padding:9px 10px;
+}
+.operation-price-parts span{display:block;font-size:9px;text-transform:uppercase;color:#7c919a;font-weight:800}
+.operation-price-parts strong{display:block;margin-top:4px;color:#143e4b;font-size:15px}
+.operation-price-parts small{display:block;margin-top:2px;color:#758d96}
+.operation-price-parts .price-part-total{background:#edf7f9;border-color:#bcdce3}
+.operation-price-parts .price-part-total strong{color:#00738b}
+.operation-price-parts .price-part-adjustment{background:#fff6e7;border-color:#efd7aa}
+.operation-price-parts .price-part-adjustment strong{color:#8b5c0c}
+.operation-manual-price{margin-top:10px}
+.operation-manual-price>label{font-size:11px;font-weight:800;color:#234956}
+.operation-price-edit-row{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:10px;align-items:center;margin-top:5px}
+.operation-price-edit-row small{color:#718991}
+.operation-price-edit-row .input-suffix input{height:42px}
+
+.timeline-item.info>span{background:#1590ab!important}
+.timeline-item.success>span{background:#1d9a72!important}
+.timeline-item.price>span{background:#e49b2d!important}
+.timeline-item.danger>span{background:#d85b69!important}
+.timeline-item.next>span{background:#c8d7dc!important}
+.timeline-item small{display:block;color:#78909a;margin-top:2px}
+.timeline-item.price>div{background:#fff9ee;border-radius:7px;padding:6px 8px}
+.timeline-item.success>div{background:#f3fbf7;border-radius:7px;padding:6px 8px}
+.timeline-item.danger>div{background:#fff5f6;border-radius:7px;padding:6px 8px}
+
+@media(max-width:800px){
+  .operation-price-parts{grid-template-columns:1fr 1fr}
+  .operation-price-edit-row{grid-template-columns:1fr}
+}

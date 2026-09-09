@@ -1084,6 +1084,8 @@ function saveWorkflowOperation(forwarder, kind) {
     basePrice: d.basePrice,
     floaterPercent: d.floaterPercent,
     floaterAmount: d.floaterAmount,
+    ancillaryAmount: Number(d.ancillaryAmount||0)||0,
+    history: [],
   };
   list.unshift(operation);
   writeDemoStore(GPK_STORAGE.operations, list.slice(0, 500));

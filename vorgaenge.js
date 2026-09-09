@@ -42,12 +42,60 @@ function invoiceChecks(){return GPK.read(GPK.KEYS.invoiceChecks,[])||[]}
 function invoiceForOperation(id){return invoiceChecks().filter(c=>String(c.operation||"")===String(id||"")).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0))[0]||null}
 function invoiceStatusHtml(o){
   const c=invoiceForOperation(o.id);
-  if(!c)return `<span class="invoice-operation-status pending">Nicht geprüft</span>`;
-  if(c.status==="ok")return `<span class="invoice-operation-status ok">OK · ${esc(c.invoice||"Rechnung")}</span>`;
-  if(c.status==="diff")return `<span class="invoice-operation-status diff">Abweichung · ${esc(c.invoice||"")}</span>`;
-  return `<span class="invoice-operation-status unmatched">Nicht zugeordnet</span>`;
+  if(!c)return `<button type="button" class="invoice-operation-status pending invoice-status-action" data-invoice-operation="${esc(o.id)}">Nicht geprüft</button>`;
+  if(c.status==="ok")return `<button type="button" class="invoice-operation-status ok invoice-status-action" data-invoice-operation="${esc(o.id)}">OK · ${esc(c.invoice||"Rechnung")}</button>`;
+  if(c.status==="diff")return `<button type="button" class="invoice-operation-status diff invoice-status-action" data-invoice-operation="${esc(o.id)}">Abweichung · ${esc(c.invoice||"")}</button>`;
+  return `<button type="button" class="invoice-operation-status unmatched invoice-status-action" data-invoice-operation="${esc(o.id)}">Nicht zugeordnet</button>`;
 }
 function saveOperations(){GPK.write(GPK.KEYS.operations,operations)}
+
+function currentUserName(o){
+  return String(window.GPK_CURRENT_USER?.name||o?.user||"Lokale Demo");
+}
+function isoNow(){return new Date().toISOString()}
+function displayDateTime(iso){
+  const d=new Date(iso||"");if(isNaN(d))return String(iso||"—");
+  return d.toLocaleDateString("de-DE")+" · "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+}
+function addHistory(o,entry){
+  o.history=Array.isArray(o.history)?o.history:[];
+  o.history.push({at:isoNow(),user:currentUserName(o),...entry});
+}
+function operationPriceParts(o){
+  const base=Number(o.basePrice);
+  const floaterPct=Number(o.floaterPercent)||0;
+  const floaterAmt=Number.isFinite(Number(o.floaterAmount))?Number(o.floaterAmount):(Number.isFinite(base)?base*floaterPct/100:0);
+  const ancillary=Number(o.ancillaryAmount||o.surchargeAmount||0)||0;
+  const calculated=(Number.isFinite(base)?base:Number(o.price)||0)+floaterAmt+ancillary;
+  const total=Number(o.price)||0;
+  const manualDelta=Number(o.manualPriceDelta);
+  return {
+    base:Number.isFinite(base)?base:Math.max(0,total-floaterAmt-ancillary),
+    floaterPct,floaterAmt,ancillary,total,
+    manualDelta:Number.isFinite(manualDelta)?manualDelta:Math.round((total-calculated)*100)/100
+  };
+}
+function timelineTone(event){
+  if(event.type==="price")return "price";
+  if(event.type==="invoice-ok")return "success";
+  if(event.type==="invoice-diff")return "danger";
+  if(event.type==="status"&&["booked","confirmed","closed"].includes(event.to))return "success";
+  return "info";
+}
+function timelineHtml(o){
+  const items=[{
+    at:o.createdAt||o.created,
+    user:o.user||"System",
+    text:o.note||"Vorgang erstellt.",
+    type:"created"
+  },...(Array.isArray(o.history)?o.history:[])];
+  return items.map((ev,i)=>{
+    const tone=timelineTone(ev);
+    const user=ev.user?`<small>${esc(ev.user)}</small>`:"";
+    return `<div class="timeline-item ${tone} ${i===items.length-1?"active":""}"><span></span><div><strong>${esc(displayDateTime(ev.at))}</strong>${user}<p>${esc(ev.text||"")}</p></div></div>`;
+  }).join("");
+}
+
 
 function esc(v=""){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 function euro(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n)}
@@ -103,7 +151,9 @@ function render(){
 function openOperation(o){
   currentOperationId=o.id;
   operationModalTitle.textContent=o.id;
-  const inv=invoiceForOperation(o.id);
+  const inv=invoiceForOperation(o.id),parts=operationPriceParts(o);
+  const ancillaryRow=parts.ancillary?`<div><span>Nebenkosten</span><strong>${euro(parts.ancillary)}</strong></div>`:"";
+  const manualRow=Math.abs(parts.manualDelta)>.01?`<div class="price-part-adjustment"><span>Manuelle Korrektur</span><strong>${parts.manualDelta>0?"+":""}${euro(parts.manualDelta)}</strong></div>`:"";
   const invoiceBlock=inv?`
     <div class="operation-invoice-card ${inv.status}">
       <div><span>Rechnung</span><strong>${esc(inv.invoice||"—")}</strong></div>
@@ -121,18 +171,34 @@ function openOperation(o){
     <div class="operation-summary-grid">
       <div><span>Typ</span><strong>${labels[o.type]}</strong></div><div><span>Status</span><strong>${statuses[o.status]}</strong></div>
       <div><span>Relation</span><strong>${esc(o.relation)}</strong></div><div><span>Transport</span><strong>${esc(o.transport)}</strong></div>
-      <div><span>Dienstleister</span><strong>${esc(o.provider)}</strong></div><div><span>Preis</span><strong>${euro(o.price)}</strong></div>
+      <div><span>Dienstleister</span><strong>${esc(o.provider)}</strong></div><div><span>Gesamtpreis</span><strong>${euro(o.price)}</strong></div>
       <div><span>Empfänger</span><strong>${esc(o.customer)}</strong></div><div><span>Liefertermin</span><strong>${esc(o.date)}</strong></div>
     </div>
+
+    <div class="operation-price-section">
+      <div class="operation-section-head"><div><h3>Preiszusammensetzung</h3><p>Tarifbasis und Zuschläge des gespeicherten Vorgangs.</p></div></div>
+      <div class="operation-price-parts">
+        <div><span>Basisfracht</span><strong>${euro(parts.base)}</strong></div>
+        <div><span>Diesel / Floater</span><strong>${euro(parts.floaterAmt)}</strong><small>${parts.floaterPct.toLocaleString("de-DE")} %</small></div>
+        ${ancillaryRow}
+        ${manualRow}
+        <div class="price-part-total"><span>Gesamt</span><strong>${euro(parts.total)}</strong></div>
+      </div>
+      <div class="operation-manual-price">
+        <label for="operationEditPrice">Gesamtpreis manuell bearbeiten</label>
+        <div class="operation-price-edit-row"><div class="input-suffix"><input id="operationEditPrice" type="number" min="0" step="0.01" value="${Number(o.price)||0}"><span>€</span></div><small>Änderungen werden mit Datum und Benutzer im Verlauf protokolliert.</small></div>
+      </div>
+    </div>
+
     <div class="operation-edit-grid">
       <div class="field"><label for="operationEditType">Vorgangsart</label><select id="operationEditType"><option value="price" ${o.type==="price"?"selected":""}>Preisanfrage</option><option value="availability" ${o.type==="availability"?"selected":""}>Verfügbarkeit angefragt</option><option value="booking" ${o.type==="booking"?"selected":""}>Buchung</option></select></div>
       <div class="field"><label for="operationEditStatus">Status</label><select id="operationEditStatus"><option value="open" ${o.status==="open"?"selected":""}>Offen</option><option value="waiting" ${o.status==="waiting"?"selected":""}>Warten auf Antwort</option><option value="confirmed" ${o.status==="confirmed"?"selected":""}>Bestätigt</option><option value="booked" ${o.status==="booked"?"selected":""}>Gebucht</option><option value="closed" ${o.status==="closed"?"selected":""}>Abgeschlossen</option></select></div>
     </div>
-    <div class="operation-invoice-section"><h3>Rechnungsprüfung</h3>${invoiceBlock}</div>
+    <div class="operation-invoice-section" id="operationInvoiceSection"><h3>Rechnungsprüfung</h3>${invoiceBlock}</div>
     <div class="operation-timeline">
       <h3>Verlauf</h3>
-      <div class="timeline-item active"><span></span><div><strong>${esc(o.created)}</strong><p>${esc(o.note)}</p></div></div>
-      <div class="timeline-item"><span></span><div><strong>Nächster Schritt</strong><p>${o.status==="waiting"?"Antwort des Dienstleisters erfassen.":o.status==="open"?"Verfügbarkeit anfragen oder Buchung starten.":"Status und Referenzen weiterführen."}</p></div></div>
+      ${timelineHtml(o)}
+      <div class="timeline-item next"><span></span><div><strong>Nächster Schritt</strong><p>${o.status==="waiting"?"Antwort des Dienstleisters erfassen.":o.status==="open"?"Verfügbarkeit anfragen oder Buchung starten.":"Status und Referenzen weiterführen."}</p></div></div>
     </div>`;
   modal.hidden=false;document.body.classList.add("modal-open");
 }
@@ -144,13 +210,37 @@ document.querySelectorAll(".operations-tab").forEach(btn=>btn.addEventListener("
 periodFilter?.addEventListener("change",()=>{customPeriod.hidden=periodFilter.value!=="custom";if(periodFilter.value!=="custom")render();});
 applyOperationDates?.addEventListener("click",render);
 clearOperationDates?.addEventListener("click",()=>{dateFrom.value="";dateTo.value="";periodFilter.value="";customPeriod.hidden=true;render();});
-rows.addEventListener("click",e=>{const btn=e.target.closest("[data-open]");const row=e.target.closest(".operation-row");const id=btn?.dataset.open||row?.dataset.id;if(id){const o=operations.find(x=>x.id===id);if(o)openOperation(o)}});
+rows.addEventListener("click",e=>{
+  const inv=e.target.closest("[data-invoice-operation]");
+  if(inv){e.stopPropagation();location.href=`rechnungspruefung.html?operation=${encodeURIComponent(inv.dataset.invoiceOperation)}`;return;}
+  const btn=e.target.closest("[data-open]"),row=e.target.closest(".operation-row"),id=btn?.dataset.open||row?.dataset.id;
+  if(id){const o=operations.find(x=>x.id===id);if(o)openOperation(o)}
+});
 closeOperationModalBtn.addEventListener("click",closeModal);closeOperationBtn.addEventListener("click",closeModal);
 demoActionBtn.addEventListener("click",()=>{
   const o=operations.find(x=>x.id===currentOperationId);if(!o)return;
-  const type=document.getElementById("operationEditType")?.value,status=document.getElementById("operationEditStatus")?.value;
-  if(type)o.type=type;if(status)o.status=status;o.updatedAt=new Date().toISOString();
+  const type=document.getElementById("operationEditType")?.value;
+  const status=document.getElementById("operationEditStatus")?.value;
+  const price=Number(document.getElementById("operationEditPrice")?.value);
+  const oldType=o.type,oldStatus=o.status,oldPrice=Number(o.price)||0;
+
+  if(type&&type!==oldType){
+    o.type=type;
+    addHistory(o,{type:"type",from:oldType,to:type,text:`Vorgangsart geändert: ${labels[oldType]||oldType} → ${labels[type]||type}.`});
+  }
+  if(status&&status!==oldStatus){
+    o.status=status;
+    addHistory(o,{type:"status",from:oldStatus,to:status,text:`Status geändert: ${statuses[oldStatus]||oldStatus} → ${statuses[status]||status}.`});
+  }
+  if(Number.isFinite(price)&&price>=0&&Math.abs(price-oldPrice)>.009){
+    o.price=Math.round(price*100)/100;
+    const partsBefore=operationPriceParts({...o,price:oldPrice});
+    const calculated=partsBefore.base+partsBefore.floaterAmt+partsBefore.ancillary;
+    o.manualPriceDelta=Math.round((o.price-calculated)*100)/100;
+    addHistory(o,{type:"price",from:oldPrice,to:o.price,text:`Preis händisch geändert: ${euro(oldPrice)} → ${euro(o.price)}.`});
+  }
+  o.updatedAt=isoNow();
   saveOperations();render();openOperation(o);
-  const t=document.getElementById("operationToast");t.textContent="Vorgang aktualisiert.";t.hidden=false;setTimeout(()=>t.hidden=true,2400);
+  const t=document.getElementById("operationToast");t.textContent="Vorgang aktualisiert und protokolliert.";t.hidden=false;setTimeout(()=>t.hidden=true,2400);
 });
 render();

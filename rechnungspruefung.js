@@ -65,22 +65,62 @@ function findFloater(provider,date,fallback){
 }
 function deDate(iso){if(!iso)return "—";const [y,m,d]=iso.split("-");return `${d}.${m}.${y}`;}
 
+
+function findOperationById(id){
+  if(!id||id==="—")return null;
+  try{
+    const ops=GPK.read(GPK.KEYS.operations,[])||[];
+    return Array.isArray(ops)?ops.find(o=>String(o.id)===String(id))||null:null;
+  }catch(_){return null}
+}
+function relationZip(operation){
+  const m=String(operation?.relation||"").match(/(?:→|->)\s*[A-Z]{2}\s*(\d{4,5})/);
+  return m?.[1]||"";
+}
+function ensureProviderOption(name){
+  if(!name||!invProvider)return;
+  if(![...invProvider.options].some(o=>o.value===name)){
+    const opt=document.createElement("option");opt.value=name;opt.textContent=name;invProvider.appendChild(opt);
+  }
+}
+function prefillFromOperation(id){
+  const o=findOperationById(id);if(!o)return;
+  ensureProviderOption(o.provider);invProvider.value=o.provider||"";
+  invOperation.value=o.id||id;
+  invZip.value=relationZip(o);
+  const tr=String(o.transport||"").toLowerCase();
+  if(tr.includes("mega"))invTransport.value="Mega";
+  else if(tr.includes("jumbo"))invTransport.value="Jumbo";
+  else if(tr.includes("teillad"))invTransport.value="Teilladung";
+  else invTransport.value="FTL";
+  const iso=String(o.delivery||o.date||"");
+  const m=iso.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if(m)invDate.value=`${m[3]}-${m[2]}-${m[1]}`;
+  else if(/^\d{4}-\d{2}-\d{2}$/.test(iso))invDate.value=iso;
+}
 manualInvoiceForm.addEventListener("submit",e=>{
   e.preventDefault();
   const provider=invProvider.value, date=invDate.value, zip=invZip.value.trim(), transport=invTransport.value;
   const actual=Number(invAmount.value||0);
+  const linkedOperation=findOperationById(invOperation.value.trim());
   const tariff=findLocalTariff(provider,zip,transport);
-  if(!tariff){
-    showToast("Kein passender Tarif gefunden.");
+  if(!tariff&&!linkedOperation){
+    showToast("Kein passender Tarif oder Vorgang gefunden.");
     return;
   }
-  const floater=findFloater(provider,date,tariff.floater);
-  const expected=Number(tariff.base||0)*(1+Number(floater.value||0)/100);
+  const storedBase=Number(linkedOperation?.basePrice);
+  const storedFloaterPct=Number(linkedOperation?.floaterPercent);
+  const storedFloaterAmount=Number(linkedOperation?.floaterAmount);
+  const storedAncillary=Number(linkedOperation?.ancillaryAmount||linkedOperation?.surchargeAmount||0)||0;
+  const floater=findFloater(provider,date,Number.isFinite(storedFloaterPct)?storedFloaterPct:tariff?.floater);
+  const base=Number.isFinite(storedBase)?storedBase:Number(tariff?.base||0);
+  const floaterAmount=Number.isFinite(storedFloaterAmount)?storedFloaterAmount:base*(Number(floater.value||0)/100);
+  const expected=Number(linkedOperation?.price)||base+floaterAmount+storedAncillary;
   const diff=actual-expected;
   const status=Math.abs(diff)<=2 ? "ok" : "diff";
 
   resultInvoiceAmount.textContent=euro(actual);
-  resultBase.textContent=euro(tariff.base);
+  resultBase.textContent=euro(base);
   resultFloater.textContent=Number(floater.value).toLocaleString("de-DE")+" %";
   resultFloaterPeriod.textContent=`${deDate(floater.from)} – ${deDate(floater.to)}`;
   resultExpected.textContent=euro(expected);
@@ -95,7 +135,9 @@ manualInvoiceForm.addEventListener("submit",e=>{
     id:"CHK-"+Date.now(),
     invoice:invNumber.value.trim(),
     provider,date:deDate(date),
-    expected:Math.round(expected),actual:Math.round(actual),diff:Math.round(diff),
+    expected:Math.round(expected*100)/100,actual:Math.round(actual*100)/100,diff:Math.round(diff*100)/100,
+    basePrice:Math.round(base*100)/100,floaterPercent:Number(floater.value)||0,floaterAmount:Math.round(floaterAmount*100)/100,
+    ancillaryAmount:Math.round(storedAncillary*100)/100,
     status,operation:invOperation.value.trim()||"—",createdAt:new Date().toISOString()
   };
   checks.unshift(c);save();renderChecks();
@@ -118,4 +160,4 @@ invoiceDropzone.addEventListener("drop",e=>{
 exportChecksBtn.addEventListener("click",()=>showToast("Export der Prüfungen wird im nächsten technischen Schritt angebunden."));
 renderChecks();
 
-(function(){const op=new URLSearchParams(location.search).get("operation");if(op&&document.getElementById("invOperation"))document.getElementById("invOperation").value=op;})();
+(function(){const op=new URLSearchParams(location.search).get("operation");if(op)prefillFromOperation(op);})();
