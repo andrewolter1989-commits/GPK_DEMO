@@ -90,8 +90,8 @@
     const vals=(values||[]).map(text).filter(Boolean);
     let country="",code="";
     for(const v of vals){
-      let m=v.toUpperCase().match(/\b([A-Z]{1,2})\s*[- ]\s*(\d{1,5})\b/);
-      if(m){country=({D:"DE",A:"AT"}[m[1]]||m[1]);code=m[2];break;}
+      let m=v.toUpperCase().match(/\b([A-Z]{1,2})\s*[- ]\s*((?:\d[\s-]?){1,5})\b/);
+      if(m){country=({D:"DE",A:"AT"}[m[1]]||m[1]);code=m[2].replace(/\D/g,"").slice(0,5);break;}
     }
     if(!country){
       for(const v of vals){if(/^[A-Za-z]{2}$/.test(v)){country=v.toUpperCase();break;}}
@@ -364,6 +364,111 @@
     return Math.max(a0,b0)<=Math.min(a1,b1);
   }
 
+
+  function parseTrocellenLdmTransportGrid(sheetName,rows){
+    /* Zwei-zeiliger LDM-Vordruck wie Trocellen / Marathon:
+       obere Zeile = Bereiche (0-1, 1,1-2, ... >15)
+       untere Zeile = bis 1 LDM ... FTL | Megaliner | Jumbo
+       Die Datei darf auch SPARSAM befüllt sein, z. B. nur die Jumbo-Spalte.
+       Entscheidend ist: erkannte Zielzeile + mindestens eine echte Preiszelle. */
+    let headerIdx=-1,zoneCol=-1;
+    for(let i=0;i<Math.min(rows.length,60);i++){
+      const row=rows[i]||[];
+      const c=row.findIndex(v=>/^\s*plz\s*\/\s*ldm\s*$/i.test(text(v)));
+      if(c>=0){headerIdx=i;zoneCol=c;break;}
+    }
+    if(headerIdx<1||zoneCol<0)return null;
+
+    const lower=rows[headerIdx]||[], upper=rows[headerIdx-1]||[];
+    const dims=[];
+    const parseRange=(v)=>{
+      const t=text(v).replace(/\s/g,"").replace(/,/g,".");
+      let m=t.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/);
+      if(m)return {from:round(Number(m[1]),3),to:round(Number(m[2]),3)};
+      m=t.match(/^>\s*(\d+(?:\.\d+)?)$/);
+      if(m)return {from:round(Number(m[1]),3),to:""};
+      const n=num(v);return n===null?{from:"",to:""}:{from:round(n,3),to:round(n,3)};
+    };
+
+    for(let c=zoneCol+1;c<Math.max(lower.length,upper.length);c++){
+      const label=text(lower[c]), band=text(upper[c]);
+      if(!label&&!band)continue;
+      const n=(label.match(/bis\s*(\d+(?:[.,]\d+)?)\s*ldm/i)||[])[1];
+      if(n){
+        const rg=parseRange(band);
+        dims.push({col:c,model:"LDM_STEP",product:"LTL",label,from:rg.from,to:rg.to||num(n),order:c});
+        continue;
+      }
+      if(/^\s*ftl\s*$/i.test(label)){
+        const rg=parseRange(band);
+        dims.push({col:c,model:"FULL_LOAD",product:"FTL",label:"FTL",from:rg.from,to:rg.to,order:c});
+        continue;
+      }
+      if(/mega(?:liner)?/i.test(label)){
+        const rg=parseRange(band);
+        dims.push({col:c,model:"FULL_LOAD",product:"Mega",label:"Megaliner",from:rg.from,to:rg.to,order:c});
+        continue;
+      }
+      if(/jumbo/i.test(label)){
+        const rg=parseRange(band);
+        dims.push({col:c,model:"FULL_LOAD",product:"Jumbo",label:"Jumbo",from:rg.from,to:rg.to,order:c});
+      }
+    }
+    if(!dims.length)return null;
+
+    const blockId=makeId("block"),rates=[],zones=[];
+    const fallbackCountry=inferCountryFromSheet(sheetName)||inferCountryFromText(rows.slice(0,20).map(rowText).join(" "));
+    let dataRows=0,empty=0;
+    for(let r=headerIdx+1;r<rows.length;r++){
+      const row=rows[r]||[],zoneLabel=text(row[zoneCol]);
+      const cp=parseCountryPostcode([zoneLabel],fallbackCountry);
+      const populated=dims.filter(d=>num(row[d.col])!==null);
+      if(!cp.code||!populated.length){
+        if(nonEmpty(row).length===0||!populated.length)empty++;
+        if(dataRows&&empty>=4)break;
+        continue;
+      }
+      empty=0;dataRows++;
+      const country=cp.country||fallbackCountry;
+      const rg=postcodeRange(country,cp.code);
+      const zone=(country?country+"-":"")+cp.code;
+      zones.push({
+        id:makeId("zone"),blockId,zoneSet:sheetName,ruleType:"POSTCODE",
+        originCountry:"",originPostcodeFrom:"",originPostcodeTo:"",
+        destCountry:country,destPostcodeFrom:rg.from,destPostcodeTo:rg.to,
+        distanceFromKm:"",distanceToKm:"",originName:"",destinationName:"",
+        zone,priority:100,sourceRef:sheetName+"!R"+(r+1)
+      });
+      for(const d of populated){
+        const price=num(row[d.col]);
+        rates.push({
+          id:makeId("rate"),blockId,sheet:sheetName,sourceRow:r+1,manualOrder:d.order,
+          rateModel:d.model,product:d.product,subservice:sheetName,
+          originCountry:"",destCountry:country,zone,relationName:"",
+          chargeFrom:d.from,chargeTo:d.to,chargeLabel:d.label,
+          unit:"EUR/SHIPMENT",price:round(price),currency:"EUR",
+          priority:d.model==="FULL_LOAD"?150:100,
+          sourceRef:sheetName+"!R"+(r+1)+"C"+(d.col+1)
+        });
+      }
+    }
+    if(dataRows<1||rates.length<2)return null;
+
+    const dz=dedupeZones(zones);
+    const activeProducts=[...new Set(rates.map(r=>r.product).filter(Boolean))];
+    const hasLdm=rates.some(r=>r.rateModel==="LDM_STEP");
+    const label=hasLdm
+      ? "LDM / FTL / Mega / Jumbo"
+      : activeProducts.length===1 ? activeProducts[0] : "FTL / Mega / Jumbo";
+    return {
+      id:blockId,sheet:sheetName,headerRow:headerIdx+1,
+      model:hasLdm?"LDM_STEP":"FULL_LOAD",modelLabel:label,
+      confidence:0.99,status:"AUTO_CANDIDATE",
+      rates,zones:dz,summary:`${rates.length} Preise · ${dz.length} Zonen`,
+      context:`Zwei-zeiliger LDM-Vordruck · aktiv: ${activeProducts.join(", ")||"LDM"}`
+    };
+  }
+
   function parseClassicPalletZoneSheet(sheetName,rows){
     /* Spezieller, deterministischer Parser für Vordrucke:
        "PLZ / Zone | 1 PLL | 2 PLL | ...".
@@ -446,8 +551,10 @@
 
   function analyzeSheet(sheetName,rows){
     const blocks=[];
+    const trocellenGrid=parseTrocellenLdmTransportGrid(sheetName,rows);
+    if(trocellenGrid)blocks.push(trocellenGrid);
     const classicPallet=parseClassicPalletZoneSheet(sheetName,rows);
-    if(classicPallet)blocks.push(classicPallet);
+    if(classicPallet&&!blocks.some(x=>overlap(x,classicPallet)))blocks.push(classicPallet);
     for(const b of parseExplicitClassicGrid(sheetName,rows))if(!blocks.some(x=>overlap(x,b)))blocks.push(b);
     blocks.push(...parseFixedRelations(sheetName,rows).filter(b=>!blocks.some(x=>overlap(x,b))));
     blocks.push(...parseVerticalZoneMatrices(sheetName,rows).filter(b=>!blocks.some(x=>overlap(x,b))));
@@ -826,7 +933,7 @@
       if(palletOnly&&!isFull){const stepLabel=row.label||([row.to,"PLL"].filter(Boolean).join(" "));left=`<td class="matrix-step-cell">${state.editing?`<input class="matrix-cell-input matrix-step-input" data-matrix-step="${ri}" value="${esc(stepLabel)}">`:`<strong>${esc(stepLabel||'—')}</strong>`}</td>`;}
       else if(isFull){
         if(palletOnly)left=`<td class="matrix-step-cell"><strong>FTL</strong></td>`;
-        else left=`<td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:from" value="${esc(row.from||'')}" placeholder="von">`:esc(row.from||'—')}</td><td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:to" value="${esc(row.to||'')}" placeholder="bis">`:esc(row.to||'—')}</td><td><strong>FTL</strong></td>`;
+        else left=`<td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:from" value="${esc(row.from||'')}" placeholder="von">`:esc(row.from||'—')}</td><td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:to" value="${esc(row.to||'')}" placeholder="bis">`:esc(row.to||'—')}</td><td><strong>${esc(row.product||row.label||"FTL")}</strong></td>`;
       }
       else{left=`<td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:from" value="${esc(row.from||'')}">`:esc(row.from||'—')}</td><td>${state.editing?`<input class="matrix-cell-input matrix-range-input" data-matrix-boundary="${ri}:to" value="${esc(row.to||'')}">`:esc(row.to||'—')}</td><td><strong>${esc(row.model==="LDM_STEP"?'LDM':row.unit||row.model)}</strong>${row.product?`<small>${esc(row.product)}</small>`:''}</td>`;}
       const actions=state.editing?`<td class="matrix-row-actions"><button type="button" data-row-move="${ri}:-1" title="nach oben">↑</button><button type="button" data-row-move="${ri}:1" title="nach unten">↓</button><button type="button" data-row-insert="${ri}" title="Zeile darunter einfügen">+</button><button type="button" data-row-delete="${ri}" title="Zeile löschen">×</button></td>`:"";
