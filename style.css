@@ -3798,3 +3798,60 @@ body.planning-mode .calculator-shipment-layout{
   .compact-date-grid,.shipment-main-values,.shipment-secondary-row{grid-template-columns:1fr!important}
   .shipment-secondary-row .dimensions-toggle-under,.shipment-secondary-row .volume-field{grid-column:1}
 }
+
+
+/* v6.41 – kompakter Vorgangs-Dialog & editierbare Rechnungsprüfungen */
+.operation-edit-accordion{
+  border:1px solid #d9e6e9;
+  border-radius:10px;
+  background:#fbfdfe;
+  margin:10px 0;
+  overflow:hidden;
+}
+.operation-edit-accordion summary{
+  list-style:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:48px;
+  padding:0 14px;
+  color:#174452;
+  font-weight:800;
+}
+.operation-edit-accordion summary::-webkit-details-marker{display:none}
+.operation-edit-accordion summary::after{
+  content:"＋";
+  font-size:18px;
+  color:#56808b;
+}
+.operation-edit-accordion[open] summary::after{content:"−"}
+.operation-edit-accordion summary small{
+  margin-left:auto;
+  color:#7b929b;
+  font-weight:500;
+  font-size:10px;
+}
+.operation-accordion-body{
+  border-top:1px solid #e0eaed;
+  padding:12px 14px;
+  background:#fff;
+}
+.operation-manual-price>label{display:none!important}
+.operation-shipment-edit{padding-top:0!important;margin-top:10px!important;border-top:0!important}
+.operation-shipment-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+.invoice-history-row{cursor:pointer}
+.invoice-history-row:hover td{background:#f2f9fa}
+.invoice-history-row:focus{outline:2px solid #1687a0;outline-offset:-2px}
+.invoice-history-row .icon-button{transition:transform .15s ease}
+.invoice-history-row:hover .icon-button{transform:translateX(2px)}
+.invoice-form-action{gap:8px}
+#cancelInvoiceEditBtn[hidden]{display:none!important}
+
+#loadMetersField .field-hint{margin-top:4px}
+@media(max-width:900px){
+  .operation-shipment-grid{grid-template-columns:1fr 1fr}
+  .operation-edit-accordion summary small{display:none}
+}

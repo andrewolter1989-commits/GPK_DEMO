@@ -1031,6 +1031,7 @@ function getCurrentWorkflowData(forwarder) {
     deliveryRaw,
     pickup: formatDisplayDate(pickupRaw),
     delivery: formatDisplayDate(deliveryRaw),
+    loadMeters: Number.isFinite(effectiveLoadMeters)?effectiveLoadMeters:null,
     weight,pallets,slots,volume,nonStackable,avis,
     length:parseNumberFlexible(document.getElementById("shipmentLength")?.value||""),
     width:parseNumberFlexible(document.getElementById("shipmentWidth")?.value||""),
@@ -1082,7 +1083,7 @@ function saveWorkflowOperation(forwarder, kind) {
     type: kind === "booking" ? "booking" : "availability",
     relation: d.relation,
     provider: d.provider,
-    price: Math.round(d.price || 0),
+    price: Math.round((d.price || 0)*100)/100,
     status: kind === "booking" ? "booked" : "waiting",
     date: d.delivery || "—",
     user: "Disposition",
@@ -1099,6 +1100,7 @@ function saveWorkflowOperation(forwarder, kind) {
     floaterPercent: d.floaterPercent,
     floaterAmount: d.floaterAmount,
     ancillaryAmount: Number(d.ancillaryAmount||0)||0,
+    loadMeters:d.loadMeters,
     weight:d.weight,pallets:d.pallets,slots:d.slots,volume:d.volume,
     length:d.length,width:d.width,height:d.height,nonStackable:d.nonStackable,avis:d.avis,
     history: [],
@@ -1257,6 +1259,24 @@ const freeTextInput = document.getElementById("freeText");
     countrySelect.appendChild(option);
   });
 
+
+  function refreshLdmSuggestions(){
+    const list=document.getElementById("loadMetersSuggestions");if(!list)return;
+    const dest=String(countrySelect?.value||"").toUpperCase();
+    const values=new Set();
+    /* Zuerst tatsächlich vorhandene LDM-Tarifgrenzen anbieten. */
+    (STATE.rates||[]).forEach(r=>{
+      const model=String(r.model||"").toUpperCase();
+      if(!["LDM_STEP","PER_LDM"].includes(model))return;
+      if(dest&&r.destCountry&&String(r.destCountry).toUpperCase()!==dest)return;
+      [r.from,r.to].forEach(v=>{const n=Number(v);if(Number.isFinite(n)&&n>0&&n<=15)values.add(Math.round(n*100)/100);});
+    });
+    /* Frei editierbar bleibt es trotzdem; diese üblichen Stufen helfen bei dünnen Tarifen. */
+    for(let n=.5;n<=13.6;n+=.5)values.add(Math.round(n*10)/10);
+    [7.5,8,9,10,11,12,12.5,13,13.2,13.6].forEach(v=>values.add(v));
+    list.innerHTML=[...values].sort((a,b)=>a-b).map(v=>`<option value="${String(v).replace(".",",")}"></option>`).join("");
+  }
+
   function showMessage(text, kind = "warn") {
     messageBox.textContent = text;
     messageBox.className = `notice ${kind}`;
@@ -1290,13 +1310,14 @@ const freeTextInput = document.getElementById("freeText");
   shipmentVolumeModeBtn?.addEventListener("click",()=>{const show=Boolean(shipmentDimensions?.hidden);if(shipmentDimensions)shipmentDimensions.hidden=!show;shipmentVolumeModeBtn.textContent=show?"Maße schließen":"Maße öffnen";if(show)shipmentLengthInput?.focus();});
   applyCalcFieldConfig();
 
-  countrySelect?.addEventListener("change", () => { updatePostalPlaceholder(); renderRecipientSelection(); });
+  countrySelect?.addEventListener("change", () => { updatePostalPlaceholder(); renderRecipientSelection(); refreshLdmSuggestions(); });
   postalInput?.addEventListener("change", renderRecipientSelection);
   postalInput?.addEventListener("blur", renderRecipientSelection);
   document.getElementById("recipientSelect")?.addEventListener("change", onRecipientSelectChange);
   transportSwitch?.addEventListener("change", updateTransportUi);
   updatePostalPlaceholder();
   updateTransportUi();
+  refreshLdmSuggestions();
 
 
   function setCalcFieldError(input, message, errorEl){

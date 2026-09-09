@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.40</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.41</div>
     </aside>
 
     <main class="workspace masterdata-workspace calculator-workspace">
@@ -87,7 +87,7 @@
               </fieldset>
               <div class="field load-field" id="loadMetersField">
                 <label for="loadMeters">Lademeter</label>
-                <div class="input-suffix"><input id="loadMeters" type="text" inputmode="decimal" placeholder="z. B. 7,5" /><span>LDM</span></div>
+                <div class="input-suffix"><input id="loadMeters" type="text" inputmode="decimal" list="loadMetersSuggestions" autocomplete="off" placeholder="z. B. 7,5" /><span>LDM</span></div><datalist id="loadMetersSuggestions"></datalist><small class="field-hint">Frei eingeben oder passende Tarifstufe auswählen.</small>
               </div>
             </div>
 

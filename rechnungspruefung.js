@@ -13,6 +13,10 @@ const rows = document.getElementById("invoiceCheckRows");
 const statusFilter = document.getElementById("checkStatusFilter");
 const search = document.getElementById("checkSearch");
 const toastEl = document.getElementById("invoiceToast");
+let editingCheckId="";
+const invoiceSubmitBtn=document.getElementById("invoiceSubmitBtn");
+const cancelInvoiceEditBtn=document.getElementById("cancelInvoiceEditBtn");
+
 
 function euro(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(n)||0);}
 function showToast(text){
@@ -30,15 +34,15 @@ function renderChecks(){
     const hay=`${c.invoice} ${c.provider} ${c.operation}`.toLowerCase();
     return (!q||hay.includes(q))&&(!sf||c.status===sf);
   });
-  rows.innerHTML=filtered.map(c=>`<tr>
+  rows.innerHTML=filtered.map(c=>`<tr class="invoice-history-row" data-check-id="${c.id}" tabindex="0" title="Prüfung öffnen und bearbeiten">
     <td><strong class="table-main">${c.invoice}</strong><small>${c.id}</small></td>
     <td><strong class="table-main">${c.provider}</strong><small>${c.operation||"—"}</small></td>
     <td>${c.date}</td>
     <td><strong class="price-cell">${euro(c.expected)}</strong></td>
     <td><strong class="price-cell">${c.actual?euro(c.actual):"—"}</strong></td>
-    <td><strong class="${c.diff>0?"invoice-diff-pos":"invoice-diff-zero"}">${c.diff?("+"+euro(c.diff)):c.status==="unmatched"?"—":"0 €"}</strong></td>
+    <td><strong class="${c.diff>0?"invoice-diff-pos":"invoice-diff-zero"}">${c.diff?((c.diff>0?"+":"")+euro(c.diff)):c.status==="unmatched"?"—":"0 €"}</strong></td>
     <td><span class="status-pill ${c.status==="ok"?"active":c.status==="diff"?"future":c.status==="clarification"?"review":"inactive"}">${statusLabel(c.status)}</span></td>
-    <td class="row-actions"><button class="icon-button" title="Details">›</button></td>
+    <td class="row-actions"><button class="icon-button" type="button" data-edit-check="${c.id}" title="Prüfung bearbeiten">›</button></td>
   </tr>`).join("");
 }
 
@@ -101,6 +105,45 @@ function prefillFromOperation(id){
   if(m)invDate.value=`${m[3]}-${m[2]}-${m[1]}`;
   else if(/^\d{4}-\d{2}-\d{2}$/.test(iso))invDate.value=iso;
 }
+
+function isoDateFromDe(v){
+  const m=String(v||"").match(/^(\d{2})\.(\d{2})\.(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:"";
+}
+function startCheckEdit(c){
+  if(!c)return;
+  editingCheckId=c.id;
+  ensureProviderOption(c.provider);invProvider.value=c.provider||"";
+  invNumber.value=c.invoice||"";
+  invDate.value=isoDateFromDe(c.date);
+  invAmount.value=Number(c.actual)||0;
+  invOperation.value=c.operation&&c.operation!=="—"?c.operation:"";
+  invReviewStatus.value=c.status||"auto";
+  if(c.zip)invZip.value=c.zip;
+  if(c.transport)invTransport.value=c.transport;
+  else if(c.operation&&c.operation!=="—")prefillFromOperation(c.operation);
+  invoiceSubmitBtn.textContent="Prüfung aktualisieren";
+  cancelInvoiceEditBtn.hidden=false;
+  manualInvoiceForm.closest(".manual-card")?.scrollIntoView({behavior:"smooth",block:"start"});
+  invNumber.focus();
+}
+function endCheckEdit(){
+  editingCheckId="";
+  manualInvoiceForm.reset();
+  invReviewStatus.value="auto";
+  invoiceSubmitBtn.textContent="Rechnung prüfen";
+  cancelInvoiceEditBtn.hidden=true;
+}
+cancelInvoiceEditBtn?.addEventListener("click",endCheckEdit);
+rows.addEventListener("click",e=>{
+  const id=e.target.closest("[data-edit-check]")?.dataset.editCheck||e.target.closest("[data-check-id]")?.dataset.checkId;
+  if(id)startCheckEdit(checks.find(c=>c.id===id));
+});
+rows.addEventListener("keydown",e=>{
+  if(e.key!=="Enter"&&e.key!==" ")return;
+  const id=e.target.closest("[data-check-id]")?.dataset.checkId;
+  if(id){e.preventDefault();startCheckEdit(checks.find(c=>c.id===id));}
+});
+
 manualInvoiceForm.addEventListener("submit",e=>{
   e.preventDefault();
   const provider=invProvider.value, date=invDate.value, zip=invZip.value.trim(), transport=invTransport.value;
@@ -130,22 +173,28 @@ manualInvoiceForm.addEventListener("submit",e=>{
   resultExpected.textContent=euro(expected);
   resultDifference.textContent=(diff>0?"+":"")+euro(diff);
   resultHeadline.textContent=status==="ok"?"Rechnung stimmt mit Sollpreis überein":"Abweichung festgestellt";
-  resultStatusPill.textContent=status==="ok"?"OK":"Abweichung";
-  resultStatusPill.className="status-pill "+(status==="ok"?"active":"future");
+  resultStatusPill.textContent=statusLabel(status);
+  resultStatusPill.className="status-pill "+(status==="ok"?"active":status==="diff"?"future":status==="clarification"?"review":"inactive");
   resultMeta.textContent=`${provider} · ${transport} · Ziel PLZ ${zip} · Transportdatum ${deDate(date)}${invOperation.value.trim()?" · Vorgang "+invOperation.value.trim():""}`;
   invoiceResultCard.hidden=false;
 
+  const existing=editingCheckId?checks.find(c=>c.id===editingCheckId):null;
   const c={
-    id:"CHK-"+Date.now(),
+    id:existing?.id||("CHK-"+Date.now()),
     invoice:invNumber.value.trim(),
-    provider,date:deDate(date),
+    provider,date:deDate(date),zip,transport,
     expected:Math.round(expected*100)/100,actual:Math.round(actual*100)/100,diff:Math.round(diff*100)/100,
     basePrice:Math.round(base*100)/100,floaterPercent:Number(floater.value)||0,floaterAmount:Math.round(floaterAmount*100)/100,
     ancillaryAmount:Math.round(storedAncillary*100)/100,
-    status,operation:invOperation.value.trim()||"—",createdAt:new Date().toISOString()
+    status,operation:invOperation.value.trim()||"—",
+    createdAt:existing?.createdAt||new Date().toISOString(),
+    updatedAt:new Date().toISOString()
   };
-  checks.unshift(c);save();renderChecks();
-  showToast("Rechnungsprüfung wurde gespeichert.");
+  if(existing){checks=checks.map(x=>x.id===editingCheckId?c:x);}
+  else checks.unshift(c);
+  save();renderChecks();
+  showToast(existing?"Rechnungsprüfung wurde aktualisiert.":"Rechnungsprüfung wurde gespeichert.");
+  endCheckEdit();
 });
 
 chooseInvoiceBtn.addEventListener("click",()=>invoiceFileInput.click());

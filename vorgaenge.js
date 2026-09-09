@@ -193,23 +193,29 @@ function openOperation(o){
         ${manualRow}
         <div class="price-part-total"><span>Gesamt</span><strong>${euro(parts.total)}</strong></div>
       </div>
-      <div class="operation-manual-price">
-        <label for="operationEditPrice">Gesamtpreis manuell bearbeiten</label>
-        <div class="operation-price-edit-row"><div class="input-suffix"><input id="operationEditPrice" type="number" min="0" step="0.01" value="${Number(o.price)||0}"><span>€</span></div><div class="field"><label for="operationPriceReason">Begründung</label><input id="operationPriceReason" type="text" placeholder="z. B. Sondervereinbarung / Wartezeit / Korrektur"></div></div><small class="audit-helper">Preisänderungen benötigen eine Begründung und werden mit Datum und Benutzer protokolliert.</small>
-      </div>
+      <details class="operation-edit-accordion operation-manual-price">
+        <summary><span>Gesamtpreis manuell bearbeiten</span><small>nur bei Korrektur öffnen</small></summary>
+        <div class="operation-accordion-body">
+          <div class="operation-price-edit-row"><div class="input-suffix"><input id="operationEditPrice" type="number" min="0" step="0.01" value="${Number(o.price)||0}"><span>€</span></div><div class="field"><label for="operationPriceReason">Begründung</label><input id="operationPriceReason" type="text" placeholder="z. B. Sondervereinbarung / Wartezeit / Korrektur"></div></div>
+          <small class="audit-helper">Preisänderungen benötigen eine Begründung und werden mit Datum und Benutzer protokolliert.</small>
+        </div>
+      </details>
     </div>
 
-    <div class="operation-shipment-edit">
-      <div class="operation-section-head"><div><h3>Sendungsdaten bearbeiten</h3><p>Änderungen werden ebenfalls im Verlauf protokolliert.</p></div></div>
-      <div class="operation-shipment-grid">
-        <div class="field"><label for="operationEditWeight">Gewicht</label><div class="input-suffix"><input id="operationEditWeight" type="number" min="0" step="1" value="${Number(o.weight)||""}"><span>kg</span></div></div>
-        <div class="field"><label for="operationEditPallets">Paletten</label><div class="input-suffix"><input id="operationEditPallets" type="number" min="0" max="100" step="1" value="${Number(o.pallets)||""}"><span>PLL</span></div></div>
-        <div class="field"><label for="operationEditSlots">Stellplätze</label><div class="input-suffix"><input id="operationEditSlots" type="number" min="0" step="1" value="${Number(o.slots)||""}"><span>Stpl.</span></div></div>
-        <div class="field"><label for="operationEditHeight">Höhe</label><div class="input-suffix"><input id="operationEditHeight" type="number" min="0" step="1" value="${Number(o.height)||""}"><span>cm</span></div></div>
-        <label class="operation-inline-check"><input id="operationEditAvis" type="checkbox" ${o.avis?"checked":""}><span>Avis</span></label>
-        <label class="operation-inline-check"><input id="operationEditNonStackable" type="checkbox" ${o.nonStackable?"checked":""}><span>Nicht stapelbar</span></label>
+    <details class="operation-edit-accordion operation-shipment-edit">
+      <summary><span>Sendungsdaten bearbeiten</span><small>Gewicht, Paletten, LDM, Stellplätze, Höhe, Services</small></summary>
+      <div class="operation-accordion-body">
+        <div class="operation-shipment-grid">
+          ${String(o.transport||"").toLowerCase().includes("teillad")?`<div class="field"><label for="operationEditLdm">Lademeter</label><div class="input-suffix"><input id="operationEditLdm" type="number" min="0" max="13.6" step="0.01" value="${Number(o.loadMeters)||((String(o.transport||"").match(/([\d.,]+)\s*Ldm/i)||[])[1]||"").toString().replace(",",".")}"><span>LDM</span></div></div>`:""}
+          <div class="field"><label for="operationEditWeight">Gewicht</label><div class="input-suffix"><input id="operationEditWeight" type="number" min="0" step="1" value="${Number(o.weight)||""}"><span>kg</span></div></div>
+          <div class="field"><label for="operationEditPallets">Paletten</label><div class="input-suffix"><input id="operationEditPallets" type="number" min="0" max="100" step="1" value="${Number(o.pallets)||""}"><span>PLL</span></div></div>
+          <div class="field"><label for="operationEditSlots">Stellplätze</label><div class="input-suffix"><input id="operationEditSlots" type="number" min="0" step="1" value="${Number(o.slots)||""}"><span>Stpl.</span></div></div>
+          <div class="field"><label for="operationEditHeight">Höhe</label><div class="input-suffix"><input id="operationEditHeight" type="number" min="0" step="1" value="${Number(o.height)||""}"><span>cm</span></div></div>
+          <label class="operation-inline-check"><input id="operationEditAvis" type="checkbox" ${o.avis?"checked":""}><span>Avis</span></label>
+          <label class="operation-inline-check"><input id="operationEditNonStackable" type="checkbox" ${o.nonStackable?"checked":""}><span>Nicht stapelbar</span></label>
+        </div>
       </div>
-    </div>
+    </details>
 
     <div class="operation-edit-grid">
       <div class="field"><label for="operationEditType">Vorgangsart</label><select id="operationEditType"><option value="price" ${o.type==="price"?"selected":""}>Preisanfrage</option><option value="availability" ${o.type==="availability"?"selected":""}>Verfügbarkeit angefragt</option><option value="booking" ${o.type==="booking"?"selected":""}>Buchung</option></select></div>
@@ -244,6 +250,7 @@ closeOperationModalBtn.addEventListener("click",closeModal);closeOperationBtn.ad
 demoActionBtn.addEventListener("click",()=>{
   const o=operations.find(x=>x.id===currentOperationId);if(!o)return;
   const type=document.getElementById("operationEditType")?.value,status=document.getElementById("operationEditStatus")?.value,price=Number(document.getElementById("operationEditPrice")?.value),reason=document.getElementById("operationPriceReason")?.value.trim()||"";
+  const ldmEl=document.getElementById("operationEditLdm"),ldm=ldmEl?Number(ldmEl.value):NaN;
   const weight=Number(document.getElementById("operationEditWeight")?.value),pallets=Number(document.getElementById("operationEditPallets")?.value),slots=Number(document.getElementById("operationEditSlots")?.value),height=Number(document.getElementById("operationEditHeight")?.value),avis=Boolean(document.getElementById("operationEditAvis")?.checked),nonStackable=Boolean(document.getElementById("operationEditNonStackable")?.checked);
   const oldType=o.type,oldStatus=o.status,oldPrice=Number(o.price)||0;
   if(Number.isFinite(pallets)&&pallets>100){alert("Maximal 100 Paletten.");return;}
@@ -254,10 +261,11 @@ demoActionBtn.addEventListener("click",()=>{
   if(type&&type!==oldType){o.type=type;addHistory(o,{type:"type",from:oldType,to:type,text:`Vorgangsart geändert: ${labels[oldType]||oldType} → ${labels[type]||type}.`});}
   if(status&&status!==oldStatus){o.status=status;addHistory(o,{type:"status",from:oldStatus,to:status,text:`Status geändert: ${statuses[oldStatus]||oldStatus} → ${statuses[status]||status}.`});}
   if(Number.isFinite(price)&&price>=0&&Math.abs(price-oldPrice)>.009){o.price=Math.round(price*100)/100;const partsBefore=operationPriceParts({...o,price:oldPrice}),calculated=partsBefore.base+partsBefore.floaterAmt+partsBefore.ancillary;o.manualPriceDelta=Math.round((o.price-calculated)*100)/100;o.manualPriceReason=reason;addHistory(o,{type:"price",from:oldPrice,to:o.price,reason,text:`Preis händisch geändert: ${euroMoney(oldPrice)} → ${euroMoney(o.price)}. Grund: ${reason}`});}
+  if(ldmEl&&Number.isFinite(ldm)&&ldm>=0&&Number(o.loadMeters||0)!==ldm){const old=Number(o.loadMeters||0);o.loadMeters=ldm;addHistory(o,{type:"shipment",field:"loadMeters",from:old,to:ldm,text:`Lademeter geändert: ${old||"—"} → ${String(ldm).replace(".",",")} LDM.`});}
   [["weight",weight,"Gewicht","kg"],["pallets",pallets,"Paletten","PLL"],["slots",slots,"Stellplätze",""],["height",height,"Höhe","cm"]].forEach(([key,val,label,unit])=>{if(Number.isFinite(val)&&val>=0&&Number(o[key]||0)!==val){const old=Number(o[key]||0);o[key]=val;addHistory(o,{type:"shipment",field:key,from:old,to:val,text:`${label} geändert: ${old||"—"} → ${val}${unit?" "+unit:""}.`});}});
   if(Boolean(o.avis)!==avis){o.avis=avis;addHistory(o,{type:"shipment",field:"avis",text:`Avis ${avis?"hinzugefügt":"entfernt"}.`});}
   if(Boolean(o.nonStackable)!==nonStackable){o.nonStackable=nonStackable;addHistory(o,{type:"shipment",field:"nonStackable",text:`Nicht stapelbar ${nonStackable?"hinzugefügt":"entfernt"}.`});}
-  const transportBase=String(o.transport||"").split(" · ")[0],parts=[transportBase];if(Number(o.weight)>0)parts.push(`${new Intl.NumberFormat("de-DE").format(o.weight)} kg`);if(Number(o.pallets)>0)parts.push(`${o.pallets} Paletten`);if(o.avis)parts.push("Avis");if(o.nonStackable)parts.push("nicht stapelbar");o.transport=parts.join(" · ");
+  const transportBase=String(o.transport||"").split(" · ")[0],parts=[transportBase];if(transportBase.toLowerCase().includes("teillad")&&Number(o.loadMeters)>0)parts.push(`${String(o.loadMeters).replace(".",",")} Ldm`);if(Number(o.weight)>0)parts.push(`${new Intl.NumberFormat("de-DE").format(o.weight)} kg`);if(Number(o.pallets)>0)parts.push(`${o.pallets} Paletten`);if(Number(o.slots)>0)parts.push(`${o.slots} Stellplätze`);if(o.avis)parts.push("Avis");if(o.nonStackable)parts.push("nicht stapelbar");o.transport=parts.join(" · ");
   o.updatedAt=isoNow();saveOperations();render();openOperation(o);const t=document.getElementById("operationToast");t.textContent="Vorgang aktualisiert und protokolliert.";t.hidden=false;setTimeout(()=>t.hidden=true,2400);
 });
 render();
