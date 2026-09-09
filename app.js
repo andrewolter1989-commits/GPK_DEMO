@@ -70,8 +70,8 @@ function ensurePlanningForAction(kind) {
   const message = document.getElementById("messageBox");
   if (message) {
     message.textContent = kind === "booking"
-      ? "Für die Buchung bitte noch Entladestelle und Tourdetails ergänzen."
-      : "Für die Verfügbarkeitsanfrage bitte noch Entladestelle und Tourdetails ergänzen.";
+      ? "Für die Buchung bitte noch Tourdetails ergänzen; die Entladestelle kann bei Bedarf ergänzt werden."
+      : "Für die Verfügbarkeitsanfrage bitte noch die Tourdetails ergänzen. Eine Entladestelle ist nicht erforderlich.";
     message.className = "notice warn";
     message.style.display = "block";
   }
@@ -329,7 +329,7 @@ function renderRecipientSelection() {
     select.disabled = true;
     select.innerHTML = '<option value="">Bitte zuerst Land und PLZ eingeben</option>';
     if (box) box.style.display = "none";
-    if (hint) hint.textContent = "Passende Entladestellen werden automatisch aus der Pano-Adresslogik geladen.";
+    if (hint) hint.textContent = "Entladestelle ist für Preisvergleich und Verfügbarkeitsanfrage optional.";
     return;
   }
 
@@ -337,19 +337,13 @@ function renderRecipientSelection() {
   matches.forEach((r) => { STATE.recipientsById[r.id] = r; });
   select.disabled = false;
 
-  if (!matches.length) {
-    select.innerHTML = '<option value="manual">+ Neuer Empfänger</option>';
-    select.value = "manual";
-    if (box) box.style.display = "block";
-    if (hint) hint.textContent = "Keine bekannte Entladestelle gefunden – bitte neuen Empfänger erfassen.";
-    return;
-  }
-
-  select.innerHTML = matches.map((r, index) =>
-    `<option value="${escapeHtml(r.id)}" ${index === 0 ? "selected" : ""}>${escapeHtml(formatRecipientOption(r))}</option>`
-  ).join("") + '<option value="manual">+ Neuer Empfänger</option>';
+  const optional = '<option value="" selected>Ohne Entladestelle</option>';
+  const existing = matches.map((r) => `<option value="${escapeHtml(r.id)}">${escapeHtml(formatRecipientOption(r))}</option>`).join("");
+  select.innerHTML = optional + existing + '<option value="manual">+ Neuer Empfänger</option>';
   if (box) box.style.display = "none";
-  if (hint) hint.textContent = `${matches.length} passende Entladestelle${matches.length === 1 ? "" : "n"} gefunden.`;
+  if (hint) hint.textContent = matches.length
+    ? `${matches.length} passende Entladestelle${matches.length === 1 ? "" : "n"} gefunden · Auswahl optional.`
+    : "Keine bekannte Entladestelle gefunden · für Verfügbarkeitsanfragen kann ohne Entladestelle fortgefahren werden.";
 }
 
 function onRecipientSelectChange() {
@@ -738,7 +732,6 @@ function getEffectiveLoadMeters(shipmentType, loadMetersInput) {
 function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weight, pallets, slots, volume, nonStackable, avis }) {
   if (!destCountry) return "Bitte zuerst ein Land wählen.";
   if (!postalCode || String(postalCode).trim().length < 2) return "Bitte eine gültige PLZ eingeben.";
-  if (CALCULATION_MODE === "planning" && !document.getElementById("recipientSelect")?.value) return "Bitte eine Entladestelle auswählen.";
   if (CALCULATION_MODE === "planning" && document.getElementById("recipientSelect")?.value === "manual" && !document.getElementById("recipientName")?.value?.trim()) return "Bitte bei einer neuen Entladestelle mindestens den Namen eingeben.";
   if (!SHIPMENT_TYPES[shipmentType]) return "Bitte eine Transportart wählen.";
   const cfg=getCalcFieldConfig();
@@ -755,6 +748,12 @@ function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weig
   for(const key of ["pickupDate","deliveryDate","pallets","slots","weight","length","width","height","volume","nonStackable","avis"]){
     if(cfg[key] && !checks[key]) return `Bitte das Pflichtfeld „${calcFieldLabel(key)}“ ausfüllen.`;
   }
+  const pickupRaw=document.getElementById("pickupDate")?.value||"";
+  const deliveryRaw=document.getElementById("deliveryDate")?.value||"";
+  const todayIso=new Date().toISOString().slice(0,10);
+  if(pickupRaw&&pickupRaw<todayIso)return "Abholdatum kann nicht in der Vergangenheit liegen.";
+  if(deliveryRaw&&deliveryRaw<todayIso)return "Liefertermin kann nicht in der Vergangenheit liegen.";
+  if(pickupRaw&&deliveryRaw&&deliveryRaw<pickupRaw)return "Liefertermin darf nicht vor dem Abholdatum liegen.";
   const enteredHeight=parseNumberFlexible(document.getElementById("shipmentHeight")?.value||"");
   if(Number.isFinite(pallets)&&pallets>100)return "Maximal 100 Paletten pro Sendung.";
   const maxSlots=shipmentType==="jumbo"?38:34;
@@ -978,7 +977,12 @@ function makeOperationId() {
   const prefix=String(cfg.prefix||"GPK").trim().toUpperCase()||"GPK",yy=String(now.getFullYear()).slice(-2),mm=String(now.getMonth()+1).padStart(2,"0"),dd=String(now.getDate()).padStart(2,"0");
   if(cfg.format==="datetime"){const time=String(now.getHours()).padStart(2,"0")+String(now.getMinutes()).padStart(2,"0")+String(now.getSeconds()).padStart(2,"0");return `${prefix}-${yy}${mm}${dd}-${time}`;}
   const seq=Math.max(1,Number(cfg.next)||1);cfg.next=seq+1;try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(_){}
-  const n=String(seq).padStart(4,"0");return cfg.format==="seq"?`${prefix}-${n}`:`${prefix}-${yy}${mm}${dd}-${n}`;
+  const n=String(seq).padStart(4,"0");
+  if(cfg.format==="custom"){
+    const pattern=String(cfg.custom||"{PREFIX}-{YY}{MM}{DD}-{SEQ4}");
+    return pattern.replaceAll("{PREFIX}",prefix).replaceAll("{YYYY}",String(now.getFullYear())).replaceAll("{YY}",yy).replaceAll("{MM}",mm).replaceAll("{DD}",dd).replaceAll("{SEQ4}",n).replaceAll("{SEQ}",String(seq));
+  }
+  return cfg.format==="seq"?`${prefix}-${n}`:`${prefix}-${yy}${mm}${dd}-${n}`;
 }
 
 function getCurrentOffer(forwarder) {
@@ -1294,6 +1298,30 @@ const freeTextInput = document.getElementById("freeText");
   updatePostalPlaceholder();
   updateTransportUi();
 
+
+  function setCalcFieldError(input, message, errorEl){
+    if(!input)return;
+    input.classList.toggle("input-error",Boolean(message));
+    input.closest(".field")?.classList.toggle("field-has-error",Boolean(message));
+    if(errorEl){errorEl.textContent=message||"";errorEl.hidden=!message;}
+  }
+  function validateOperationalLimitsLive(){
+    const shipmentType=getSelectedShipmentType();
+    const slots=parseNumberFlexible(shipmentSlotsInput?.value||"");
+    const height=parseNumberFlexible(shipmentHeightInput?.value||"");
+    const maxSlots=shipmentType==="jumbo"?38:34;
+    const maxHeight=(shipmentType==="jumbo"||shipmentType==="mega")?300:270;
+    setCalcFieldError(shipmentSlotsInput,Number.isFinite(slots)&&slots>maxSlots?`Maximal ${maxSlots} Stellplätze.`:"",document.getElementById("shipmentSlotsError"));
+    setCalcFieldError(shipmentHeightInput,Number.isFinite(height)&&height>maxHeight?`Maximal ${String(maxHeight/100).replace(".",",")} m.`:"",document.getElementById("shipmentHeightError"));
+  }
+  [shipmentSlotsInput,shipmentHeightInput].forEach(el=>el?.addEventListener("input",validateOperationalLimitsLive));
+  transportSwitch?.addEventListener("change",validateOperationalLimitsLive);
+  [pickupDateInput,deliveryDateInput].forEach(el=>el?.addEventListener("change",()=>{
+    const today=new Date().toISOString().slice(0,10);
+    if(el.value&&el.value<today){el.classList.add("input-error");showMessage(el===pickupDateInput?"Abholdatum kann nicht in der Vergangenheit liegen.":"Liefertermin kann nicht in der Vergangenheit liegen.","danger");}
+    else el.classList.remove("input-error");
+  }));
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
@@ -1315,6 +1343,11 @@ const freeTextInput = document.getElementById("freeText");
     const validationError = validateInput(input);
     if (validationError) {
       showMessage(validationError, "danger");
+      messageBox.scrollIntoView({behavior:"smooth",block:"center"});
+      validateOperationalLimitsLive();
+      if(validationError.includes("Stellplätze"))shipmentSlotsInput?.focus();
+      else if(validationError.includes("Abholdatum"))pickupDateInput?.focus();
+      else if(validationError.includes("Liefertermin"))deliveryDateInput?.focus();
       resultsSection.style.display = "none";
       document.body.classList.remove("has-results");
       if (detailComparisonSection) detailComparisonSection.style.display = "none";

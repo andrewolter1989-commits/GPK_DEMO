@@ -3757,3 +3757,44 @@ body.planning-mode .calculator-shipment-layout{
 .operation-price{font-variant-numeric:tabular-nums}
 @media(max-width:1250px){.operations-filterbar{grid-template-columns:1fr 1fr 1fr!important}.operation-shipment-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.operation-shipment-grid{grid-template-columns:1fr}}
+
+/* v6.40 – Validierung, optionaler Empfänger, kompaktere Sendungsdaten, Prüfstatus */
+.compact-date-grid{
+  grid-template-columns:minmax(180px,260px) minmax(180px,260px)!important;
+  justify-content:start;
+  gap:12px!important;
+}
+.shipment-main-values{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  margin-top:10px;
+}
+.shipment-secondary-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+  gap:12px;
+  align-items:end;
+  margin-top:8px;
+}
+.shipment-secondary-row .dimensions-toggle-under{grid-column:1;margin:0 0 20px 0!important;min-height:44px;width:100%}
+.shipment-secondary-row .volume-field{grid-column:2}
+.field-error-inline{display:block;color:#b42318;font-weight:800;font-size:10px;margin-top:4px}
+.field-has-error input,.input-error{border-color:#d92d20!important;background:#fff4f2!important;box-shadow:0 0 0 2px rgba(217,45,32,.10)!important}
+.notice.danger{
+  font-size:14px!important;
+  font-weight:800!important;
+  padding:13px 16px!important;
+  border-width:1px!important;
+  line-height:1.35!important;
+}
+#manualRecipientBox{margin-top:10px}
+.status-pill.review{background:#fff1cc!important;color:#865700!important;border-color:#efd38b!important}
+.invoice-form-grid #invReviewStatus{font-weight:700}
+@media(max-width:900px){
+  .compact-date-grid{grid-template-columns:1fr 1fr!important}
+  .shipment-secondary-row{grid-template-columns:1fr 1fr}
+  .shipment-secondary-row .volume-field{grid-column:2}
+}
+@media(max-width:620px){
+  .compact-date-grid,.shipment-main-values,.shipment-secondary-row{grid-template-columns:1fr!important}
+  .shipment-secondary-row .dimensions-toggle-under,.shipment-secondary-row .volume-field{grid-column:1}
+}

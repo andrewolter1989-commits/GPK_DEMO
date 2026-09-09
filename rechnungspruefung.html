@@ -20,7 +20,7 @@
         <a class="nav-item active" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.39</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.40</div>
   </aside>
 
   <main class="workspace invoice-workspace">
@@ -75,7 +75,8 @@
             <select id="invTransport"><option>FTL</option><option>Teilladung</option><option>Mega</option><option>Jumbo</option></select>
           </div>
           <div class="field"><label>Rechnungsbetrag €</label><input id="invAmount" type="number" step="0.01" required placeholder="1034.00"></div>
-          <div class="field span-2"><label>Vorgangs-/Buchungs-ID</label><input id="invOperation" placeholder="optional, z. B. GPK-260906-..."></div>
+          <div class="field"><label>Prüfstatus</label><select id="invReviewStatus"><option value="auto">Automatisch ermitteln</option><option value="ok">OK</option><option value="diff">Abweichung</option><option value="clarification">In Klärung</option><option value="unmatched">Nicht zugeordnet</option></select></div>
+          <div class="field"><label>Vorgangs-/Buchungs-ID</label><input id="invOperation" placeholder="optional, z. B. GPK-260906-..."></div>
           <div class="span-2 invoice-form-action"><button class="primary compact-button" type="submit">Rechnung prüfen</button></div>
         </form>
       </article>
@@ -100,7 +101,7 @@
       <div class="invoice-card-head history-head">
         <div><h2>Letzte Prüfungen</h2><p>Historie für spätere Nachweise und Rechnungsabgleich.</p></div>
         <div class="invoice-history-filters">
-          <select id="checkStatusFilter"><option value="">Alle Status</option><option value="ok">OK</option><option value="diff">Abweichung</option><option value="unmatched">Nicht zugeordnet</option></select>
+          <select id="checkStatusFilter"><option value="">Alle Status</option><option value="ok">OK</option><option value="diff">Abweichung</option><option value="clarification">In Klärung</option><option value="unmatched">Nicht zugeordnet</option></select>
           <input id="checkSearch" type="search" placeholder="Rechnung, Dienstleister, Vorgang">
         </div>
       </div>

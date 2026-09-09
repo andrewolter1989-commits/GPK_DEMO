@@ -20,7 +20,7 @@ function showToast(text){
   showToast.timer=setTimeout(()=>toastEl.hidden=true,2400);
 }
 function save(){try{GPK.write(GPK.KEYS.invoiceChecks,checks)}catch(_){}}
-function statusLabel(s){return ({ok:"OK",diff:"Abweichung",unmatched:"Nicht zugeordnet"})[s]||s;}
+function statusLabel(s){return ({ok:"OK",diff:"Abweichung",clarification:"In Klärung",unmatched:"Nicht zugeordnet"})[s]||s;}
 
 function operationStatusForCheck(c){const o=findOperationById?.(c.operation);return o?.status||""}
 function operationStatusLabel(v){return ({open:"Offen",waiting:"Warten auf Antwort",confirmed:"Bestätigt",booked:"Gebucht",closed:"Abgeschlossen"})[v]||"—"}
@@ -37,7 +37,7 @@ function renderChecks(){
     <td><strong class="price-cell">${euro(c.expected)}</strong></td>
     <td><strong class="price-cell">${c.actual?euro(c.actual):"—"}</strong></td>
     <td><strong class="${c.diff>0?"invoice-diff-pos":"invoice-diff-zero"}">${c.diff?("+"+euro(c.diff)):c.status==="unmatched"?"—":"0 €"}</strong></td>
-    <td><span class="status-pill ${c.status==="ok"?"active":c.status==="diff"?"future":"inactive"}">${statusLabel(c.status)}</span></td>
+    <td><span class="status-pill ${c.status==="ok"?"active":c.status==="diff"?"future":c.status==="clarification"?"review":"inactive"}">${statusLabel(c.status)}</span></td>
     <td class="row-actions"><button class="icon-button" title="Details">›</button></td>
   </tr>`).join("");
 }
@@ -120,7 +120,8 @@ manualInvoiceForm.addEventListener("submit",e=>{
   const floaterAmount=Number.isFinite(storedFloaterAmount)?storedFloaterAmount:base*(Number(floater.value||0)/100);
   const expected=Number(linkedOperation?.price)||base+floaterAmount+storedAncillary;
   const diff=actual-expected;
-  const status=Math.abs(diff)<=2 ? "ok" : "diff";
+  const selectedReview=document.getElementById("invReviewStatus")?.value||"auto";
+  const status=selectedReview==="auto"?(Math.abs(diff)<=2?"ok":"diff"):selectedReview;
 
   resultInvoiceAmount.textContent=euro(actual);
   resultBase.textContent=euro(base);

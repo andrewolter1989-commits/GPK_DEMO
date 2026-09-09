@@ -20,7 +20,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item active" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.39</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.40</div>
   </aside>
 
   <main class="workspace settings-workspace">
@@ -115,7 +115,8 @@
             <div class="panel-head"><div><h3>Vorgangsnummern</h3><p>Nummernkreis für neue Anfragen und Buchungen.</p></div></div>
             <div class="settings-form-grid">
               <div class="field"><label for="operationPrefixSetting">Präfix</label><input id="operationPrefixSetting" value="GPK"></div>
-              <div class="field"><label for="operationNumberFormatSetting">Format</label><select id="operationNumberFormatSetting"><option value="date-seq">Präfix-JJMMTT-Laufnummer</option><option value="seq">Präfix-Laufnummer</option><option value="datetime">Präfix-JJMMTT-Uhrzeit</option></select></div>
+              <div class="field"><label for="operationNumberFormatSetting">Format</label><select id="operationNumberFormatSetting"><option value="date-seq">Präfix-JJMMTT-Laufnummer</option><option value="seq">Präfix-Laufnummer</option><option value="datetime">Präfix-JJMMTT-Uhrzeit</option><option value="custom">Eigenes Format</option></select></div>
+              <div class="field span-2" id="operationCustomFormatWrap" hidden><label for="operationCustomFormatSetting">Eigenes Format</label><input id="operationCustomFormatSetting" value="{PREFIX}-{YY}{MM}{DD}-{SEQ4}" placeholder="{PREFIX}-{YY}{MM}{DD}-{SEQ4}"><small class="field-hint">Verfügbare Platzhalter: {PREFIX}, {YYYY}, {YY}, {MM}, {DD}, {SEQ}, {SEQ4}</small></div>
               <div class="field"><label for="operationNextSequenceSetting">Nächste Laufnummer</label><input id="operationNextSequenceSetting" type="number" min="1" step="1" value="1"></div>
               <div class="field"><label>Beispiel</label><div class="numbering-example" id="operationNumberPreview">GPK-260909-0001</div></div>
             </div>
