@@ -22,8 +22,22 @@ function saveCalcFieldSettings(){
   const cfg={};document.querySelectorAll("[data-calc-required]").forEach(el=>cfg[el.dataset.calcRequired]=Boolean(el.checked));
   localStorage.setItem(CALC_FIELD_CONFIG_KEY,JSON.stringify(cfg));
 }
-document.getElementById("saveSettingsBtn").addEventListener("click",()=>{saveCalcFieldSettings();showToast("Einstellungen wurden gespeichert.");});
-document.addEventListener("DOMContentLoaded",loadCalcFieldSettings);
+const OP_NUMBER_KEY="gpk_operation_numbering_v1";
+function loadOperationNumbering(){
+  let cfg={prefix:"GPK",format:"date-seq",next:1};try{cfg={...cfg,...JSON.parse(localStorage.getItem(OP_NUMBER_KEY)||"{}")};}catch(_){}
+  operationPrefixSetting.value=cfg.prefix||"GPK";operationNumberFormatSetting.value=cfg.format||"date-seq";operationNextSequenceSetting.value=Math.max(1,Number(cfg.next)||1);updateOperationNumberPreview();
+}
+function updateOperationNumberPreview(){
+  const now=new Date(),yy=String(now.getFullYear()).slice(-2),mm=String(now.getMonth()+1).padStart(2,"0"),dd=String(now.getDate()).padStart(2,"0");
+  const p=(operationPrefixSetting.value||"GPK").trim().toUpperCase(),n=String(Math.max(1,Number(operationNextSequenceSetting.value)||1)).padStart(4,"0"),f=operationNumberFormatSetting.value;
+  operationNumberPreview.textContent=f==="seq"?`${p}-${n}`:f==="datetime"?`${p}-${yy}${mm}${dd}-HHMMSS`:`${p}-${yy}${mm}${dd}-${n}`;
+}
+function saveOperationNumbering(){
+  localStorage.setItem(OP_NUMBER_KEY,JSON.stringify({prefix:(operationPrefixSetting.value||"GPK").trim().toUpperCase(),format:operationNumberFormatSetting.value||"date-seq",next:Math.max(1,Number(operationNextSequenceSetting.value)||1)}));
+}
+[operationPrefixSetting,operationNumberFormatSetting,operationNextSequenceSetting].forEach(el=>el?.addEventListener("input",updateOperationNumberPreview));
+document.getElementById("saveSettingsBtn").addEventListener("click",()=>{saveCalcFieldSettings();saveOperationNumbering();showToast("Einstellungen wurden gespeichert.");});
+document.addEventListener("DOMContentLoaded",()=>{loadCalcFieldSettings();loadOperationNumbering();});
 document.getElementById("addUserBtn").addEventListener("click",()=>showToast("Benutzerverwaltung wird beim Login-/Backend-Schritt angebunden."));
 document.getElementById("addDomainBtn").addEventListener("click",()=>showToast("Domain-Verwaltung wird beim Hosting-Schritt angebunden."));
 

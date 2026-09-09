@@ -21,6 +21,9 @@ function showToast(text){
 }
 function save(){try{GPK.write(GPK.KEYS.invoiceChecks,checks)}catch(_){}}
 function statusLabel(s){return ({ok:"OK",diff:"Abweichung",unmatched:"Nicht zugeordnet"})[s]||s;}
+
+function operationStatusForCheck(c){const o=findOperationById?.(c.operation);return o?.status||""}
+function operationStatusLabel(v){return ({open:"Offen",waiting:"Warten auf Antwort",confirmed:"Bestätigt",booked:"Gebucht",closed:"Abgeschlossen"})[v]||"—"}
 function renderChecks(){
   const q=search.value.trim().toLowerCase(), sf=statusFilter.value;
   const filtered=checks.filter(c=>{

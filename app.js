@@ -755,6 +755,12 @@ function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weig
   for(const key of ["pickupDate","deliveryDate","pallets","slots","weight","length","width","height","volume","nonStackable","avis"]){
     if(cfg[key] && !checks[key]) return `Bitte das Pflichtfeld „${calcFieldLabel(key)}“ ausfüllen.`;
   }
+  const enteredHeight=parseNumberFlexible(document.getElementById("shipmentHeight")?.value||"");
+  if(Number.isFinite(pallets)&&pallets>100)return "Maximal 100 Paletten pro Sendung.";
+  const maxSlots=shipmentType==="jumbo"?38:34;
+  if(Number.isFinite(slots)&&slots>maxSlots)return `Maximal ${maxSlots} Stellplätze bei ${SHIPMENT_TYPES[shipmentType]?.label||shipmentType}.`;
+  const maxHeightCm=(shipmentType==="jumbo"||shipmentType==="mega")?300:270;
+  if(Number.isFinite(enteredHeight)&&enteredHeight>maxHeightCm)return `Maximale Höhe ${String(maxHeightCm/100).replace(".",",")} m bei ${SHIPMENT_TYPES[shipmentType]?.label||shipmentType}.`;
   if (shipmentType === "teilladung" && !([loadMeters, weight, pallets, slots].some(Number.isFinite))) return "Bitte mindestens Lademeter, Gewicht, Paletten oder Stellplätze eingeben.";
   return null;
 }
@@ -967,12 +973,12 @@ function writeDemoStore(key, value) {
 }
 
 function makeOperationId() {
-  const now = new Date();
-  const yy = String(now.getFullYear()).slice(-2);
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  const time = String(now.getHours()).padStart(2, "0") + String(now.getMinutes()).padStart(2, "0") + String(now.getSeconds()).padStart(2, "0");
-  return `GPK-${yy}${mm}${dd}-${time}`;
+  const KEY="gpk_operation_numbering_v1",now=new Date();
+  let cfg={prefix:"GPK",format:"date-seq",next:1};try{cfg={...cfg,...JSON.parse(localStorage.getItem(KEY)||"{}")};}catch(_){}
+  const prefix=String(cfg.prefix||"GPK").trim().toUpperCase()||"GPK",yy=String(now.getFullYear()).slice(-2),mm=String(now.getMonth()+1).padStart(2,"0"),dd=String(now.getDate()).padStart(2,"0");
+  if(cfg.format==="datetime"){const time=String(now.getHours()).padStart(2,"0")+String(now.getMinutes()).padStart(2,"0")+String(now.getSeconds()).padStart(2,"0");return `${prefix}-${yy}${mm}${dd}-${time}`;}
+  const seq=Math.max(1,Number(cfg.next)||1);cfg.next=seq+1;try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(_){}
+  const n=String(seq).padStart(4,"0");return cfg.format==="seq"?`${prefix}-${n}`:`${prefix}-${yy}${mm}${dd}-${n}`;
 }
 
 function getCurrentOffer(forwarder) {
@@ -1021,6 +1027,10 @@ function getCurrentWorkflowData(forwarder) {
     deliveryRaw,
     pickup: formatDisplayDate(pickupRaw),
     delivery: formatDisplayDate(deliveryRaw),
+    weight,pallets,slots,volume,nonStackable,avis,
+    length:parseNumberFlexible(document.getElementById("shipmentLength")?.value||""),
+    width:parseNumberFlexible(document.getElementById("shipmentWidth")?.value||""),
+    height:parseNumberFlexible(document.getElementById("shipmentHeight")?.value||""),
     note: document.getElementById("freeText")?.value?.trim() || "",
   };
 }
@@ -1085,6 +1095,8 @@ function saveWorkflowOperation(forwarder, kind) {
     floaterPercent: d.floaterPercent,
     floaterAmount: d.floaterAmount,
     ancillaryAmount: Number(d.ancillaryAmount||0)||0,
+    weight:d.weight,pallets:d.pallets,slots:d.slots,volume:d.volume,
+    length:d.length,width:d.width,height:d.height,nonStackable:d.nonStackable,avis:d.avis,
     history: [],
   };
   list.unshift(operation);

@@ -23,6 +23,9 @@ const search=document.getElementById("operationSearch");
 const statusFilter=document.getElementById("operationStatusFilter");
 const userFilter=document.getElementById("operationUserFilter");
 const periodFilter=document.getElementById("operationPeriodFilter");
+const countryFilter=document.getElementById("operationCountryFilter");
+const deliveryFilter=document.getElementById("operationDeliveryFilter");
+let activeKpiFilter="";
 const dateFrom=document.getElementById("operationDateFrom");
 const dateTo=document.getElementById("operationDateTo");
 const periodKpiLabel=document.getElementById("periodKpiLabel");
@@ -99,6 +102,16 @@ function timelineHtml(o){
 
 function esc(v=""){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 function euro(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n)}
+function euroMoney(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)}
+function deliveryDateValue(o){
+  const raw=String(o.delivery||o.date||"").trim();let m=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if(m)return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));if(/^\d{4}-\d{2}-\d{2}$/.test(raw))return new Date(raw+"T00:00:00");return null;
+}
+function destinationCountry(o){const m=String(o.relation||"").match(/(?:→|->)\s*([A-Z]{2})\s*(\d{4,5})/);return m?.[1]||""}
+function destinationLabel(o){const m=String(o.relation||"").match(/(?:→|->)\s*([A-Z]{2})\s*(\d{4,5})/);return m?`${m[1]} ${m[2]}`:String(o.relation||"")}
+function isDeliveryOpen(o){return o.status!=="closed"&&["booking","availability"].includes(o.type)}
+function deliveryMatches(o){const v=deliveryFilter?.value;if(!v)return true;const d=deliveryDateValue(o);if(!d)return false;const today=new Date();today.setHours(0,0,0,0);d.setHours(0,0,0,0);if(v==="overdue")return isDeliveryOpen(o)&&d<today;const end=new Date(today);end.setDate(end.getDate()+Number(v));return isDeliveryOpen(o)&&d>=today&&d<=end}
+function kpiMatches(o){if(!activeKpiFilter)return true;if(activeKpiFilter==="open")return o.status==="open";if(activeKpiFilter==="waiting")return o.status==="waiting";const d=deliveryDateValue(o),today=new Date();today.setHours(0,0,0,0);if(activeKpiFilter==="deliveries")return isDeliveryOpen(o)&&d&&d>=today;if(activeKpiFilter==="overdue")return isDeliveryOpen(o)&&d&&d<today;return true}
 function operationDate(o){
   if(o.createdAt){ const d=new Date(o.createdAt); if(!isNaN(d)) return d; }
   const raw=String(o.created||"").match(/(\d{2})\.(\d{2})\.(\d{4})/);
@@ -122,19 +135,15 @@ function periodMatches(o){
   return true;
 }
 function render(){
-  const q=search.value.trim().toLowerCase(), sf=statusFilter.value, uf=userFilter.value;
-  const filtered=operations.filter(o=>{
-    const hay=`${o.id} ${o.relation} ${o.provider} ${o.customer} ${o.user} ${o.transport}`.toLowerCase();
-    return (!activeType||o.type===activeType)&&(!q||hay.includes(q))&&(!sf||o.status===sf)&&(!uf||o.user===uf)&&periodMatches(o);
-  });
-  openCount.textContent=filtered.filter(o=>o.status==="open").length;
-  waitingCount.textContent=filtered.filter(o=>o.status==="waiting").length;
-  bookedCount.textContent=filtered.filter(o=>o.status==="booked"||o.status==="confirmed").length;
-  weekCount.textContent=filtered.length;
-  if(periodKpiLabel){
-    const labels={today:"Heute",week:"Diese Woche",month:"Dieser Monat","30days":"Letzte 30 Tage",custom:"Eigener Zeitraum"};
-    periodKpiLabel.textContent=labels[periodFilter?.value]||"Gesamt";
-  }
+  const q=search.value.trim().toLowerCase(),sf=statusFilter.value,uf=userFilter.value,cf=countryFilter?.value||"";
+  const baseFiltered=operations.filter(o=>{const hay=`${o.id} ${o.relation} ${o.provider} ${o.customer} ${o.user} ${o.transport}`.toLowerCase();return (!activeType||o.type===activeType)&&(!q||hay.includes(q))&&(!sf||o.status===sf)&&(!uf||o.user===uf)&&(!cf||destinationCountry(o)===cf)&&periodMatches(o)&&deliveryMatches(o);});
+  const filtered=baseFiltered.filter(kpiMatches),allForKpis=operations.filter(o=>(!cf||destinationCountry(o)===cf)&&periodMatches(o));
+  const today=new Date();today.setHours(0,0,0,0);
+  openCount.textContent=allForKpis.filter(o=>o.status==="open").length;
+  waitingCount.textContent=allForKpis.filter(o=>o.status==="waiting").length;
+  bookedCount.textContent=allForKpis.filter(o=>{const d=deliveryDateValue(o);return isDeliveryOpen(o)&&d&&d>=today}).length;
+  weekCount.textContent=allForKpis.filter(o=>{const d=deliveryDateValue(o);return isDeliveryOpen(o)&&d&&d<today}).length;
+  document.querySelectorAll("[data-kpi-filter]").forEach(b=>b.classList.toggle("active",b.dataset.kpiFilter===activeKpiFilter));
   visibleOperationCount.textContent=filtered.length;
   rows.innerHTML=filtered.map(o=>`<tr class="operation-row" data-id="${o.id}">
     <td><div class="operation-id"><strong>${esc(o.id)}</strong><span class="operation-type ${o.type}">${labels[o.type]}</span>${o.createdAt?'<span class="workflow-new">Neu</span>':''}</div><small>${esc(o.created)}</small></td>
@@ -170,7 +179,7 @@ function openOperation(o){
   detail.innerHTML=`
     <div class="operation-summary-grid">
       <div><span>Typ</span><strong>${labels[o.type]}</strong></div><div><span>Status</span><strong>${statuses[o.status]}</strong></div>
-      <div><span>Relation</span><strong>${esc(o.relation)}</strong></div><div><span>Transport</span><strong>${esc(o.transport)}</strong></div>
+      <div><span>Ziel</span><strong>${esc(destinationLabel(o))}</strong></div><div><span>Transport</span><strong>${esc(o.transport)}</strong></div>
       <div><span>Dienstleister</span><strong>${esc(o.provider)}</strong></div><div><span>Gesamtpreis</span><strong>${euro(o.price)}</strong></div>
       <div><span>Empfänger</span><strong>${esc(o.customer)}</strong></div><div><span>Liefertermin</span><strong>${esc(o.date)}</strong></div>
     </div>
@@ -186,7 +195,19 @@ function openOperation(o){
       </div>
       <div class="operation-manual-price">
         <label for="operationEditPrice">Gesamtpreis manuell bearbeiten</label>
-        <div class="operation-price-edit-row"><div class="input-suffix"><input id="operationEditPrice" type="number" min="0" step="0.01" value="${Number(o.price)||0}"><span>€</span></div><small>Änderungen werden mit Datum und Benutzer im Verlauf protokolliert.</small></div>
+        <div class="operation-price-edit-row"><div class="input-suffix"><input id="operationEditPrice" type="number" min="0" step="0.01" value="${Number(o.price)||0}"><span>€</span></div><div class="field"><label for="operationPriceReason">Begründung</label><input id="operationPriceReason" type="text" placeholder="z. B. Sondervereinbarung / Wartezeit / Korrektur"></div></div><small class="audit-helper">Preisänderungen benötigen eine Begründung und werden mit Datum und Benutzer protokolliert.</small>
+      </div>
+    </div>
+
+    <div class="operation-shipment-edit">
+      <div class="operation-section-head"><div><h3>Sendungsdaten bearbeiten</h3><p>Änderungen werden ebenfalls im Verlauf protokolliert.</p></div></div>
+      <div class="operation-shipment-grid">
+        <div class="field"><label for="operationEditWeight">Gewicht</label><div class="input-suffix"><input id="operationEditWeight" type="number" min="0" step="1" value="${Number(o.weight)||""}"><span>kg</span></div></div>
+        <div class="field"><label for="operationEditPallets">Paletten</label><div class="input-suffix"><input id="operationEditPallets" type="number" min="0" max="100" step="1" value="${Number(o.pallets)||""}"><span>PLL</span></div></div>
+        <div class="field"><label for="operationEditSlots">Stellplätze</label><div class="input-suffix"><input id="operationEditSlots" type="number" min="0" step="1" value="${Number(o.slots)||""}"><span>Stpl.</span></div></div>
+        <div class="field"><label for="operationEditHeight">Höhe</label><div class="input-suffix"><input id="operationEditHeight" type="number" min="0" step="1" value="${Number(o.height)||""}"><span>cm</span></div></div>
+        <label class="operation-inline-check"><input id="operationEditAvis" type="checkbox" ${o.avis?"checked":""}><span>Avis</span></label>
+        <label class="operation-inline-check"><input id="operationEditNonStackable" type="checkbox" ${o.nonStackable?"checked":""}><span>Nicht stapelbar</span></label>
       </div>
     </div>
 
@@ -206,7 +227,10 @@ function closeModal(){modal.hidden=true;document.body.classList.remove("modal-op
 document.querySelectorAll(".operations-tab").forEach(btn=>btn.addEventListener("click",()=>{
   document.querySelectorAll(".operations-tab").forEach(x=>x.classList.toggle("active",x===btn));activeType=btn.dataset.type;render();
 }));
-[search,statusFilter,userFilter].forEach(x=>x?.addEventListener("input",render));
+function populateCountryFilter(){const current=countryFilter?.value||"",countries=[...new Set(operations.map(destinationCountry).filter(Boolean))].sort();if(countryFilter){countryFilter.innerHTML=`<option value="">Alle Länder</option>${countries.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}`;if(countries.includes(current))countryFilter.value=current;}}
+populateCountryFilter();
+[search,statusFilter,userFilter,countryFilter,deliveryFilter].forEach(x=>{x?.addEventListener("input",render);x?.addEventListener("change",render);});
+document.querySelectorAll("[data-kpi-filter]").forEach(btn=>btn.addEventListener("click",()=>{activeKpiFilter=activeKpiFilter===btn.dataset.kpiFilter?"":btn.dataset.kpiFilter;render();}));
 periodFilter?.addEventListener("change",()=>{customPeriod.hidden=periodFilter.value!=="custom";if(periodFilter.value!=="custom")render();});
 applyOperationDates?.addEventListener("click",render);
 clearOperationDates?.addEventListener("click",()=>{dateFrom.value="";dateTo.value="";periodFilter.value="";customPeriod.hidden=true;render();});
@@ -219,28 +243,21 @@ rows.addEventListener("click",e=>{
 closeOperationModalBtn.addEventListener("click",closeModal);closeOperationBtn.addEventListener("click",closeModal);
 demoActionBtn.addEventListener("click",()=>{
   const o=operations.find(x=>x.id===currentOperationId);if(!o)return;
-  const type=document.getElementById("operationEditType")?.value;
-  const status=document.getElementById("operationEditStatus")?.value;
-  const price=Number(document.getElementById("operationEditPrice")?.value);
+  const type=document.getElementById("operationEditType")?.value,status=document.getElementById("operationEditStatus")?.value,price=Number(document.getElementById("operationEditPrice")?.value),reason=document.getElementById("operationPriceReason")?.value.trim()||"";
+  const weight=Number(document.getElementById("operationEditWeight")?.value),pallets=Number(document.getElementById("operationEditPallets")?.value),slots=Number(document.getElementById("operationEditSlots")?.value),height=Number(document.getElementById("operationEditHeight")?.value),avis=Boolean(document.getElementById("operationEditAvis")?.checked),nonStackable=Boolean(document.getElementById("operationEditNonStackable")?.checked);
   const oldType=o.type,oldStatus=o.status,oldPrice=Number(o.price)||0;
-
-  if(type&&type!==oldType){
-    o.type=type;
-    addHistory(o,{type:"type",from:oldType,to:type,text:`Vorgangsart geändert: ${labels[oldType]||oldType} → ${labels[type]||type}.`});
-  }
-  if(status&&status!==oldStatus){
-    o.status=status;
-    addHistory(o,{type:"status",from:oldStatus,to:status,text:`Status geändert: ${statuses[oldStatus]||oldStatus} → ${statuses[status]||status}.`});
-  }
-  if(Number.isFinite(price)&&price>=0&&Math.abs(price-oldPrice)>.009){
-    o.price=Math.round(price*100)/100;
-    const partsBefore=operationPriceParts({...o,price:oldPrice});
-    const calculated=partsBefore.base+partsBefore.floaterAmt+partsBefore.ancillary;
-    o.manualPriceDelta=Math.round((o.price-calculated)*100)/100;
-    addHistory(o,{type:"price",from:oldPrice,to:o.price,text:`Preis händisch geändert: ${euro(oldPrice)} → ${euro(o.price)}.`});
-  }
-  o.updatedAt=isoNow();
-  saveOperations();render();openOperation(o);
-  const t=document.getElementById("operationToast");t.textContent="Vorgang aktualisiert und protokolliert.";t.hidden=false;setTimeout(()=>t.hidden=true,2400);
+  if(Number.isFinite(pallets)&&pallets>100){alert("Maximal 100 Paletten.");return;}
+  const tt=String(o.transport||"").toLowerCase(),maxSlots=tt.includes("jumbo")?38:34,maxHeight=tt.includes("jumbo")||tt.includes("mega")?300:270;
+  if(Number.isFinite(slots)&&slots>maxSlots){alert(`Maximal ${maxSlots} Stellplätze für diese Transportart.`);return;}
+  if(Number.isFinite(height)&&height>maxHeight){alert(`Maximale Höhe ${String(maxHeight/100).replace(".",",")} m für diese Transportart.`);return;}
+  if(Number.isFinite(price)&&price>=0&&Math.abs(price-oldPrice)>.009&&!reason){alert("Bitte eine Begründung für die manuelle Preisänderung eingeben.");return;}
+  if(type&&type!==oldType){o.type=type;addHistory(o,{type:"type",from:oldType,to:type,text:`Vorgangsart geändert: ${labels[oldType]||oldType} → ${labels[type]||type}.`});}
+  if(status&&status!==oldStatus){o.status=status;addHistory(o,{type:"status",from:oldStatus,to:status,text:`Status geändert: ${statuses[oldStatus]||oldStatus} → ${statuses[status]||status}.`});}
+  if(Number.isFinite(price)&&price>=0&&Math.abs(price-oldPrice)>.009){o.price=Math.round(price*100)/100;const partsBefore=operationPriceParts({...o,price:oldPrice}),calculated=partsBefore.base+partsBefore.floaterAmt+partsBefore.ancillary;o.manualPriceDelta=Math.round((o.price-calculated)*100)/100;o.manualPriceReason=reason;addHistory(o,{type:"price",from:oldPrice,to:o.price,reason,text:`Preis händisch geändert: ${euroMoney(oldPrice)} → ${euroMoney(o.price)}. Grund: ${reason}`});}
+  [["weight",weight,"Gewicht","kg"],["pallets",pallets,"Paletten","PLL"],["slots",slots,"Stellplätze",""],["height",height,"Höhe","cm"]].forEach(([key,val,label,unit])=>{if(Number.isFinite(val)&&val>=0&&Number(o[key]||0)!==val){const old=Number(o[key]||0);o[key]=val;addHistory(o,{type:"shipment",field:key,from:old,to:val,text:`${label} geändert: ${old||"—"} → ${val}${unit?" "+unit:""}.`});}});
+  if(Boolean(o.avis)!==avis){o.avis=avis;addHistory(o,{type:"shipment",field:"avis",text:`Avis ${avis?"hinzugefügt":"entfernt"}.`});}
+  if(Boolean(o.nonStackable)!==nonStackable){o.nonStackable=nonStackable;addHistory(o,{type:"shipment",field:"nonStackable",text:`Nicht stapelbar ${nonStackable?"hinzugefügt":"entfernt"}.`});}
+  const transportBase=String(o.transport||"").split(" · ")[0],parts=[transportBase];if(Number(o.weight)>0)parts.push(`${new Intl.NumberFormat("de-DE").format(o.weight)} kg`);if(Number(o.pallets)>0)parts.push(`${o.pallets} Paletten`);if(o.avis)parts.push("Avis");if(o.nonStackable)parts.push("nicht stapelbar");o.transport=parts.join(" · ");
+  o.updatedAt=isoNow();saveOperations();render();openOperation(o);const t=document.getElementById("operationToast");t.textContent="Vorgang aktualisiert und protokolliert.";t.hidden=false;setTimeout(()=>t.hidden=true,2400);
 });
 render();

@@ -20,7 +20,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.38</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.39</div>
   </aside>
 
   <main class="workspace masterdata-workspace operations-workspace">
@@ -37,10 +37,10 @@
       </div>
 
       <div class="provider-kpis operations-kpis">
-        <div class="provider-kpi"><span>Offene Anfragen</span><strong id="openCount">0</strong></div>
-        <div class="provider-kpi"><span>Warten auf Antwort</span><strong id="waitingCount">0</strong></div>
-        <div class="provider-kpi"><span>Gebucht</span><strong id="bookedCount">0</strong></div>
-        <div class="provider-kpi"><span id="periodKpiLabel">Gesamt</span><strong id="weekCount">0</strong></div>
+        <button class="provider-kpi operation-kpi-filter" type="button" data-kpi-filter="open"><span>Offene Anfragen</span><strong id="openCount">0</strong></button>
+        <button class="provider-kpi operation-kpi-filter" type="button" data-kpi-filter="waiting"><span>Warten auf Antwort</span><strong id="waitingCount">0</strong></button>
+        <button class="provider-kpi operation-kpi-filter" type="button" data-kpi-filter="deliveries"><span>Offene Lieferungen</span><strong id="bookedCount">0</strong></button>
+        <button class="provider-kpi operation-kpi-filter" type="button" data-kpi-filter="overdue"><span>Verspätete Lieferungen</span><strong id="weekCount">0</strong></button>
       </div>
 
       <div class="operations-tabs" role="tablist" aria-label="Vorgangsarten">
@@ -65,6 +65,10 @@
           <option value="Disposition">Disposition</option>
           <option value="Vertrieb">Vertrieb</option>
           <option value="Andre Wolter">Andre Wolter</option>
+        </select>
+        <select id="operationCountryFilter"><option value="">Alle Länder</option></select>
+        <select id="operationDeliveryFilter" title="Offene Liefertermine">
+          <option value="">Alle Liefertermine</option><option value="7">Offen: heute bis +7 Tage</option><option value="14">Offen: heute bis +14 Tage</option><option value="30">Offen: heute bis +30 Tage</option><option value="overdue">Überfällig</option>
         </select>
         <select id="operationPeriodFilter" title="Zeitraum">
           <option value="">Alle Zeiträume</option>
