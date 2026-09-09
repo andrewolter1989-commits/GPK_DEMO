@@ -3614,3 +3614,47 @@ body.planning-mode .calculator-shipment-layout{
   .import-master-row-inline #gpkTariffAutoProvider{width:100%;min-width:220px}
   .import-inline-version{width:130px}
 }
+
+
+/* v6.36 – Kalkulationslayout & stabiler Mehrfach-Länderfilter */
+.shipment-quick-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+  gap:12px;
+  align-items:end;
+  margin-top:10px;
+}
+.shipment-quick-row .dimensions-toggle-under{
+  width:100%;
+  min-height:44px;
+  margin:0;
+}
+.shipment-quick-row .quick-weight-field{
+  grid-column:2;
+}
+.shipment-option-stack{
+  display:grid!important;
+  grid-template-columns:1fr 1fr;
+  gap:10px!important;
+  margin-top:10px;
+}
+.shipment-option-stack .sperrigkeit-check{
+  margin:0!important;
+  min-height:68px;
+}
+.multi-country-tab{
+  flex:0 0 auto;
+}
+.compact-country-panel .auto-filter-empty{
+  display:block;
+  padding:5px 0;
+}
+@media(max-width:900px){
+  .shipment-quick-row{grid-template-columns:1fr 1fr}
+  .shipment-quick-row .quick-weight-field{grid-column:2}
+  .shipment-option-stack{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .shipment-quick-row{grid-template-columns:1fr}
+  .shipment-quick-row .quick-weight-field{grid-column:1}
+}
