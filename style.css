@@ -3570,3 +3570,29 @@ body.planning-mode .calculator-shipment-layout{
 .plaus-status.warning{background:#fff2da;color:#8a5c10}
 .plaus-status.info{background:#eaf4f7;color:#356674}
 @media(max-width:900px){.audit-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.zone-compare-controls{width:100%}}
+
+
+/* v6.34 – Tarifimport Workflow / kompakte Stammdatenzeile */
+.import-master-row{display:grid!important;grid-template-columns:minmax(520px,1.35fr) minmax(240px,.65fr);gap:14px!important;align-items:end;padding-bottom:12px!important}
+.import-master-provider,.import-version-field{margin:0!important;min-width:0}
+.import-provider-select-row{display:grid!important;grid-template-columns:minmax(300px,1fr) 48px minmax(190px,.46fr);gap:8px!important;align-items:center}
+.import-provider-select-row select,.import-version-field input{height:46px!important;font-size:14px!important}
+.import-square-button{height:46px!important;min-width:48px!important;padding:0!important;font-size:17px}
+.import-create-provider-btn{height:46px!important;white-space:nowrap;padding:0 16px!important;font-weight:800}
+.import-version-field label{display:block;margin-bottom:6px}
+.import-provider-workflow{display:none!important}
+.country-before-blocks{margin-top:0!important;padding-top:8px!important;padding-bottom:10px!important;border-top:0!important;border-bottom:1px solid #e3ecef}
+.compact-country-tabs{display:flex!important;flex-wrap:nowrap!important;gap:5px!important;overflow-x:auto;padding-bottom:3px}
+.compact-country-tabs .auto-filter-tab{flex:0 0 auto;min-width:38px;height:32px;padding:0 10px!important}
+.auto-import-block-list{margin-top:10px}
+.compact-block-card{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:5px!important;padding:6px 7px!important}
+.block-select-label{display:flex;align-items:center;gap:8px;min-width:0;flex:1;cursor:pointer}
+.block-select-label .auto-block-main{min-width:0;flex:1}
+.block-select-label .auto-block-title{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.block-select-label strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.block-card-actions{display:flex;gap:3px;flex:0 0 auto}
+.block-card-actions button{width:24px;height:24px;border:1px solid #d3e1e5;border-radius:6px;background:#fff;color:#456873;cursor:pointer;padding:0;font-weight:800}
+.block-card-actions button:hover{border-color:#8fbec8;background:#f2fafb;color:#006f82}
+.auto-import-summary-compact{padding:5px 1px 8px!important;margin-bottom:0!important;border-bottom:0!important;gap:4px 9px!important;white-space:nowrap}
+.auto-import-blocks{padding-top:11px!important}
+@media(max-width:1000px){.import-master-row{grid-template-columns:1fr!important}.import-provider-select-row{grid-template-columns:minmax(0,1fr) 48px}.import-create-provider-btn{grid-column:1/-1}.import-version-field{max-width:none!important}}
