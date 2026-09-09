@@ -3596,3 +3596,21 @@ body.planning-mode .calculator-shipment-layout{
 .auto-import-summary-compact{padding:5px 1px 8px!important;margin-bottom:0!important;border-bottom:0!important;gap:4px 9px!important;white-space:nowrap}
 .auto-import-blocks{padding-top:11px!important}
 @media(max-width:1000px){.import-master-row{grid-template-columns:1fr!important}.import-provider-select-row{grid-template-columns:minmax(0,1fr) 48px}.import-create-provider-btn{grid-column:1/-1}.import-version-field{max-width:none!important}}
+
+
+/* v6.35 – Tarifimport: Mehrfach-Länder, kompakte Kopfzeile, Sortierung */
+.import-master-row-inline{display:block!important}
+.import-master-row-inline .import-master-provider{max-width:none!important}
+.import-master-row-inline .import-provider-select-row{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+.import-master-row-inline #gpkTariffAutoProvider{width:min(430px,40vw);min-width:260px}
+.import-inline-version{display:flex;flex-direction:column;gap:5px;width:150px}
+.import-inline-version label{font-size:11px;font-weight:800;color:#234956}
+.import-inline-version input{height:46px;width:100%;border:1px solid #c8d9de;border-radius:9px;padding:0 12px;background:#fff}
+.multi-country-tab.selected{background:#e8f5f7;border-color:#78bbc7;color:#07576a}
+.multi-country-tab.active-preview{background:#004f60!important;color:#fff!important;border-color:#004f60!important;box-shadow:0 0 0 2px rgba(0,79,96,.08)}
+.compact-country-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+#rateSort{min-width:145px}
+@media(max-width:900px){
+  .import-master-row-inline #gpkTariffAutoProvider{width:100%;min-width:220px}
+  .import-inline-version{width:130px}
+}
