@@ -3889,3 +3889,9 @@ body.planning-mode .calculator-shipment-layout{
   background:#f8f1f3;
   border-color:#dfcfd5;
 }
+
+
+/* v6.44 – Tarifzone ≠ PLZ-Regel */
+.zone-assignment-input{min-width:280px;font-weight:700}
+.matrix-zone-head .matrix-region{max-width:170px;white-space:normal;line-height:1.15}
+.auto-import-summary-compact{gap:10px}
