@@ -16,6 +16,16 @@ const toastEl = document.getElementById("invoiceToast");
 let editingCheckId="";
 const invoiceSubmitBtn=document.getElementById("invoiceSubmitBtn");
 const cancelInvoiceEditBtn=document.getElementById("cancelInvoiceEditBtn");
+const checkCountEl=document.getElementById("checkCount");
+const okCountEl=document.getElementById("okCount");
+const diffCountEl=document.getElementById("diffCount");
+const clarificationCountEl=document.getElementById("clarificationCount");
+const unmatchedCountEl=document.getElementById("unmatchedCount");
+const okShareEl=document.getElementById("okShare");
+const diffSumEl=document.getElementById("diffSum");
+let activeInvoiceKpi="";
+const PRICE_EPSILON=0.009;
+
 
 
 function euro(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(n)||0);}
@@ -25,14 +35,48 @@ function showToast(text){
 }
 function save(){try{GPK.write(GPK.KEYS.invoiceChecks,checks)}catch(_){}}
 function statusLabel(s){return ({ok:"OK",diff:"Abweichung",clarification:"In Klärung",unmatched:"Nicht zugeordnet"})[s]||s;}
+function hasPriceDeviation(c){
+  return Number.isFinite(Number(c?.diff))&&Math.abs(Number(c.diff))>PRICE_EPSILON;
+}
+function normalizeCheckStatus(c){
+  if(!c)return c;
+  if(c.status==="ok"&&hasPriceDeviation(c))c.status="diff";
+  if(c.status==="diff"&&!hasPriceDeviation(c))c.status="ok";
+  return c;
+}
+checks=checks.map(normalizeCheckStatus);
+save();
+
+function renderInvoiceKpis(){
+  const total=checks.length;
+  const ok=checks.filter(c=>c.status==="ok").length;
+  const diff=checks.filter(c=>c.status==="diff").length;
+  const clarification=checks.filter(c=>c.status==="clarification").length;
+  const unmatched=checks.filter(c=>c.status==="unmatched").length;
+  const diffAmount=checks.filter(c=>c.status==="diff").reduce((sum,c)=>sum+Math.abs(Number(c.diff)||0),0);
+  checkCountEl.textContent=new Intl.NumberFormat("de-DE").format(total);
+  okCountEl.textContent=new Intl.NumberFormat("de-DE").format(ok);
+  diffCountEl.textContent=new Intl.NumberFormat("de-DE").format(diff);
+  clarificationCountEl.textContent=new Intl.NumberFormat("de-DE").format(clarification);
+  unmatchedCountEl.textContent=new Intl.NumberFormat("de-DE").format(unmatched);
+  okShareEl.textContent=total?`${Math.round(ok/total*100)} % ohne Abweichung`:"ohne Abweichung";
+  diffSumEl.textContent=`${euro(diffAmount)} Differenz`;
+  document.querySelectorAll("[data-invoice-kpi]").forEach(btn=>{
+    const active=(btn.dataset.invoiceKpi||"")===activeInvoiceKpi;
+    btn.classList.toggle("active",active);
+    btn.setAttribute("aria-pressed",active?"true":"false");
+  });
+}
+
 
 function operationStatusForCheck(c){const o=findOperationById?.(c.operation);return o?.status||""}
 function operationStatusLabel(v){return ({open:"Offen",waiting:"Warten auf Antwort",confirmed:"Bestätigt",booked:"Gebucht",closed:"Abgeschlossen"})[v]||"—"}
 function renderChecks(){
   const q=search.value.trim().toLowerCase(), sf=statusFilter.value;
+  const effectiveStatus=activeInvoiceKpi||sf;
   const filtered=checks.filter(c=>{
     const hay=`${c.invoice} ${c.provider} ${c.operation}`.toLowerCase();
-    return (!q||hay.includes(q))&&(!sf||c.status===sf);
+    return (!q||hay.includes(q))&&(!effectiveStatus||c.status===effectiveStatus);
   });
   rows.innerHTML=filtered.map(c=>`<tr class="invoice-history-row" data-check-id="${c.id}" tabindex="0" title="Prüfung öffnen und bearbeiten">
     <td><strong class="table-main">${c.invoice}</strong><small>${c.id}</small></td>
@@ -44,6 +88,7 @@ function renderChecks(){
     <td><span class="status-pill ${c.status==="ok"?"active":c.status==="diff"?"future":c.status==="clarification"?"review":"inactive"}">${statusLabel(c.status)}</span></td>
     <td class="row-actions"><button class="icon-button" type="button" data-edit-check="${c.id}" title="Prüfung bearbeiten">›</button></td>
   </tr>`).join("");
+  renderInvoiceKpis();
 }
 
 function findLocalTariff(provider, zip, transport){
@@ -164,7 +209,16 @@ manualInvoiceForm.addEventListener("submit",e=>{
   const expected=Number(linkedOperation?.price)||base+floaterAmount+storedAncillary;
   const diff=actual-expected;
   const selectedReview=document.getElementById("invReviewStatus")?.value||"auto";
-  const status=selectedReview==="auto"?(Math.abs(diff)<=2?"ok":"diff"):selectedReview;
+  let status=selectedReview==="auto"?(Math.abs(diff)<=PRICE_EPSILON?"ok":"diff"):selectedReview;
+  if(status==="ok"&&Math.abs(diff)>PRICE_EPSILON){
+    status="diff";
+    document.getElementById("invReviewStatus").value="diff";
+    showToast("OK ist bei einer Preisabweichung nicht möglich. Status wurde auf „Abweichung“ gesetzt.");
+  }else if(status==="diff"&&Math.abs(diff)<=PRICE_EPSILON){
+    status="ok";
+    document.getElementById("invReviewStatus").value="ok";
+    showToast("Ohne Preisabweichung ist der Prüfstatus „OK“.");
+  }
 
   resultInvoiceAmount.textContent=euro(actual);
   resultBase.textContent=euro(base);
@@ -172,7 +226,7 @@ manualInvoiceForm.addEventListener("submit",e=>{
   resultFloaterPeriod.textContent=`${deDate(floater.from)} – ${deDate(floater.to)}`;
   resultExpected.textContent=euro(expected);
   resultDifference.textContent=(diff>0?"+":"")+euro(diff);
-  resultHeadline.textContent=status==="ok"?"Rechnung stimmt mit Sollpreis überein":"Abweichung festgestellt";
+  resultHeadline.textContent=statusLabel(status);
   resultStatusPill.textContent=statusLabel(status);
   resultStatusPill.className="status-pill "+(status==="ok"?"active":status==="diff"?"future":status==="clarification"?"review":"inactive");
   resultMeta.textContent=`${provider} · ${transport} · Ziel PLZ ${zip} · Transportdatum ${deDate(date)}${invOperation.value.trim()?" · Vorgang "+invOperation.value.trim():""}`;
@@ -209,7 +263,17 @@ invoiceDropzone.addEventListener("drop",e=>{
   e.preventDefault();invoiceDropzone.classList.remove("dragging");
   if(e.dataTransfer.files?.[0])showToast(`${e.dataTransfer.files[0].name} abgelegt. Automatische Erkennung kommt später.`);
 });
-[statusFilter,search].forEach(x=>x.addEventListener("input",renderChecks));
+[statusFilter,search].forEach(x=>x.addEventListener("input",()=>{
+  if(x===statusFilter)activeInvoiceKpi=statusFilter.value||"";
+  renderChecks();
+}));
+statusFilter.addEventListener("change",()=>{activeInvoiceKpi=statusFilter.value||"";renderChecks();});
+document.querySelectorAll("[data-invoice-kpi]").forEach(btn=>btn.addEventListener("click",()=>{
+  const next=btn.dataset.invoiceKpi||"";
+  activeInvoiceKpi=(activeInvoiceKpi===next&&next!=="")?"":next;
+  statusFilter.value=activeInvoiceKpi;
+  renderChecks();
+}));
 exportChecksBtn.addEventListener("click",()=>showToast("Export der Prüfungen wird im nächsten technischen Schritt angebunden."));
 renderChecks();
 

@@ -20,7 +20,7 @@
         <a class="nav-item active" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.41</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.43</div>
   </aside>
 
   <main class="workspace invoice-workspace">
@@ -33,11 +33,11 @@
     </div>
 
     <section class="invoice-kpis">
-      <article class="kpi-card"><span>Geprüfte Rechnungen</span><strong id="checkCount">28</strong><small>laufender Monat</small></article>
-      <article class="kpi-card"><span>Ohne Abweichung</span><strong id="okCount">21</strong><small>75 % korrekt</small></article>
-      <article class="kpi-card"><span>Mit Abweichung</span><strong id="diffCount">5</strong><small>manuelle Prüfung empfohlen</small></article>
-      <article class="kpi-card"><span>Nicht zugeordnet</span><strong id="unmatchedCount">2</strong><small>Tarif oder Vorgang fehlt</small></article>
-      <article class="kpi-card"><span>Abweichung gesamt</span><strong id="diffSum">436 €</strong><small>über Sollpreis</small></article>
+      <button class="kpi-card invoice-kpi-filter active" type="button" data-invoice-kpi="" aria-pressed="true"><span>Prüfungen gesamt</span><strong id="checkCount">0</strong><small>alle Prüfstatus</small></button>
+      <button class="kpi-card invoice-kpi-filter" type="button" data-invoice-kpi="ok" aria-pressed="false"><span>OK</span><strong id="okCount">0</strong><small id="okShare">ohne Abweichung</small></button>
+      <button class="kpi-card invoice-kpi-filter" type="button" data-invoice-kpi="diff" aria-pressed="false"><span>Abweichung</span><strong id="diffCount">0</strong><small id="diffSum">0 € Differenz</small></button>
+      <button class="kpi-card invoice-kpi-filter" type="button" data-invoice-kpi="clarification" aria-pressed="false"><span>In Klärung</span><strong id="clarificationCount">0</strong><small>manuelle Klärung offen</small></button>
+      <button class="kpi-card invoice-kpi-filter" type="button" data-invoice-kpi="unmatched" aria-pressed="false"><span>Nicht zugeordnet</span><strong id="unmatchedCount">0</strong><small>Tarif oder Vorgang fehlt</small></button>
     </section>
 
     <section class="invoice-entry-grid">
