@@ -1,4 +1,4 @@
-GP KOLLUND – Freight Rate Calculator Prototype v6.50
+GP KOLLUND – Freight Rate Calculator Prototype v6.51
 
 Diese Version baut auf der funktionsfähigen Demo v1 auf.
 
@@ -59,7 +59,7 @@ v6.15 – Konsolidierungs-Version:
 - Importdaten werden bei Entladestellen, Dienstleistern, Tarifen und Floatern dedupliziert.
 - Lokale Datenquellen sind zentral benannt und für den späteren Wechsel auf Backend/API vorbereitet.
 - Einstellungen enthalten einen neuen Datenstatus-Bereich mit Übersicht der lokal gespeicherten Datensätze.
-- Alle Seiten wurden auf Prototype v6.50 vereinheitlicht.
+- Alle Seiten wurden auf Prototype v6.51 vereinheitlicht.
 
 
 v6.15 – Daten-Admin:

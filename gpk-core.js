@@ -1,7 +1,7 @@
 
 window.GPK = window.GPK || {};
 
-GPK.VERSION = "6.50";
+GPK.VERSION = "6.51";
 
 GPK.KEYS = Object.freeze({
   locations: "gpk_demo_locations_v1",
@@ -18,7 +18,9 @@ GPK.KEYS = Object.freeze({
   tariffImports: "gpk_demo_tariff_imports_v1",
   shipments: "gpk_demo_shipments_v1",
   shipmentImports: "gpk_demo_shipment_imports_v1",
-  analyticsConfig: "gpk_demo_analytics_config_v1"
+  analyticsConfig: "gpk_demo_analytics_config_v1",
+  shipmentFields: "gpk_demo_shipment_fields_v1",
+  shipmentImportConfig: "gpk_demo_shipment_import_config_v1"
 });
 
 GPK.read = function(key, fallback = []) {
@@ -44,6 +46,46 @@ GPK.write = function(key, value) {
 
 GPK.remove = function(key) {
   try { localStorage.removeItem(key); } catch (_) {}
+};
+
+
+/* Large datasets (e.g. historical shipments) live in IndexedDB to avoid the
+   ~5 MB localStorage ceiling. GPK.largeRead automatically migrates legacy data. */
+GPK._largeDb = function(){
+  if(GPK.__largeDbPromise)return GPK.__largeDbPromise;
+  GPK.__largeDbPromise=new Promise((resolve,reject)=>{
+    if(!("indexedDB" in window)){reject(new Error("IndexedDB nicht verfügbar"));return}
+    const req=indexedDB.open("gpk_large_data_v1",1);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("kv"))db.createObjectStore("kv")};
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error("IndexedDB Fehler"));
+  });
+  return GPK.__largeDbPromise;
+};
+GPK.largeRead = async function(key,fallback=[]){
+  try{
+    const db=await GPK._largeDb();
+    const value=await new Promise((resolve,reject)=>{
+      const tx=db.transaction("kv","readonly"),req=tx.objectStore("kv").get(key);
+      req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+    });
+    if(value!==undefined)return value;
+  }catch(_){}
+  const legacy=GPK.read(key,undefined);
+  if(legacy!==undefined){
+    try{await GPK.largeWrite(key,legacy);GPK.remove(key)}catch(_){}
+    return legacy;
+  }
+  return fallback;
+};
+GPK.largeWrite = async function(key,value){
+  const db=await GPK._largeDb();
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction("kv","readwrite");
+    tx.objectStore("kv").put(value,key);
+    tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error||new Error("IndexedDB Schreibfehler"));tx.onabort=()=>reject(tx.error||new Error("IndexedDB Abbruch"));
+  });
+  document.dispatchEvent(new CustomEvent("gpk:large-write",{detail:{key,value}}));
+  return true;
 };
 
 GPK.dedupe = function(items, keyFn) {
@@ -108,7 +150,7 @@ GPK.setActiveNavigation = function() {
 GPK.installDemoBadge = function() {
   const footer = document.querySelector(".sidebar-foot");
   if (!footer) return;
-  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.50 <span class="sidebar-demo-label">· Lokal</span>';
+  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.51 <span class="sidebar-demo-label">· Lokal</span>';
 };
 
 document.addEventListener("DOMContentLoaded", () => {

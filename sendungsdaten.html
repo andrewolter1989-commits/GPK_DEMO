@@ -21,7 +21,7 @@
       <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
       <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
     </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.50</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.51</div>
   </aside>
 
   <main class="main-content shipment-data-page">
@@ -116,8 +116,33 @@
           </article>
 
           <article class="statistics-card" id="shipmentMappingCard" hidden>
-            <div class="statistics-card-head"><div><h2>Spaltenzuordnung</h2><p>Automatisch erkannte Felder prüfen und bei Bedarf anpassen.</p></div></div>
+            <div class="statistics-card-head">
+              <div><h2>Spaltenzuordnung</h2><p>Die Zuordnung verwendet ausschließlich die ausgewählte Kopfzeile – niemals Werte aus den Datenzeilen.</p></div>
+            </div>
+
+            <div class="shipment-header-control">
+              <label><span>Kopfzeile</span><select id="shipmentHeaderRowSelect"></select></label>
+              <div id="shipmentHeaderPreview" class="shipment-header-preview"></div>
+            </div>
+
+            <div class="shipment-id-format">
+              <div>
+                <strong>GPK-ID / Sendungs-ID</strong>
+                <small>Optional eigenes Format erzeugen. Ohne Format wird die zugeordnete Sendungsnummer übernommen.</small>
+              </div>
+              <input id="shipmentIdTemplate" type="text" placeholder="z. B. GPK-{YYYY}{MM}{DD}-{SEQ4}">
+              <div class="template-help">Platzhalter: <code>{VALUE}</code> <code>{YYYY}</code> <code>{YY}</code> <code>{MM}</code> <code>{DD}</code> <code>{SEQ}</code> <code>{SEQ4}</code> <code>{ROW}</code> sowie <code>{Spaltenname}</code></div>
+            </div>
+
             <div class="shipment-mapping-grid" id="shipmentMappingGrid"></div>
+
+            <div class="shipment-custom-fields">
+              <div class="shipment-custom-fields-head">
+                <div><strong>Eigene Felder</strong><small>Besonderheiten aus der Datei übernehmen, extrahieren oder in ein eigenes Format bringen.</small></div>
+                <button type="button" class="secondary compact-button" id="addShipmentCustomField">+ Eigenes Feld</button>
+              </div>
+              <div id="shipmentCustomFieldRows"></div>
+            </div>
           </article>
         </div>
 

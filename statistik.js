@@ -1,6 +1,6 @@
 
 const A = {
-  shipments:GPK.read(GPK.KEYS.shipments,[])||[],
+  shipments:[],
   operations:GPK.read(GPK.KEYS.operations,[])||[],
   invoices:GPK.read(GPK.KEYS.invoiceChecks,[])||[],
   calculations:GPK.read(GPK.KEYS.calculations,[])||[],
@@ -125,10 +125,16 @@ function normalizedOffers(){
   return out.filter(x=>x.date);
 }
 
-const ALL_SHIP=normalizedShipments();
-const ALL_OPS=normalizedOperations();
-const ALL_OFFERS=normalizedOffers();
-const FLOW_BASE=ALL_SHIP.length?ALL_SHIP:ALL_OPS.filter(x=>x.eventType==="booking");
+let ALL_SHIP=[];
+let ALL_OPS=[];
+let ALL_OFFERS=[];
+let FLOW_BASE=[];
+function refreshAnalyticsSources(){
+  ALL_SHIP=normalizedShipments();
+  ALL_OPS=normalizedOperations();
+  ALL_OFFERS=normalizedOffers();
+  FLOW_BASE=ALL_SHIP.length?ALL_SHIP:ALL_OPS.filter(x=>x.eventType==="booking");
+}
 let currentTab="overview";
 
 const state={country:"",region:"",recipient:"",relation:"",transport:"",carrier:"",user:"",floater:"",from:"",to:"",compare:"previous",period:"month"};
@@ -140,8 +146,6 @@ function defaultDates(){
   state.from=isoDate(start);state.to=isoDate(end);
   $("anFrom").value=state.from;$("anTo").value=state.to;
 }
-defaultDates();
-
 function syncState(){
   state.period=$("anPeriod").value;state.compare=$("anCompare").value;
   state.from=$("anFrom").value;state.to=$("anTo").value;
@@ -396,4 +400,8 @@ $("analyticsExportBtn").addEventListener("click",async()=>{
   if(!rows.length){const el=$("analyticsToast");el.textContent="Keine gefilterten Daten zum Exportieren.";el.hidden=false;setTimeout(()=>el.hidden=true,2200);return}
   await exportWorkbook("GP_Kollund_Transportanalyse.xlsx",{Analyse:rows});
 });
-fillOptions();periodPreset();syncState();renderAll();
+(async function bootstrapAnalytics(){
+  A.shipments=await GPK.largeRead(GPK.KEYS.shipments,[]);
+  refreshAnalyticsSources();
+  fillOptions();defaultDates();periodPreset();syncState();renderAll();
+})();
