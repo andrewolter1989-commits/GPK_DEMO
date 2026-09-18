@@ -3895,3 +3895,15 @@ body.planning-mode .calculator-shipment-layout{
 .zone-assignment-input{min-width:280px;font-weight:700}
 .matrix-zone-head .matrix-region{max-width:170px;white-space:normal;line-height:1.15}
 .auto-import-summary-compact{gap:10px}
+
+/* v6.45 – Zonenreihenfolge */
+.matrix-zone-head-actions{display:flex;justify-content:center;gap:4px;margin-bottom:4px}
+.matrix-zone-head-actions button{width:24px;height:22px;border:1px solid #c7dce2;border-radius:6px;background:#fff;color:#0b5870;cursor:pointer;font-weight:800}
+.matrix-zone-head-actions button:hover{background:#eaf6f8;border-color:#7fbcc8}
+#gpkTariffSortZones{white-space:nowrap}
+
+/* v6.46 – PML/STP Angebotsblätter mit separaten Zonenblättern */
+.confidence-pill.auto{white-space:nowrap}
+
+/* v6.47 – nordische Angebotsmatrizen */
+.review-text{font-weight:800}

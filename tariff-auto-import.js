@@ -27,7 +27,7 @@
     ["Raben",/\braben\b/i],["DSV",/\bdsv\b/i],["DPD",/\bdpd\b/i],["GLS",/\bgls\b/i],
     ["Hellmann",/\bhellmann\b/i],["Tombers",/\btombers\b/i],["Böckmann",/\bb(?:ö|oe)ckmann\b/i],
     ["Noerpel",/\bnoerpel\b/i],["Berghegger",/\bberghegger\b/i],["Marathon Logistics",/\bmarathon\b/i],
-    ["Emons",/\bemons\b/i],["Oetjen",/\boetjen\b/i]
+    ["Emons",/\bemons\b/i],["Oetjen",/\boetjen\b/i],["PML",/\bPML\b/i]
   ];
   const COUNTRY_NAME_PATTERNS=[
     ["DE",/\b(?:deutschland|germany)\b/i],["AT",/\b(?:oesterreich|österreich|austria)\b/i],
@@ -687,6 +687,193 @@
     };
   }
 
+
+  function inferNordicMatrixCountry(sheetName,rows){
+    const sn=lower(sheetName),ctx=lower((rows||[]).slice(0,16).map(rowText).join(" | "));
+    if(/horsens|taastrup|danmark|denmark/.test(sn+" "+ctx))return "DK";
+    if(/katrineholm|sverige|sweden|svensk|från\s+pnr/.test(sn+" "+ctx))return "SE";
+    return inferCountryFromSheet(sheetName)||inferCountryFromText(ctx);
+  }
+
+  function nordicCurrency(country,rows){
+    const ctx=lower((rows||[]).slice(0,15).map(rowText).join(" | "));
+    if(/\bsek\b/.test(ctx)||country==="SE")return "SEK";
+    if(/\bdkk\b/.test(ctx)||country==="DK")return "DKK";
+    if(/\beur\b|€/.test(ctx))return "EUR";
+    return "EUR";
+  }
+
+  function nordicPalletQty(v){
+    const t=text(v);
+    if(/[½]/.test(t))return 0.5;
+    const n=num(t);return n===null?null:n;
+  }
+
+  function nordicPostalRanges(country,expr){
+    const len=POSTAL_LENGTH[country]||5;
+    let raw=text(expr);
+    if(!raw)return [];
+    raw=raw.replace(/post\s*nr|postnr|pnr/gi," ").replace(/[+;\n\r]/g,",");
+    const tokens=raw.match(/\d{1,5}\s*-\s*\d{1,5}|\d{1,5}/g)||[];
+    const out=[];
+    for(const tokenRaw of tokens){
+      const token=tokenRaw.replace(/\s+/g,"");
+      const m=token.match(/^(\d{1,5})-(\d{1,5})$/);
+      if(m){
+        const a=m[1],b=m[2];
+        if(a.length===len&&b.length===len){
+          out.push({from:a.padStart(len,"0"),to:b.padStart(len,"0")});
+        }else{
+          out.push({from:a.padEnd(len,"0"),to:b.padEnd(len,"9")});
+        }
+      }else if(/^\d{1,5}$/.test(token)){
+        if(token.length>=len)out.push({from:token.slice(0,len),to:token.slice(0,len)});
+        else out.push(postcodeRange(country,token));
+      }
+    }
+    const seen=new Set();
+    return out.filter(r=>{const k=r.from+"|"+r.to;if(seen.has(k))return false;seen.add(k);return true;});
+  }
+
+  function nordicSourceMeta(rows){
+    const meta={};
+    for(let r=0;r<Math.min(rows.length,12);r++){
+      const row=rows[r]||[];
+      for(let c=0;c<row.length;c++){
+        const k=lower(row[c]),v=text(row[c+2]??row[c+1]??"");
+        if(/firma|company/.test(k)&&v)meta.company=v;
+        if(/dato|datum/.test(k)&&v)meta.date=v;
+        if(/diesel/.test(k)&&v)meta.diesel=v;
+        if(/vejafgifter|maut|toll/.test(k)&&v)meta.toll=v;
+      }
+    }
+    return meta;
+  }
+
+  function median(values){
+    const a=(values||[]).filter(Number.isFinite).sort((x,y)=>x-y);
+    if(!a.length)return null;
+    const m=Math.floor(a.length/2);
+    return a.length%2?a[m]:(a[m-1]+a[m])/2;
+  }
+
+  function detectNordicPriceModel(rows,priceCols,dataRows,sheetName){
+    const ctx=lower((rows||[]).slice(0,16).map(rowText).join(" | ")+" "+sheetName);
+    if(/\bftl\b|full\s*load/.test(ctx)&&dataRows.length<=2)return "FULL_LOAD";
+    const ratios=[];
+    for(const c of priceCols){
+      const vals=dataRows.map(r=>num((rows[r]||[])[c.col])).filter(v=>v!==null&&v>0);
+      if(vals.length>=3)ratios.push(vals[vals.length-1]/vals[0]);
+    }
+    const med=median(ratios);
+    if(med!==null&&med<0.90)return "PER_PALLET";
+    return "PALLET_STEP";
+  }
+
+  function parseNordicBidMatrix(sheetName,rows){
+    let zoneRow=-1,axisRow=-1,palletCol=-1,ldmCol=-1;
+    for(let i=0;i<Math.min(rows.length,30);i++){
+      const row=rows[i]||[];
+      const zoneCount=row.filter(v=>/^zone\s*\d+/i.test(text(v))).length;
+      if(zoneCount<1)continue;
+      const next=rows[i+1]||[],norm=next.map(v=>lower(v));
+      const pc=norm.findIndex(v=>/antal\s*(?:pll|pall)|pallet/.test(v));
+      const lc=norm.findIndex(v=>/^ldm$|lademeter/.test(v));
+      if(pc>=0&&lc>=0){zoneRow=i;axisRow=i+1;palletCol=pc;ldmCol=lc;break;}
+    }
+    if(zoneRow<0)return null;
+
+    const country=inferNordicMatrixCountry(sheetName,rows);
+    if(!country)return null;
+    const currency=nordicCurrency(country,rows),blockId=makeId("block");
+    const zrow=rows[zoneRow]||[],arow=rows[axisRow]||[];
+
+    /* Jede tatsächlich bepreiste physische Spalte ist eine eigene Tarifzone.
+       Das ist absichtlich robuster als die teilweise nicht gepflegten Header
+       "more zones…" bzw. doppelt vergebenen Zonennummern. */
+    const rawCols=[];
+    for(let c=Math.max(palletCol,ldmCol)+1;c<Math.max(zrow.length,arow.length);c++){
+      const header=text(zrow[c]),region=text(arow[c]);
+      const looksLikeZone=/^zone\s*\d+/i.test(header)||/more\s*zones/i.test(header);
+      if(!looksLikeZone&&!region)continue;
+      let hasPrice=false;
+      for(let r=axisRow+1;r<rows.length;r++){
+        if(num((rows[r]||[])[c])!==null){hasPrice=true;break;}
+      }
+      if(hasPrice)rawCols.push({col:c,header,region});
+    }
+    if(!rawCols.length)return null;
+
+    const dataRows=[];
+    for(let r=axisRow+1;r<rows.length;r++){
+      const q=nordicPalletQty((rows[r]||[])[palletCol]);
+      const ldm=num((rows[r]||[])[ldmCol]);
+      const hasPrice=rawCols.some(c=>num((rows[r]||[])[c.col])!==null);
+      if((q!==null||ldm!==null)&&hasPrice)dataRows.push(r);
+    }
+    if(!dataRows.length)return null;
+
+    const model=detectNordicPriceModel(rows,rawCols,dataRows,sheetName);
+    const sourceHeaders=rawCols.map(c=>c.header);
+    const hasHeaderAnomalies=sourceHeaders.some(h=>/more\s*zones/i.test(h))||
+      new Set(sourceHeaders.filter(h=>/^zone\s*\d+/i.test(h)).map(h=>lower(h))).size<
+      sourceHeaders.filter(h=>/^zone\s*\d+/i.test(h)).length;
+
+    const zones=[],rates=[];
+    rawCols.forEach((col,idx)=>{
+      const tariffNo=idx+1,zoneKey=`${country}-NORDIC-Z${tariffNo}`;
+      const ranges=nordicPostalRanges(country,col.region);
+      ranges.forEach((rg,ri)=>zones.push({
+        id:makeId("zone"),blockId,zoneSet:sheetName,ruleType:"POSTCODE",
+        originCountry:country,originPostcodeFrom:"",originPostcodeTo:"",
+        destCountry:country,destPostcodeFrom:rg.from,destPostcodeTo:rg.to,
+        distanceFromKm:"",distanceToKm:"",originName:sheetName,destinationName:"",
+        zone:zoneKey,manualZoneNumber:tariffNo,manualOrder:tariffNo,priority:100,
+        sourceRef:sheetName+"!R"+(axisRow+1)+"C"+(col.col+1)
+      }));
+      for(const r of dataRows){
+        const price=num((rows[r]||[])[col.col]);if(price===null)continue;
+        const pallets=nordicPalletQty((rows[r]||[])[palletCol]);
+        const ldm=num((rows[r]||[])[ldmCol]);
+        if(model==="FULL_LOAD"){
+          rates.push({
+            id:makeId("rate"),blockId,sheet:sheetName,sourceRow:r+1,manualOrder:r,
+            rateModel:"FULL_LOAD",product:"FTL",subservice:sheetName,
+            originCountry:country,destCountry:country,zone:zoneKey,relationName:"",
+            chargeFrom:"",chargeTo:"",chargeLabel:"FTL",
+            unit:`${currency}/SHIPMENT`,price:round(price,4),currency,priority:150,
+            pallets:pallets,ldmEquivalent:ldm,sourceZoneHeader:col.header,sourceZoneRegion:col.region,
+            sourceRef:sheetName+"!R"+(r+1)+"C"+(col.col+1)
+          });
+        }else{
+          rates.push({
+            id:makeId("rate"),blockId,sheet:sheetName,sourceRow:r+1,manualOrder:r,
+            rateModel:model,product:"Palette / LDM",subservice:sheetName,
+            originCountry:country,destCountry:country,zone:zoneKey,relationName:"",
+            chargeFrom:pallets,chargeTo:pallets,chargeLabel:`${pallets===0.5?"½":text((rows[r]||[])[palletCol])} PLL · ${ldm!==null?String(round(ldm,2)).replace(".",","):"—"} LDM`,
+            unit:model==="PER_PALLET"?`${currency}/PALLET`:`${currency}/SHIPMENT`,
+            price:round(price,4),currency,priority:100,ldmEquivalent:ldm,
+            sourceZoneHeader:col.header,sourceZoneRegion:col.region,
+            sourceRef:sheetName+"!R"+(r+1)+"C"+(col.col+1)
+          });
+        }
+      }
+    });
+
+    if(rates.length<1)return null;
+    const dz=dedupeZones(zones),meta=nordicSourceMeta(rows);
+    const populatedZones=new Set(rates.map(r=>r.zone)).size;
+    const modelLabel=model==="PER_PALLET"?"Preis je Palette":model==="FULL_LOAD"?"FTL":"Paletten-/LDM-Staffel";
+    return {
+      id:blockId,sheet:sheetName,headerRow:zoneRow+1,model,modelLabel,
+      confidence:hasHeaderAnomalies?0.90:0.99,status:hasHeaderAnomalies?"REVIEW":"AUTO_CANDIDATE",
+      rates,zones:dz,sourceMeta:meta,zoneMode:"NORDIC_INLINE_POSTCODES",
+      sourceZoneHeaders:rawCols.map((c,i)=>({column:c.col+1,sourceHeader:c.header,postcode:c.region,normalizedZone:i+1})),
+      summary:`${rates.length} Preise · ${populatedZones} Tarifzonen · ${dz.length} PLZ-Regeln`,
+      context:`Nordische Angebotsmatrix: ${modelLabel} · ${country} · ${currency}${hasHeaderAnomalies?" · Zonenheader bitte prüfen":""}`
+    };
+  }
+
   function parseTrocellenLdmTransportGrid(sheetName,rows){
     /* Zwei-zeiliger LDM-Vordruck wie Trocellen / Marathon:
        obere Zeile = Bereiche (0-1, 1,1-2, ... >15)
@@ -873,14 +1060,16 @@
 
   function analyzeSheet(sheetName,rows){
     const blocks=[];
+    const nordic=parseNordicBidMatrix(sheetName,rows);
+    if(nordic)blocks.push(nordic);
     const efCustom=parseEversFrankCustomZoneMatrix(sheetName,rows);
-    if(efCustom)blocks.push(efCustom);
+    if(efCustom&&!blocks.some(x=>overlap(x,efCustom)))blocks.push(efCustom);
     const efSp=parseEversFrankSpMatrix(sheetName,rows);
     if(efSp&&!blocks.some(x=>overlap(x,efSp)))blocks.push(efSp);
     const efWeight=parseEversFrankWeightMatrix(sheetName,rows);
     if(efWeight&&!blocks.some(x=>overlap(x,efWeight)))blocks.push(efWeight);
     const trocellenGrid=parseTrocellenLdmTransportGrid(sheetName,rows);
-    if(trocellenGrid)blocks.push(trocellenGrid);
+    if(trocellenGrid&&!blocks.some(x=>overlap(x,trocellenGrid)))blocks.push(trocellenGrid);
     const classicPallet=parseClassicPalletZoneSheet(sheetName,rows);
     if(classicPallet&&!blocks.some(x=>overlap(x,classicPallet)))blocks.push(classicPallet);
     for(const b of parseExplicitClassicGrid(sheetName,rows))if(!blocks.some(x=>overlap(x,b)))blocks.push(b);
@@ -949,9 +1138,225 @@
     return dedupeChargeRules(rules);
   }
 
+
+  function destinationCountryFromPmlSheet(sheetName,rows){
+    const sn=text(sheetName).toUpperCase();
+    let m=sn.match(/\bDE\s*-\s*([A-Z]{2})\b/);
+    if(m)return m[1];
+    const title=(rows||[]).slice(0,8).map(rowText).join(" | ");
+    m=text(title).toUpperCase().match(/\bANGEBOTSBLATT\s+([A-Z]{2})\b/);
+    if(m)return m[1];
+    if(/TKL.*MELDORF|PREETZ.*STP/i.test(sheetName))return "DE";
+    return inferCountryFromText(title)||inferCountryFromSheet(sheetName);
+  }
+
+  function pmlZoneSheetForCountry(sheets,country){
+    const wanted=`ZONEN DE-${country}`.toUpperCase();
+    return (sheets||[]).find(sh=>text(sh.name).toUpperCase()===wanted)||null;
+  }
+
+  function pmlPostalRange(country,fromValue,toValue){
+    const len=POSTAL_LENGTH[country]||5;
+    const fromRaw=text(fromValue).replace(/\*/g,"").trim();
+    const toRaw=text(toValue).replace(/\*/g,"").trim();
+
+    if(toRaw && /^\d+$/.test(fromRaw) && /^\d+$/.test(toRaw)){
+      return {
+        from:fromRaw.padStart(len,"0").slice(-len),
+        to:toRaw.padStart(len,"0").slice(-len)
+      };
+    }
+
+    const compact=fromRaw.replace(/\s+/g,"");
+    let m=compact.match(/^(\d{1,5})-(\d{1,5})$/);
+    if(m){
+      const a=m[1],b=m[2];
+      /* In den internationalen PML-Zonenblättern sind z. B. "10-36"
+         zweistellige PLZ-Präfixe und keine vollständigen Postleitzahlen. */
+      if(a.length<len && b.length<len){
+        return {from:a.padEnd(len,"0"),to:b.padEnd(len,"9")};
+      }
+      return {from:a.padStart(len,"0").slice(-len),to:b.padStart(len,"0").slice(-len)};
+    }
+    if(/^\d{1,5}$/.test(compact))return postcodeRange(country,compact);
+    return null;
+  }
+
+  function parsePmlCompanionZones(sheet,country,blockId){
+    if(!sheet)return {zones:[],onRequest:[],headerRow:-1};
+    const rows=sheet.rows||[];let header=-1,plzCol=0,toCol=-1,zoneCol=-1;
+    for(let i=0;i<Math.min(rows.length,30);i++){
+      const row=(rows[i]||[]).map(v=>lower(v));
+      const z=row.findIndex(v=>v==="zone");
+      const p=row.findIndex(v=>/plz/.test(v));
+      if(z>=0&&p>=0){
+        header=i;zoneCol=z;plzCol=p;
+        const bt=row.findIndex((v,c)=>c!==p&&/bis\s*plz|plz\s*bis/.test(v));
+        toCol=bt>=0?bt:(z>=2?1:-1);
+        break;
+      }
+    }
+    if(header<0)return {zones:[],onRequest:[],headerRow:-1};
+
+    const zones=[],onRequest=[];
+    for(let r=header+1;r<rows.length;r++){
+      const row=rows[r]||[],fromV=row[plzCol],toV=toCol>=0?row[toCol]:"",zoneV=row[zoneCol];
+      if(!text(fromV)&&!text(zoneV))continue;
+      const zn=num(zoneV);
+      const rg=pmlPostalRange(country,fromV,toV);
+      if(!rg)continue;
+      if(zn===null||!Number.isFinite(zn)){
+        onRequest.push({country,from:rg.from,to:rg.to,label:text(zoneV)||"auf Anfrage",sourceRef:sheet.name+"!R"+(r+1)});
+        continue;
+      }
+      const n=Math.trunc(zn);
+      zones.push({
+        id:makeId("zone"),blockId,zoneSet:sheet.name,ruleType:"POSTCODE",
+        originCountry:"DE",originPostcodeFrom:"",originPostcodeTo:"",
+        destCountry:country,destPostcodeFrom:rg.from,destPostcodeTo:rg.to,
+        distanceFromKm:"",distanceToKm:"",originName:"25704 Meldorf / Preetz",destinationName:"",
+        zone:`${country}-Z${n}`,manualZoneNumber:n,manualOrder:n,priority:100,
+        sourceRef:sheet.name+"!R"+(r+1)
+      });
+    }
+    return {zones:dedupeZones(zones),onRequest,headerRow:header+1};
+  }
+
+  function parsePmlDirectZoneHeader(country,label,blockId,sheetName,col){
+    const t=text(label).toUpperCase();
+    let m=t.match(/^([A-Z]{2})\s*-\s*(\d{1,5})X+$/);
+    if(!m)m=t.match(/^([A-Z]{2})\s*[- ]\s*(\d{1,5})\*+$/);
+    if(!m)return null;
+    const c=m[1]||country,prefix=m[2],rg=postcodeRange(c,prefix);
+    return {
+      id:makeId("zone"),blockId,zoneSet:sheetName,ruleType:"POSTCODE",
+      originCountry:"DE",originPostcodeFrom:"",originPostcodeTo:"",
+      destCountry:c,destPostcodeFrom:rg.from,destPostcodeTo:rg.to,
+      distanceFromKm:"",distanceToKm:"",originName:"25704 Meldorf / Preetz",destinationName:"",
+      zone:`${c}-DIRECT-${prefix}`,manualZoneNumber:col,manualOrder:col,priority:100,
+      sourceRef:sheetName+"!HEADER-C"+(col+1)
+    };
+  }
+
+  function parsePmlStpRateSheet(sheet,sheets){
+    const rows=sheet.rows||[];let header=-1,qtyCol=-1,unitCol=-1,zoneCols=[];
+    for(let i=0;i<Math.min(rows.length,20);i++){
+      const row=rows[i]||[],norm=row.map(v=>lower(v));
+      const q=norm.findIndex(v=>v==="menge");
+      const u=norm.findIndex(v=>/^einheit/.test(v));
+      if(q<0||u<0)continue;
+      const found=[];
+      for(let c=0;c<row.length;c++){
+        const t=text(row[c]);
+        const zm=t.match(/^zone\s*(\d{1,3})$/i);
+        if(zm)found.push({col:c,zoneNumber:Number(zm[1]),header:t,type:"ZONE"});
+        else if(/^[A-Z]{2}\s*-\s*\d{1,5}X+$/i.test(t))found.push({col:c,zoneNumber:found.length+1,header:t,type:"DIRECT"});
+      }
+      if(found.length>=1){header=i;qtyCol=q;unitCol=u;zoneCols=found;break;}
+    }
+    if(header<0)return null;
+
+    const country=destinationCountryFromPmlSheet(sheet.name,rows);
+    if(!country)return null;
+    const blockId=makeId("block");
+
+    /* Nur tatsächlich bepreiste Zonenspalten übernehmen. */
+    zoneCols=zoneCols.filter(z=>{
+      for(let r=header+1;r<rows.length;r++){
+        const q=text((rows[r]||[])[qtyCol]),unit=lower((rows[r]||[])[unitCol]);
+        const p=num((rows[r]||[])[z.col]);
+        if(p!==null&&(/^(\d+(?:[.,]\d+)?)$/.test(q)&&/stp|stellplatz/.test(unit)||/^m\/m\b/i.test(q)))return true;
+      }
+      return false;
+    });
+    if(!zoneCols.length)return null;
+
+    const companion=pmlZoneSheetForCountry(sheets,country);
+    const companionParsed=parsePmlCompanionZones(companion,country,blockId);
+    let zones=companionParsed.zones.slice();
+
+    /* Direkte Regionen wie "ES - 28xxx" brauchen kein separates Zonenblatt. */
+    zoneCols.forEach((zc,i)=>{
+      if(zc.type==="DIRECT"){
+        const z=parsePmlDirectZoneHeader(country,zc.header,blockId,sheet.name,i+1);
+        if(z){
+          zc.zoneKey=z.zone;zc.zoneNumber=i+1;zones.push(z);
+        }
+      }else zc.zoneKey=`${country}-Z${zc.zoneNumber}`;
+    });
+
+    const rates=[],minimumCharges={},requestRows=[];
+    for(let r=header+1;r<rows.length;r++){
+      const row=rows[r]||[],qtyText=text(row[qtyCol]),unit=lower(row[unitCol]);
+      const isMin=/^m\/m\b/i.test(qtyText);
+      const qty=num(qtyText);
+      const numericPrices=zoneCols.map(z=>num(row[z.col])).filter(v=>v!==null);
+      const onRequest=zoneCols.some(z=>/anfrage/i.test(text(row[z.col])));
+      if(isMin){
+        zoneCols.forEach(z=>{const price=num(row[z.col]);if(price!==null)minimumCharges[z.zoneKey]=round(price,4);});
+        continue;
+      }
+      if(onRequest&&numericPrices.length===0){
+        requestRows.push({label:qtyText,unit:text(row[unitCol]),sourceRef:sheet.name+"!R"+(r+1)});
+        continue;
+      }
+      if(qty===null||!/stp|stellplatz/.test(unit)||!numericPrices.length)continue;
+
+      for(const z of zoneCols){
+        const price=num(row[z.col]);if(price===null)continue;
+        rates.push({
+          id:makeId("rate"),blockId,sheet:sheet.name,sourceRow:r+1,manualOrder:r,
+          rateModel:"PER_PALLET",product:"Stellplatz",subservice:country==="DE"?"DE Stückgut / Teilpartie":`DE-${country} STP`,
+          originCountry:"DE",destCountry:country,zone:z.zoneKey,relationName:"",
+          chargeFrom:qty,chargeTo:qty,chargeLabel:`${text(qtyText)} STP`,
+          unit:"EUR/PALLET",price:round(price,4),currency:"EUR",priority:100,
+          minimumPrice:minimumCharges[z.zoneKey]??null,
+          sourceRef:sheet.name+"!R"+(r+1)+"C"+(z.col+1)
+        });
+      }
+    }
+    if(rates.length<2)return null;
+
+    /* Mindestpreise wurden vor den STP-Zeilen gelesen; auf Rate Records spiegeln. */
+    rates.forEach(rate=>{if(minimumCharges[rate.zone]!=null)rate.minimumPrice=minimumCharges[rate.zone];});
+
+    const usedZoneKeys=new Set(rates.map(r=>r.zone));
+    zones=dedupeZones(zones.filter(z=>usedZoneKeys.has(z.zone)));
+    const tariffZoneCount=new Set(rates.map(r=>r.zone)).size;
+    const confidence=zones.length||zoneCols.every(z=>z.type==="DIRECT")?0.99:0.82;
+
+    return {
+      id:blockId,sheet:sheet.name,headerRow:header+1,model:"PER_PALLET",
+      modelLabel:"Stellplatzpreis je STP",confidence,status:confidence>=0.90?"AUTO_CANDIDATE":"REVIEW",
+      rates,zones,minimumCharges,onRequestRules:companionParsed.onRequest,requestRows,
+      zoneMode:"PML_COMPANION_ZONE_SHEET",
+      summary:`${rates.length} Preise · ${tariffZoneCount} Tarifzonen · ${zones.length} PLZ-Regeln`,
+      context:`PML-Angebotsblatt: Mengenstaffel je Stellplatz · Zonen aus ${companion?.name||"Tarifkopf"}`
+    };
+  }
+
+  function parsePmlStpWorkbook(sheets){
+    const blocks=[],consumed=new Set();
+    for(const sheet of sheets||[]){
+      const n=text(sheet.name);
+      if(/^Zonen\s+/i.test(n))continue;
+      const likely=/\bSTP\b/i.test(n)||/^DE-FR$/i.test(n);
+      if(!likely)continue;
+      const block=parsePmlStpRateSheet(sheet,sheets);
+      if(!block)continue;
+      blocks.push(block);consumed.add(sheet.name);
+      const country=destinationCountryFromPmlSheet(sheet.name,sheet.rows);
+      const zs=pmlZoneSheetForCountry(sheets,country);if(zs)consumed.add(zs.name);
+    }
+    return {blocks,consumed};
+  }
+
   async function analyzeFile(file){
     const sheets=await readWorkbook(file);let blocks=[];
+    const pml=parsePmlStpWorkbook(sheets);
+    blocks.push(...pml.blocks);
     for(const sheet of sheets){
+      if(pml.consumed.has(sheet.name))continue;
       try{
         const found=analyzeSheet(sheet.name,sheet.rows);
         blocks.push(...found);
@@ -974,7 +1379,7 @@
           <div class="auto-import-body">
             <div class="auto-import-blocks"><div class="import-section-head compact-import-head"><div><h3>Importauswahl</h3></div></div><div id="gpkTariffAutoSummary" class="auto-import-summary-compact"></div><div class="compact-country-panel country-before-blocks"><span class="auto-filter-label">Land</span><div id="gpkTariffCountryTabs" class="auto-filter-tabs compact-country-tabs"></div></div><div id="gpkTariffAutoBlocks" class="auto-import-block-list"></div></div>
             <div class="auto-import-preview">
-              <div class="import-section-head"><div><h3>Ratenblatt prüfen</h3><p id="gpkTariffAutoPreviewMeta"></p></div><div class="preview-toggle"><button class="secondary compact-button" id="gpkTariffEditToggle" type="button">Bearbeiten</button><button class="secondary compact-button" id="gpkTariffAddRateRow" type="button" hidden>+ Zeile am Ende</button><button class="secondary compact-button" id="gpkTariffAddArea" type="button" hidden>+ Bereich</button><button class="secondary compact-button" id="gpkTariffAddZone" type="button" hidden>+ Zone</button><button class="secondary compact-button" id="gpkTariffBenchmarkMetaToggle" type="button" hidden>Benchmark-Felder</button><button class="preview-toggle-btn active" data-auto-preview="rates" type="button">Ratenblatt</button><button class="preview-toggle-btn" data-auto-preview="zones" type="button">Zonenblatt</button></div></div>
+              <div class="import-section-head"><div><h3>Ratenblatt prüfen</h3><p id="gpkTariffAutoPreviewMeta"></p></div><div class="preview-toggle"><button class="secondary compact-button" id="gpkTariffEditToggle" type="button">Bearbeiten</button><button class="secondary compact-button" id="gpkTariffAddRateRow" type="button" hidden>+ Zeile am Ende</button><button class="secondary compact-button" id="gpkTariffAddArea" type="button" hidden>+ Bereich</button><button class="secondary compact-button" id="gpkTariffAddZone" type="button" hidden>+ Zone</button><button class="secondary compact-button" id="gpkTariffSortZones" type="button" hidden title="Zonen numerisch sortieren">Zonen 1→n</button><button class="secondary compact-button" id="gpkTariffBenchmarkMetaToggle" type="button" hidden>Benchmark-Felder</button><button class="preview-toggle-btn active" data-auto-preview="rates" type="button">Ratenblatt</button><button class="preview-toggle-btn" data-auto-preview="zones" type="button">Zonenblatt</button></div></div>
               <div id="gpkTariffBlockTabs" hidden></div>
               <div class="benchmark-meta-editor" id="gpkTariffBenchmarkMeta" hidden>
                 <div><label>Product<input data-benchmark-meta="product"></label></div><div><label>Sub-Service<input data-benchmark-meta="subservice"></label></div><div><label>Cost Item<input data-benchmark-meta="costItem"></label></div><div><label>CLL Type<input data-benchmark-meta="cllType"></label></div><div><label>Version<input data-benchmark-meta="version"></label></div><div><label>Origin CTRY<input data-benchmark-meta="originCountry"></label></div><div><label>Dest CTRY<input data-benchmark-meta="destCountry" placeholder="AUTO"></label></div><div><label>step<input data-benchmark-meta="step" inputmode="decimal"></label></div><div><label>Unit<input data-benchmark-meta="unit" placeholder="AUTO"></label></div><div><label>base<input data-benchmark-meta="base" inputmode="decimal"></label></div>
@@ -993,6 +1398,7 @@
     document.getElementById("gpkTariffAddRateRow").addEventListener("click",addManualRateRow);
     document.getElementById("gpkTariffAddArea").addEventListener("click",addManualArea);
     document.getElementById("gpkTariffAddZone").addEventListener("click",()=>addManualZoneAt(null));
+    document.getElementById("gpkTariffSortZones").addEventListener("click",()=>sortZonesByNumber());
     document.getElementById("gpkTariffBenchmarkMetaToggle").addEventListener("click",()=>{state.metaOpen=!state.metaOpen;syncEditControls();});
     document.getElementById("gpkTariffSaveDraft").addEventListener("click",saveDraftLongTerm);
     document.querySelectorAll("[data-benchmark-meta]").forEach(el=>el.addEventListener("change",()=>updateBenchmarkMeta(el.dataset.benchmarkMeta,el.value)));
@@ -1124,7 +1530,18 @@
     const map=new Map();let order=0;
     const add=(key,rule)=>{key=text(key)||`NOZONE-${order}`;if(!map.has(key))map.set(key,{key,rules:[],order:order++});if(rule)map.get(key).rules.push(rule);};
     zones.forEach(z=>add(z.zone||z.destinationName||z.sourceRef,z));rates.forEach(r=>add(r.zone||r.relationName||r.sourceRef,null));
-    const cols=[...map.values()].sort(zoneSort);
+    let cols=[...map.values()].sort(zoneSort);
+    if(block?.zoneMode==="TARIFF_ZONE_ASSIGNMENT"){
+      const hasExplicitOrder=cols.some(col=>(col.rules||[]).some(z=>Number.isFinite(Number(z.manualOrder))));
+      if(!hasExplicitOrder){
+        cols=cols.sort((a,b)=>{
+          const an=(a.rules||[]).map(z=>Number(z.manualZoneNumber)).find(Number.isFinite);
+          const bn=(b.rules||[]).map(z=>Number(z.manualZoneNumber)).find(Number.isFinite);
+          if(Number.isFinite(an)&&Number.isFinite(bn)&&an!==bn)return an-bn;
+          return a.order-b.order;
+        });
+      }
+    }
     cols.forEach((col,i)=>{
       const manualRegion=(col.rules||[]).map(z=>text(z.manualRegionCode)).find(Boolean);
       const manualNo=(col.rules||[]).map(z=>Number(z.manualZoneNumber)).find(n=>Number.isInteger(n)&&n>=1&&n<=999);
@@ -1160,9 +1577,9 @@
   }
 
   function syncEditControls(){
-    const toggle=document.getElementById("gpkTariffEditToggle"),add=document.getElementById("gpkTariffAddZone"),addRow=document.getElementById("gpkTariffAddRateRow"),addArea=document.getElementById("gpkTariffAddArea"),meta=document.getElementById("gpkTariffBenchmarkMeta"),metaToggle=document.getElementById("gpkTariffBenchmarkMetaToggle");
+    const toggle=document.getElementById("gpkTariffEditToggle"),add=document.getElementById("gpkTariffAddZone"),sortZones=document.getElementById("gpkTariffSortZones"),addRow=document.getElementById("gpkTariffAddRateRow"),addArea=document.getElementById("gpkTariffAddArea"),meta=document.getElementById("gpkTariffBenchmarkMeta"),metaToggle=document.getElementById("gpkTariffBenchmarkMetaToggle");
     if(toggle){toggle.textContent=state.editing?"Bearbeiten beenden":"Bearbeiten";toggle.classList.toggle("active",state.editing);}
-    if(add)add.hidden=!state.editing;if(addRow)addRow.hidden=!state.editing;if(addArea)addArea.hidden=!state.editing;
+    if(add)add.hidden=!state.editing;if(sortZones)sortZones.hidden=!state.editing;if(addRow)addRow.hidden=!state.editing;if(addArea)addArea.hidden=!state.editing;
     if(metaToggle){metaToggle.hidden=!state.editing;metaToggle.textContent=state.metaOpen?"Benchmark-Felder schließen":"Benchmark-Felder";metaToggle.classList.toggle("active",state.metaOpen);}
     if(meta)meta.hidden=!(state.editing&&state.metaOpen);renderBenchmarkMeta();
   }
@@ -1237,6 +1654,16 @@
   function currentZoneColumns(block=activeBlock(),country=state.country){if(!block)return [];const rates=(block.rates||[]).filter(r=>country==="ALL"?!text(r.destCountry):!text(r.destCountry)||text(r.destCountry).toUpperCase()===country);const zones=dedupeZones((block.zones||[]).filter(z=>country==="ALL"?!text(z.destCountry):!text(z.destCountry)||text(z.destCountry).toUpperCase()===country));return buildZoneColumns(block,country,rates,zones);}
   function setZoneOrder(cols){cols.forEach((col,i)=>(col.rules||[]).forEach(z=>z.manualOrder=i+1));}
   function moveZoneColumn(col,dir){const block=activeBlock();if(!block)return;const cols=currentZoneColumns(block,state.country),idx=cols.indexOf(col),next=idx+dir;if(idx<0||next<0||next>=cols.length)return;[cols[idx],cols[next]]=[cols[next],cols[idx]];setZoneOrder(cols);persistDraft();renderPreview();}
+  function sortZonesByNumber(){
+    const block=activeBlock();if(!block)return;
+    const cols=currentZoneColumns(block,state.country).slice().sort((a,b)=>{
+      const an=Number(a.zoneNumber),bn=Number(b.zoneNumber);
+      if(Number.isFinite(an)&&Number.isFinite(bn)&&an!==bn)return an-bn;
+      if(Number.isFinite(an)!==Number.isFinite(bn))return Number.isFinite(an)?-1:1;
+      return text(a.region).localeCompare(text(b.region),undefined,{numeric:true});
+    });
+    setZoneOrder(cols);persistDraft();renderPreview();
+  }
   function deleteZoneColumn(col){const block=activeBlock();if(!block)return;if(!window.confirm(`Zone ${col.zoneNumber||""} wirklich löschen? Die Preise dieser Zone werden ebenfalls entfernt.`))return;const ruleSet=new Set(col.rules||[]);block.zones=(block.zones||[]).filter(z=>!ruleSet.has(z));block.rates=(block.rates||[]).filter(r=>text(r.zone||r.relationName||r.sourceRef)!==text(col.key));persistDraft();renderSummary();renderPreview();}
   function addManualZoneAt(afterIndex=null){const block=activeBlock();if(!block)return;const fallback=state.country==="ALL"?"":state.country;const raw=window.prompt("Kurzcode der neuen Zone, z. B. DE01 oder AT10. Leer lassen = abbrechen:",fallback||"");if(raw===null)return;const code=text(raw).toUpperCase().replace(/\s+/g,"");if(!code)return;const cp=parseCountryPostcode([code],fallback),rg=postcodeRange(cp.country,cp.code),key="MANUAL-"+makeId("z"),cols=currentZoneColumns(block,state.country),insertAt=afterIndex==null?cols.length:Math.max(0,Math.min(cols.length,afterIndex+1));const z={id:makeId("zone"),blockId:block.id,zoneSet:block.sheet,ruleType:cp.code?"POSTCODE":"SERVICE_ZONE",originCountry:"",originPostcodeFrom:"",originPostcodeTo:"",destCountry:cp.country||fallback,destPostcodeFrom:rg.from,destPostcodeTo:rg.to,distanceFromKm:"",distanceToKm:"",originName:"",destinationName:"",zone:key,manualRegionCode:code,manualZoneNumber:insertAt+1,manualOrder:insertAt+1,priority:100,sourceRef:"MANUAL"};block.zones.push(z);const refreshed=currentZoneColumns(block,state.country),added=refreshed.find(c=>c.key===key),ordered=refreshed.filter(c=>c!==added);ordered.splice(insertAt,0,added);setZoneOrder(ordered);persistDraft();renderSummary();renderPreview();}
 
@@ -1271,6 +1698,7 @@
     document.querySelectorAll("[data-row-move]").forEach(el=>el.addEventListener("click",()=>{const [ri,dir]=el.dataset.rowMove.split(":").map(Number);moveMatrixRow(m.rows[ri],dir);}));
     document.querySelectorAll("[data-row-insert]").forEach(el=>el.addEventListener("click",()=>insertManualRateAfter(m.rows[Number(el.dataset.rowInsert)])));
     document.querySelectorAll("[data-row-delete]").forEach(el=>el.addEventListener("click",()=>deleteMatrixRow(m.rows[Number(el.dataset.rowDelete)])));
+    document.querySelectorAll("[data-zone-col-move]").forEach(btn=>btn.addEventListener("click",()=>{const [ci,dir]=btn.dataset.zoneColMove.split(":").map(Number);moveZoneColumn(m.cols[ci],dir);}));
   }
   function bindZoneEditor(block,country,cols){
     if(!state.editing)return;
@@ -1291,7 +1719,7 @@
     const palletOnly=block.model==="PALLET_STEP";
     const actionHead=state.editing?`<th class="matrix-row-actions-col">↕</th>`:"";
     const leftHead=actionHead+(palletOnly?`<th class="matrix-fixed-col matrix-step-col">Stufe</th>`:`<th class="matrix-fixed-col">von</th><th class="matrix-fixed-col">bis</th><th class="matrix-fixed-col">Einheit</th>`);
-    head.innerHTML=`<tr>${leftHead}${cols.map((c,ci)=>`<th class="matrix-zone-head" title="${esc((c.rules||[]).map(z=>[z.destCountry,z.destPostcodeFrom,z.destPostcodeTo,z.destinationName].filter(Boolean).join(' ')).join(' · '))}">${state.editing?`<input class="matrix-head-input matrix-region-input" data-matrix-zone-code="${ci}" value="${esc(c.region)}" aria-label="Zonenkurzcode"><label class="matrix-zone-number-wrap">Zone <input type="number" min="1" max="999" class="matrix-head-input matrix-zone-number-input" data-matrix-zone-number="${ci}" value="${esc(c.zoneNumber)}" aria-label="Zonennummer"></label>`:`<span class="matrix-region">${esc(c.region)}</span><span class="matrix-zone">Zone ${esc(c.zoneNumber)}</span>`}</th>`).join('')}</tr>`;
+    head.innerHTML=`<tr>${leftHead}${cols.map((c,ci)=>`<th class="matrix-zone-head" title="${esc((c.rules||[]).map(z=>[z.destCountry,z.destPostcodeFrom,z.destPostcodeTo,z.destinationName].filter(Boolean).join(' ')).join(' · '))}">${state.editing?`<div class="matrix-zone-head-actions"><button type="button" data-zone-col-move="${ci}:-1" title="Zone nach links">←</button><button type="button" data-zone-col-move="${ci}:1" title="Zone nach rechts">→</button></div><input class="matrix-head-input matrix-region-input" data-matrix-zone-code="${ci}" value="${esc(c.region)}" aria-label="PLZ-Zuordnung"><label class="matrix-zone-number-wrap">Zone <input type="number" min="1" max="999" class="matrix-head-input matrix-zone-number-input" data-matrix-zone-number="${ci}" value="${esc(c.zoneNumber)}" aria-label="Zonennummer"></label>`:`<span class="matrix-region">${esc(c.region)}</span><span class="matrix-zone">Zone ${esc(c.zoneNumber)}</span>`}</th>`).join('')}</tr>`;
     body.innerHTML=rows.map((row,ri)=>{
       const isFull=row.model==="FULL_LOAD"||/\b(?:ftl|kompl|komplettladung)\b/i.test(row.label);
       let left;
@@ -1318,19 +1746,20 @@
 
     if(tariffZoneMode){
       head.innerHTML=state.editing
-        ? "<tr><th>Zone</th><th>Land</th><th>PLZ-Zuordnung</th><th>PLZ-Regeln</th></tr>"
+        ? "<tr><th>↕</th><th>Zone</th><th>Land</th><th>PLZ-Zuordnung</th><th>PLZ-Regeln</th></tr>"
         : "<tr><th>Zone</th><th>Land</th><th>PLZ-Zuordnung</th><th>PLZ-Regeln</th></tr>";
       body.innerHTML=cols.map((col,ci)=>{
         const z=col.rules?.[0]||{},number=col.zoneNumber||index.get(col.key)||ci+1;
         const assignment=zoneAssignmentText(block,col,country);
         if(state.editing)return `<tr>
+          <td class="zone-row-actions"><button type="button" data-zone-move="${ci}:-1" title="nach oben">↑</button><button type="button" data-zone-move="${ci}:1" title="nach unten">↓</button></td>
           <td><label class="zone-number-cell">Zone <input type="number" min="1" max="999" class="zone-edit-input zone-number-input" data-zone-edit="${ci}:number" value="${esc(number)}"></label></td>
           <td><input class="zone-edit-input zone-country-input" data-zone-assignment-country="${ci}" value="${esc(z.destCountry||country||"DE")}"></td>
           <td><input class="zone-edit-input zone-assignment-input" data-zone-assignment="${ci}" value="${esc(assignment)}" placeholder="z. B. 24, 25 oder 20 - 23"></td>
           <td><strong>${(col.rules||[]).length}</strong><small> PLZ-Regeln</small></td>
         </tr>`;
         return `<tr><td><strong>Zone ${esc(number)}</strong></td><td>${esc(z.destCountry||country||"—")}</td><td><strong>${esc(assignment||"—")}</strong></td><td>${(col.rules||[]).length} PLZ-Regeln</td></tr>`;
-      }).join("")||`<tr><td colspan="4" class="empty-state">Keine Tarifzonen für diese Auswahl.</td></tr>`;
+      }).join("")||`<tr><td colspan="${state.editing?5:4}" class="empty-state">Keine Tarifzonen für diese Auswahl.</td></tr>`;
 
       if(state.editing){
         body.querySelectorAll("[data-zone-assignment]").forEach(el=>el.addEventListener("change",()=>{
@@ -1345,6 +1774,7 @@
           rebuildZoneAssignment(block,col,text(el.value||country||"DE").toUpperCase(),aInput?.value||"");
           persistDraft();renderSummary();renderPreview();
         }));
+        body.querySelectorAll("[data-zone-move]").forEach(btn=>btn.addEventListener("click",()=>{const [ci,dir]=btn.dataset.zoneMove.split(":").map(Number);moveZoneColumn(cols[ci],dir);}));
         body.querySelectorAll("[data-zone-edit]").forEach(el=>el.addEventListener("change",()=>{
           const [ci,field]=el.dataset.zoneEdit.split(":");const col=cols[Number(ci)];
           if(field==="number")updateZoneNumber(block,col,country,text(el.value));
@@ -1422,7 +1852,7 @@
     const newZones=dedupeZones(blocks.flatMap(b=>b.zones)).map(z=>({...z,id:makeId("zone"),batchId,provider,sourceFile:state.file.name,importedAt:now}));
     const allRates=GPK.read(RATE_KEY,[])||[],allZones=GPK.read(ZONE_KEY,[])||[],allImports=GPK.read(IMPORT_KEY,[])||[];
     const oldBatch=allImports.find(x=>x.id===batchId);const oldRates=allRates.filter(r=>r.batchId!==batchId),oldZones=allZones.filter(z=>z.batchId!==batchId),oldImports=allImports.filter(x=>x.id!==batchId);
-    const batch={id:batchId,fileName:state.file.name,provider,providerId:providerRecord.id||null,version:importVersion,createdAt:oldBatch?.createdAt||now,updatedAt:now,sheets:state.analysis.sheets,blocks:blocks.map(b=>({id:b.id,sheet:b.sheet,displayName:b.displayName||"",model:b.model,modelLabel:b.modelLabel,headerRow:b.headerRow,confidence:b.confidence,status:b.status,zoneMode:b.zoneMode||"",zoneAssignments:JSON.parse(JSON.stringify(b.zoneAssignments||{})),rates:b.rates.filter(r=>Number.isFinite(Number(r.price))).length,zones:b.zones.length,tariffZones:countTariffZones(b.zones),benchmarkMeta:{...benchmarkMetaFor(b,"ALL")},benchmarkMetaByCountry:JSON.parse(JSON.stringify(b.benchmarkMetaByCountry||{}))})),ratesCount:newRates.length,zonesCount:newZones.length,tariffZonesCount:countTariffZones(newZones),reviewCount:blocks.filter(b=>b.status==="REVIEW").length,publishedAt:oldBatch?.publishedAt||null,publishedZones:oldBatch?.publishedZones||0,publishedRates:oldBatch?.publishedRates||0,lastComparison:oldBatch?.lastComparison||null};
+    const batch={id:batchId,fileName:state.file.name,provider,providerId:providerRecord.id||null,version:importVersion,createdAt:oldBatch?.createdAt||now,updatedAt:now,sheets:state.analysis.sheets,blocks:blocks.map(b=>({id:b.id,sheet:b.sheet,displayName:b.displayName||"",model:b.model,modelLabel:b.modelLabel,headerRow:b.headerRow,confidence:b.confidence,status:b.status,zoneMode:b.zoneMode||"",zoneAssignments:JSON.parse(JSON.stringify(b.zoneAssignments||{})),sourceMeta:JSON.parse(JSON.stringify(b.sourceMeta||{})),sourceZoneHeaders:JSON.parse(JSON.stringify(b.sourceZoneHeaders||[])),rates:b.rates.filter(r=>Number.isFinite(Number(r.price))).length,zones:b.zones.length,tariffZones:countTariffZones(b.zones),benchmarkMeta:{...benchmarkMetaFor(b,"ALL")},benchmarkMetaByCountry:JSON.parse(JSON.stringify(b.benchmarkMetaByCountry||{}))})),ratesCount:newRates.length,zonesCount:newZones.length,tariffZonesCount:countTariffZones(newZones),reviewCount:blocks.filter(b=>b.status==="REVIEW").length,publishedAt:oldBatch?.publishedAt||null,publishedZones:oldBatch?.publishedZones||0,publishedRates:oldBatch?.publishedRates||0,lastComparison:oldBatch?.lastComparison||null};
     try{
       persistImportData(newRates,newZones,batch,oldRates,oldZones,oldImports);
       const persistedRates=(GPK.read(RATE_KEY,[])||[]).filter(r=>r.batchId===batchId).length;
@@ -1512,7 +1942,7 @@
 
 
   function editImportedTariff(batchId){
-    const imports=GPK.read(IMPORT_KEY,[])||[],batch=imports.find(x=>x.id===batchId);if(!batch)throw new Error("Import nicht gefunden.");const storedRates=(GPK.read(RATE_KEY,[])||[]).filter(r=>r.batchId===batchId),storedZones=(GPK.read(ZONE_KEY,[])||[]).filter(z=>z.batchId===batchId);installModal();const blocks=(batch.blocks||[]).map((b,i)=>({id:b.id,sheet:b.sheet||`Bereich ${i+1}`,displayName:b.displayName||"",headerRow:b.headerRow||0,model:b.model||storedRates.find(r=>r.blockId===b.id)?.rateModel||"LDM_STEP",modelLabel:b.modelLabel||b.sheet||b.model,confidence:Number(b.confidence)||1,status:b.status||"AUTO_CANDIDATE",zoneMode:b.zoneMode||"",zoneAssignments:JSON.parse(JSON.stringify(b.zoneAssignments||{})),rates:storedRates.filter(r=>r.blockId===b.id).map(r=>({...r})),zones:storedZones.filter(z=>z.blockId===b.id).map(z=>({...z})),summary:`${storedRates.filter(r=>r.blockId===b.id).length} Preise · ${storedZones.filter(z=>z.blockId===b.id).length} Zonen`,benchmarkMeta:{...(b.benchmarkMeta||storedRates.find(r=>r.blockId===b.id)?.benchmarkMeta||{})},benchmarkMetaByCountry:JSON.parse(JSON.stringify(b.benchmarkMetaByCountry||{}))}));state.file={name:batch.fileName};state.analysis={fileName:batch.fileName,sheetCount:(batch.sheets||[]).length,provider:batch.provider,blocks,rates:blocks.flatMap(b=>b.rates),zones:dedupeZones(blocks.flatMap(b=>b.zones)),sheets:batch.sheets||[]};state.selected=new Set(blocks.map(b=>b.id));state.preview="rates";state.country="";state.countryFilter=new Set();state.blockId="";state.editing=true;state.metaOpen=false;state.editBatchId=batchId;document.getElementById("gpkTariffAutoFile").textContent=batch.fileName;document.getElementById("gpkTariffAutoImport").hidden=false;document.body.classList.add("modal-open");document.getElementById("gpkTariffAutoConfirm").textContent="Änderungen speichern";renderProviderList(batch.provider);clearProviderError();const ver=document.getElementById("gpkTariffImportVersion");if(ver)ver.value=batch.version||batch.blocks?.[0]?.benchmarkMeta?.version||"EXT";renderSummary();renderBlocks();ensurePreviewSelection();renderPreview();syncEditControls();updateConfirm();
+    const imports=GPK.read(IMPORT_KEY,[])||[],batch=imports.find(x=>x.id===batchId);if(!batch)throw new Error("Import nicht gefunden.");const storedRates=(GPK.read(RATE_KEY,[])||[]).filter(r=>r.batchId===batchId),storedZones=(GPK.read(ZONE_KEY,[])||[]).filter(z=>z.batchId===batchId);installModal();const blocks=(batch.blocks||[]).map((b,i)=>({id:b.id,sheet:b.sheet||`Bereich ${i+1}`,displayName:b.displayName||"",headerRow:b.headerRow||0,model:b.model||storedRates.find(r=>r.blockId===b.id)?.rateModel||"LDM_STEP",modelLabel:b.modelLabel||b.sheet||b.model,confidence:Number(b.confidence)||1,status:b.status||"AUTO_CANDIDATE",zoneMode:b.zoneMode||"",zoneAssignments:JSON.parse(JSON.stringify(b.zoneAssignments||{})),sourceMeta:JSON.parse(JSON.stringify(b.sourceMeta||{})),sourceZoneHeaders:JSON.parse(JSON.stringify(b.sourceZoneHeaders||[])),rates:storedRates.filter(r=>r.blockId===b.id).map(r=>({...r})),zones:storedZones.filter(z=>z.blockId===b.id).map(z=>({...z})),summary:`${storedRates.filter(r=>r.blockId===b.id).length} Preise · ${storedZones.filter(z=>z.blockId===b.id).length} Zonen`,benchmarkMeta:{...(b.benchmarkMeta||storedRates.find(r=>r.blockId===b.id)?.benchmarkMeta||{})},benchmarkMetaByCountry:JSON.parse(JSON.stringify(b.benchmarkMetaByCountry||{}))}));state.file={name:batch.fileName};state.analysis={fileName:batch.fileName,sheetCount:(batch.sheets||[]).length,provider:batch.provider,blocks,rates:blocks.flatMap(b=>b.rates),zones:dedupeZones(blocks.flatMap(b=>b.zones)),sheets:batch.sheets||[]};state.selected=new Set(blocks.map(b=>b.id));state.preview="rates";state.country="";state.countryFilter=new Set();state.blockId="";state.editing=true;state.metaOpen=false;state.editBatchId=batchId;document.getElementById("gpkTariffAutoFile").textContent=batch.fileName;document.getElementById("gpkTariffAutoImport").hidden=false;document.body.classList.add("modal-open");document.getElementById("gpkTariffAutoConfirm").textContent="Änderungen speichern";renderProviderList(batch.provider);clearProviderError();const ver=document.getElementById("gpkTariffImportVersion");if(ver)ver.value=batch.version||batch.blocks?.[0]?.benchmarkMeta?.version||"EXT";renderSummary();renderBlocks();ensurePreviewSelection();renderPreview();syncEditControls();updateConfirm();
   }
 
   function safeFilePart(v){return text(v||"Export").replace(/[^A-Za-z0-9ÄÖÜäöüß_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80)||"Export";}
@@ -1809,7 +2239,7 @@
     syncImportedProviderFilter(imports);appendImportedRows();
   }
 
-  window.GPKTariffImport={open,chooseAndOpen,analyzeFile,refreshPageStatus,appendImportedRows,exportRates,exportZones,compareWithBenchmark,publishBatchToCalculator,deleteImportedTariff,requestDeleteImportedTariff,editImportedTariff,buildBenchmarkData,keys:{rates:RATE_KEY,zones:ZONE_KEY,imports:IMPORT_KEY},_test:{analyzeSheet,parseEversFrankSpMatrix,parseEversFrankWeightMatrix,parseEversFrankCustomZoneMatrix,parseClassicPalletZoneSheet,parseExplicitClassicGrid,parseHorizontalMatrix,parseVerticalZoneMatrices,parseFixedRelations,dimensionValue,postcodeRange,expandPrefixExpression,buildBenchmarkData,parseExistingRates,compareRateSheets,parseExistingZones,compareZoneSheets,detectChargeRules,parseChargeRulesFromParamsSheet,parseChargeRulesFromFreeText}};
+  window.GPKTariffImport={open,chooseAndOpen,analyzeFile,refreshPageStatus,appendImportedRows,exportRates,exportZones,compareWithBenchmark,publishBatchToCalculator,deleteImportedTariff,requestDeleteImportedTariff,editImportedTariff,buildBenchmarkData,keys:{rates:RATE_KEY,zones:ZONE_KEY,imports:IMPORT_KEY},_test:{analyzeSheet,parseNordicBidMatrix,nordicPostalRanges,detectNordicPriceModel,parsePmlStpWorkbook,parsePmlStpRateSheet,parsePmlCompanionZones,parseEversFrankSpMatrix,parseEversFrankWeightMatrix,parseEversFrankCustomZoneMatrix,parseClassicPalletZoneSheet,parseExplicitClassicGrid,parseHorizontalMatrix,parseVerticalZoneMatrices,parseFixedRelations,dimensionValue,postcodeRange,expandPrefixExpression,buildBenchmarkData,parseExistingRates,compareRateSheets,parseExistingZones,compareZoneSheets,detectChargeRules,parseChargeRulesFromParamsSheet,parseChargeRulesFromFreeText}};
   document.addEventListener("DOMContentLoaded",()=>{
     installModal();if(!document.getElementById("gpkTariffAutoImport").hidden){/* already open */}else{restoreDraft();}refreshPageStatus();const historyRows=document.getElementById("autoImportRows");if(historyRows&&!historyRows.dataset.compareHandlers){historyRows.dataset.compareHandlers="1";historyRows.addEventListener("click",async e=>{const c=e.target.closest("[data-auto-compare]");const d=e.target.closest("[data-auto-delete]");const ed=e.target.closest("[data-auto-edit]");try{if(c)await compareWithBenchmark(c.dataset.autoCompare);if(ed)editImportedTariff(ed.dataset.autoEdit);if(d)requestDeleteImportedTariff(d.dataset.autoDelete);}catch(err){if(window.rateToast){rateToast.textContent=err.message;rateToast.hidden=false;setTimeout(()=>rateToast.hidden=true,3500);}}});}
     ["rateSearch","rateProviderFilter","rateTransportFilter","rateStatusFilter","rateSort"].forEach(id=>{const el=document.getElementById(id);if(!el)return;["input","change"].forEach(evt=>el.addEventListener(evt,()=>setTimeout(appendImportedRows,0)));});
