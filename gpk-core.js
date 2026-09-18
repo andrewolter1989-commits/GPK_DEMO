@@ -1,7 +1,7 @@
 
 window.GPK = window.GPK || {};
 
-GPK.VERSION = "6.47";
+GPK.VERSION = "6.50";
 
 GPK.KEYS = Object.freeze({
   locations: "gpk_demo_locations_v1",
@@ -15,7 +15,10 @@ GPK.KEYS = Object.freeze({
   settings: "gpk_demo_settings_v1",
   rateOutputs: "gpk_demo_rate_output_v1",
   zoneRules: "gpk_demo_zone_rules_v1",
-  tariffImports: "gpk_demo_tariff_imports_v1"
+  tariffImports: "gpk_demo_tariff_imports_v1",
+  shipments: "gpk_demo_shipments_v1",
+  shipmentImports: "gpk_demo_shipment_imports_v1",
+  analyticsConfig: "gpk_demo_analytics_config_v1"
 });
 
 GPK.read = function(key, fallback = []) {
@@ -105,7 +108,7 @@ GPK.setActiveNavigation = function() {
 GPK.installDemoBadge = function() {
   const footer = document.querySelector(".sidebar-foot");
   if (!footer) return;
-  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.47 <span class="sidebar-demo-label">· Lokal</span>';
+  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.50 <span class="sidebar-demo-label">· Lokal</span>';
 };
 
 document.addEventListener("DOMContentLoaded", () => {
