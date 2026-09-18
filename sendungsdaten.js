@@ -43,9 +43,14 @@ function decFmt(v,d=1){return new Intl.NumberFormat("de-DE",{maximumFractionDigi
 function showToast(t){const el=document.getElementById("shipmentToast");el.textContent=t;el.hidden=false;setTimeout(()=>el.hidden=true,3000)}
 function totalCost(x){const t=num(x.actualTotal);if(t!==null)return t;return [x.freight,x.diesel,x.toll,x.otherCharges].reduce((a,v)=>a+(num(v)||0),0)}
 function hasCost(x){return [x.actualTotal,x.freight,x.diesel,x.toll,x.otherCharges].some(v=>num(v)!==null&&num(v)!==0)}
-function currentMapValue(row,key){const idx=Number(importState.mapping[key]);return Number.isInteger(idx)&&idx>=0?(row[idx]??""):""}
+function currentMapValue(row,key){const idx=mappedIndex(importState.mapping[key]);return idx>=0?(row[idx]??""):""}
 function colLetter(i){let n=i+1,s="";while(n){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26)}return s}
 function displayHeader(i){return `${colLetter(i)} · ${importState.headers[i]||`Spalte ${i+1}`}`}
+function mappedIndex(v){
+  if(v===null||v===undefined||String(v).trim()==="")return -1;
+  const i=Number(v);
+  return Number.isInteger(i)&&i>=0?i:-1;
+}
 
 function autoMap(headers){
   const normalized=headers.map(h=>norm(h));
@@ -88,7 +93,7 @@ function headerScore(row,nextRows=[]){
 }
 function bestHeaderForSheet(rows){
   let best={row:0,score:-999};
-  for(let i=0;i<Math.min(50,rows.length);i++){
+  for(let i=0;i<Math.min(80,rows.length);i++){
     const score=headerScore(rows[i],rows.slice(i+1,i+4));
     if(score>best.score)best={row:i,score};
   }
@@ -96,7 +101,7 @@ function bestHeaderForSheet(rows){
 }
 function candidateHeaderRows(rows,bestRow){
   const scored=[];
-  for(let i=0;i<Math.min(50,rows.length);i++){
+  for(let i=0;i<Math.min(80,rows.length);i++){
     const non=(rows[i]||[]).filter(v=>String(v??"").trim()).length;
     if(non<2)continue;
     scored.push({row:i,score:headerScore(rows[i],rows.slice(i+1,i+4))});
@@ -113,6 +118,23 @@ async function readShipmentWorkbook(file){
   }
   const XLSX=await ensureXLSX(),data=await file.arrayBuffer(),wb=XLSX.read(data,{type:"array",cellDates:false});
   return wb.SheetNames.map(name=>({name,rows:XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:"",raw:false})}));
+}
+
+function renderSheetSelector(){
+  const el=document.getElementById("shipmentSheetSelect");if(!el)return;
+  el.innerHTML=importState.sheets.map((sh,i)=>`<option value="${i}">${esc(sh.name)} · ${Math.max(0,(sh.rows||[]).length)} Zeilen</option>`).join("");
+  const active=importState.sheets.findIndex(sh=>sh.name===importState.sheetName);
+  el.value=String(active>=0?active:0);
+}
+function setShipmentSheet(index){
+  const sh=importState.sheets[Number(index)];if(!sh)return;
+  const best=bestHeaderForSheet(sh.rows||[]);
+  importState.sheetName=sh.name;importState.rows=sh.rows||[];
+  importState.headerRow=best.row;
+  importState.headers=(importState.rows[best.row]||[]).map((v,i)=>String(v??"").trim()||`Spalte ${i+1}`);
+  importState.mapping=autoMap(importState.headers);
+  renderSheetSelector();
+  setHeaderRow(best.row,true);
 }
 function setHeaderRow(rowIndex,remap=true){
   importState.headerRow=Number(rowIndex)||0;
@@ -171,7 +193,7 @@ function templateValue(template,value,row,seq){
   return out;
 }
 function customValue(def,row,seq){
-  const idx=Number(def.sourceIndex),raw=Number.isInteger(idx)&&idx>=0?(row[idx]??""):"";
+  const idx=mappedIndex(def.sourceIndex),raw=idx>=0?(row[idx]??""):"";
   const extracted=applyExtract(raw,def.extract||"");
   if(def.mode==="fixed")return def.template||"";
   if(def.mode==="template")return templateValue(def.template||"{VALUE}",extracted,row,seq);
@@ -246,10 +268,10 @@ async function loadShipmentFile(file){
   try{
     const sheets=await readShipmentWorkbook(file);
     const scored=sheets.map(sh=>({sh,...bestHeaderForSheet(sh.rows)})).sort((a,b)=>b.score-a.score);
-    const best=scored[0];
-    if(!best||best.score<0){showToast("Keine brauchbare Tabellenstruktur erkannt.");return}
-    importState.file=file;importState.sheets=sheets;importState.sheetName=best.sh.name;importState.rows=best.sh.rows;
-    importState.headerRow=best.row;importState.headers=(best.sh.rows[best.row]||[]).map((v,i)=>String(v??"").trim()||`Spalte ${i+1}`);
+    const best=scored.find(x=>(x.sh.rows||[]).some(r=>(r||[]).some(v=>String(v??"").trim()!=="")))||scored[0];
+    if(!best){showToast("Die Datei enthält keine lesbaren Tabellen.");return}
+    importState.file=file;importState.sheets=sheets;importState.sheetName=best.sh.name;importState.rows=best.sh.rows||[];
+    importState.headerRow=best.row;importState.headers=(importState.rows[best.row]||[]).map((v,i)=>String(v??"").trim()||`Spalte ${i+1}`);
     importState.mapping=autoMap(importState.headers);
     document.getElementById("shipmentIdTemplate").value=importConfig.shipmentIdTemplate||"";
     normalizeImportRows();
@@ -257,7 +279,7 @@ async function loadShipmentFile(file){
     document.getElementById("shipmentImportInfo").hidden=false;
     document.getElementById("shipmentImportInfo").innerHTML=`<div><span>Datei</span><strong>${esc(file.name)}</strong></div><div><span>Arbeitsblatt</span><strong>${esc(best.sh.name)}</strong></div><div><span>Kopfzeile</span><strong>Zeile ${best.row+1}</strong></div><div><span>Felder erkannt</span><strong>${mapped}</strong></div><div><span>Datenzeilen</span><strong>${importState.normalized.length.toLocaleString("de-DE")}</strong></div>`;
     document.getElementById("shipmentMappingCard").hidden=false;document.getElementById("shipmentPreviewCard").hidden=false;
-    renderHeaderControls();renderMapping();renderCustomFields();renderPreview();activateTab("import");
+    renderSheetSelector();renderHeaderControls();renderMapping();renderCustomFields();renderPreview();activateTab("import");
   }catch(err){console.error(err);showToast("Datei konnte nicht gelesen werden.")}
 }
 
@@ -300,6 +322,7 @@ shipmentFileInput.addEventListener("change",()=>{if(shipmentFileInput.files[0])l
 shipmentImportDrop.addEventListener("dragover",e=>{e.preventDefault();shipmentImportDrop.classList.add("dragover")});
 shipmentImportDrop.addEventListener("dragleave",()=>shipmentImportDrop.classList.remove("dragover"));
 shipmentImportDrop.addEventListener("drop",e=>{e.preventDefault();shipmentImportDrop.classList.remove("dragover");if(e.dataTransfer.files[0])loadShipmentFile(e.dataTransfer.files[0])});
+shipmentSheetSelect.addEventListener("change",()=>setShipmentSheet(Number(shipmentSheetSelect.value)));
 shipmentHeaderRowSelect.addEventListener("change",()=>setHeaderRow(Number(shipmentHeaderRowSelect.value),true));
 shipmentIdTemplate.addEventListener("change",()=>{importConfig.shipmentIdTemplate=shipmentIdTemplate.value.trim();GPK.write(GPK.KEYS.shipmentImportConfig,importConfig);normalizeImportRows();renderPreview()});
 addShipmentCustomField.addEventListener("click",()=>{
@@ -308,7 +331,13 @@ addShipmentCustomField.addEventListener("click",()=>{
 });
 cancelShipmentImportBtn.addEventListener("click",()=>{importState={file:null,sheets:[],sheetName:"",rows:[],headerRow:0,headers:[],mapping:{},normalized:[]};shipmentMappingCard.hidden=true;shipmentPreviewCard.hidden=true;shipmentImportInfo.hidden=true});
 confirmShipmentImportBtn.addEventListener("click",async()=>{
-  if(!importState.normalized.length){showToast("Keine Sendungen zum Importieren.");return}
+  normalizeImportRows();
+  if(!importState.normalized.length){showToast("Keine Sendungen zum Importieren. Bitte Arbeitsblatt und Kopfzeile prüfen.");return}
+  const mappedCount=Object.values(importState.mapping).filter(v=>mappedIndex(v)>=0).length;
+  if(mappedCount===0&&customFieldDefs.filter(d=>mappedIndex(d.sourceIndex)>=0||d.mode==="fixed").length===0){
+    showToast("Noch keine Spalten zugeordnet. Bitte mindestens ein Feld zuordnen.");
+    return;
+  }
   const batchId="SHIPIMP-"+Date.now(),now=new Date().toISOString(),rows=importState.normalized.map(x=>({...x,batchId}));
   const next=[...rows,...shipments];
   try{
@@ -318,7 +347,7 @@ confirmShipmentImportBtn.addEventListener("click",async()=>{
     if(!GPK.write(SHIPMENT_IMPORT_KEY,shipmentImports.slice(0,100))){showToast("Sendungen gespeichert; Import-Historie konnte nicht vollständig gespeichert werden.")}
     else showToast(`${rows.length.toLocaleString("de-DE")} Sendungen importiert.`);
     renderAll();activateTab("overview");
-  }catch(err){console.error(err);showToast("Sendungsdaten konnten im großen Datenspeicher nicht gespeichert werden.")}
+  }catch(err){console.error(err);showToast("Sendungsdaten konnten nicht gespeichert werden. Bitte Browser-Speicherfreigabe prüfen.")}
 });
 exportShipmentsBtn.addEventListener("click",async()=>{
   if(!shipments.length){showToast("Keine Sendungsdaten zum Exportieren.");return}

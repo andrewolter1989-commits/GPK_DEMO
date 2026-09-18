@@ -4038,7 +4038,7 @@ body.planning-mode .calculator-shipment-layout{
 
 
 /* v6.51 – Sendungsimport: echte Kopfzeilen, große Datenmengen, eigene Felder */
-.shipment-header-control{display:grid;grid-template-columns:220px 1fr;gap:10px;align-items:start;border:1px solid #dbe7ea;background:#f8fbfc;border-radius:10px;padding:10px;margin-bottom:10px}
+.shipment-header-control{display:grid;grid-template-columns:210px 210px 1fr;gap:10px;align-items:start;border:1px solid #dbe7ea;background:#f8fbfc;border-radius:10px;padding:10px;margin-bottom:10px}
 .shipment-header-control label{display:flex;flex-direction:column;gap:5px}.shipment-header-control label span{font-size:9px;text-transform:uppercase;font-weight:800;color:#718891}
 .shipment-header-control select{height:36px;border:1px solid #bfd3d8;border-radius:8px;background:#fff;padding:0 8px;color:#174653}
 .shipment-header-preview{display:flex;gap:5px;flex-wrap:wrap;max-height:78px;overflow:auto}
@@ -4056,3 +4056,6 @@ body.planning-mode .calculator-shipment-layout{
 .shipment-custom-field-row button{height:32px;border:1px solid #e2c8c5;border-radius:7px;background:#fff;color:#a34c44;cursor:pointer;font-weight:900}
 .shipment-custom-empty{border:1px dashed #d8e5e8;border-radius:8px;padding:14px;color:#78909a;font-size:9px;text-align:center}
 @media(max-width:1200px){.shipment-custom-field-row{grid-template-columns:1fr 1fr 1fr}.shipment-custom-field-row button{width:32px}.shipment-header-control,.shipment-id-format{grid-template-columns:1fr}.template-help{grid-column:1}}
+
+/* v6.52 – Importkorrektur */
+.shipment-header-control>label select{width:100%}
