@@ -94,9 +94,11 @@ function normalizedOperations(){
     const cost=inv&&n(inv.actual)!=null?n(inv.actual):(n(o.totalPrice)??n(o.price)??0);
     const created=dateFromCreated(o.created)||parseDate(o.createdAt)||parseDate(o.date);
     const pickup=parseDate(o.pickupDate||o.date);
+    const delivery=parseDate(o.deliveryDate||o.delivery);
+    const transportDate=delivery||pickup||created;
     return {
       id:o.id||`OP-${i+1}`,kind:"operation",eventType:o.type||"",
-      date:created,bookingDate:created,pickupDate:pickup,
+      date:transportDate,bookingDate:created,pickupDate:pickup,deliveryDate:delivery,
       originCountry:rel.origin.country,originPostal:rel.origin.postal,
       destCountry:rel.dest.country,destPostal:rel.dest.postal,destCity:"",
       recipient:o.customer||rel.dest.label||"Unbekannt",relation:o.relation||"",
@@ -437,7 +439,8 @@ $("analyticsExportBtn").addEventListener("click",async()=>{
     const carrierSelect=$("anCarrier");
     if(![...carrierSelect.options].some(o=>o.value===requestedCarrier)){const opt=document.createElement("option");opt.value=requestedCarrier;opt.textContent=requestedCarrier;carrierSelect.appendChild(opt);}
     carrierSelect.value=requestedCarrier;
-    if(!requestedPeriod){$("anPeriod").value="all";periodPreset();}
+    $("anPeriod").value="all";
+    periodPreset();
   }
   syncState();
   if(requestedTab&&["overview","flows","costs","carriers","users","pricing"].includes(requestedTab))setTab(requestedTab);

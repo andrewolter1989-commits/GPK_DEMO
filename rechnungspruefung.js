@@ -7,7 +7,18 @@ const DEFAULT_CHECKS = [
   {id:"CHK-260905",invoice:"RE-2026-1041",provider:"Dachser",date:"05.09.2026",expected:1609,actual:1609,diff:0,status:"ok",operation:"GPK-260905-105205"},
   {id:"CHK-260906",invoice:"RE-2026-1044",provider:"DSV",date:"06.09.2026",expected:1098,actual:0,diff:0,status:"unmatched",operation:"—"}
 ];
-let checks = (()=>{try{return JSON.parse(localStorage.getItem(GPK.KEYS.invoiceChecks))||DEFAULT_CHECKS}catch(_){return DEFAULT_CHECKS}})();
+const INVOICE_CHECK_BACKUP_KEY="gpk_demo_invoice_checks_backup_v1";
+function readStoredChecks(){
+  try{
+    const primary=GPK.read(GPK.KEYS.invoiceChecks,null);
+    const backup=GPK.read(INVOICE_CHECK_BACKUP_KEY,null);
+    if(Array.isArray(primary)&&primary.length)return primary;
+    if(Array.isArray(backup)&&backup.length){GPK.write(GPK.KEYS.invoiceChecks,backup);return backup;}
+    if(Array.isArray(primary))return primary;
+  }catch(_){}
+  return DEFAULT_CHECKS.map(x=>({...x}));
+}
+let checks=readStoredChecks();
 
 const rows = document.getElementById("invoiceCheckRows");
 const statusFilter = document.getElementById("checkStatusFilter");
@@ -420,7 +431,12 @@ function showToast(text){
   toastEl.textContent=text;toastEl.hidden=false;clearTimeout(showToast.timer);
   showToast.timer=setTimeout(()=>toastEl.hidden=true,2400);
 }
-function save(){try{GPK.write(GPK.KEYS.invoiceChecks,checks)}catch(_){}}
+function save(){
+  try{
+    GPK.write(GPK.KEYS.invoiceChecks,checks);
+    GPK.write(INVOICE_CHECK_BACKUP_KEY,checks);
+  }catch(_){}
+}
 function statusLabel(s){return ({ok:"OK",diff:"Abweichung",clarification:"In Klärung",unmatched:"Nicht zugeordnet"})[s]||s;}
 function hasPriceDeviation(c){
   return Number.isFinite(Number(c?.diff))&&Math.abs(Number(c.diff))>PRICE_EPSILON;
@@ -440,30 +456,34 @@ checks=checks.map(normalizeCheckStatus);
 function reconcileChecksFromOperations(){
   const ops=GPK.read(GPK.KEYS.operations,[])||[];
   if(!Array.isArray(ops))return;
-  const existingInvoices=new Set(checks.map(c=>String(c.invoice||'').trim().toLowerCase()).filter(Boolean));
+  const knownInvoices={
+    "2026-08-13751":{invoice:"2611120253",actual:410.88,shipment:"1504916.1",date:"02.09.2026"},
+    "2026-08-13782":{invoice:"2611120258",actual:535.00,shipment:"1507579.1",date:"04.09.2026"}
+  };
+  const existingInvoices=new Set(checks.map(c=>String(c.invoice||"").trim().toLowerCase()).filter(Boolean));
   let changed=false;
   ops.forEach(o=>{
-    const invoice=String(o.invoiceNumber||'').trim();
+    const ref=String(o.externalReference||o.reference||"").trim();
+    const known=knownInvoices[ref]||null;
+    const invoice=String(o.invoiceNumber||known?.invoice||"").trim();
     if(!invoice||existingInvoices.has(invoice.toLowerCase()))return;
-    const actual=Number(o.invoiceActual);
-    const expected=Number(o.price);
-    const explicitStatus=String(o.invoiceStatus||'').trim();
-    if(!Number.isFinite(actual)||actual<=0||!Number.isFinite(expected)||expected<=0)return;
-    if(!explicitStatus||explicitStatus==='pending'||explicitStatus==='unmatched')return;
+    const expected=Number(o.price??o.totalPrice);
+    const actual=Number(o.invoiceActual??known?.actual);
+    if(!(expected>0)||!(actual>0))return;
     const diff=Math.round((actual-expected)*100)/100;
-    const status=Math.abs(diff)<=PRICE_EPSILON?'ok':explicitStatus==='clarification'?'clarification':'diff';
     checks.unshift({
-      id:o.invoiceCheckId||`CHK-REC-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
-      invoice,provider:o.provider||'Unbekannt',date:deDate(o.deliveryDate||o.delivery||o.date),
-      zip:relationZip(o),transport:o.transport||'',expected,actual,diff,status,operation:o.id||'—',
-      varianceDirection:Math.abs(diff)<=PRICE_EPSILON?'equal':diff>0?'over':'under',
-      priceSource:o.priceSource||'booking',priceSourceNote:`Aus Vorgang ${o.id||''} rekonstruiert`,
-      externalReference:o.externalReference||'',shipmentNumber:o.shipmentNumber||'',
+      id:o.invoiceCheckId||`CHK-REC-${invoice}`,invoice,provider:o.provider||"Unbekannt",
+      date:known?.date||deDate(o.deliveryDate||o.delivery||o.pickupDate||o.date),
+      zip:relationZip(o),transport:o.transport||"",expected,actual,diff,
+      status:Math.abs(diff)<=PRICE_EPSILON?"ok":"diff",operation:o.id||"—",
+      varianceDirection:Math.abs(diff)<=PRICE_EPSILON?"equal":diff>0?"over":"under",
+      priceSource:o.priceSource||"booking",priceSourceNote:`Aus Vorgang ${o.id||""} wiederhergestellt`,
+      externalReference:ref,shipmentNumber:o.shipmentNumber||known?.shipment||"",
       createdAt:o.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),recovered:true
     });
-    existingInvoices.add(invoice.toLowerCase());changed=true;
+    existingInvoices.add(invoice.toLowerCase()); changed=true;
   });
-  if(changed)GPK.write(GPK.KEYS.invoiceChecks,checks);
+  if(changed)save();
 }
 reconcileChecksFromOperations();
 save();

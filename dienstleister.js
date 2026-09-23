@@ -63,9 +63,10 @@ function providerLogoSrc(p){
 }
 function providerAvatarMarkup(p){
   const src=providerLogoSrc(p);
+  const attrs=`data-provider-stats="${p.id}" title="Statistiken für ${esc(p.name)} anzeigen" role="button" tabindex="0"`;
   return src
-    ? `<div class="provider-avatar provider-avatar-logo"><img src="${esc(src)}" alt="${esc(p.name)} Logo" onerror="this.parentElement.classList.remove('provider-avatar-logo');this.remove();this.parentElement.textContent='${esc(initials(p))}'"></div>`
-    : `<div class="provider-avatar">${esc(initials(p))}</div>`;
+    ? `<div class="provider-avatar provider-avatar-logo provider-stats-avatar" ${attrs}><img src="${esc(src)}" alt="${esc(p.name)} Logo" onerror="this.parentElement.classList.remove('provider-avatar-logo');this.remove();this.parentElement.textContent='${esc(initials(p))}'"></div>`
+    : `<div class="provider-avatar provider-stats-avatar" ${attrs}>${esc(initials(p))}</div>`;
 }
 function updateProviderLogoPreview(value){
   const box=document.getElementById("providerLogoPreview");if(!box)return;
@@ -204,6 +205,14 @@ function openProviderContextMenu(button,id){
     if(action==="delete")deleteProvider(p.id);
   });
 }
+rows.addEventListener("keydown",e=>{
+  const statsTarget=e.target.closest?.("[data-provider-stats]");
+  if(statsTarget&&(e.key==="Enter"||e.key===" ")){
+    e.preventDefault();
+    const p=providers.find(x=>x.id===Number(statsTarget.dataset.providerStats));
+    if(p)location.href=`statistik.html?carrier=${encodeURIComponent(p.name)}&tab=carriers&period=all`;
+  }
+});
 rows.addEventListener("click",e=>{
   const edit=e.target.closest("[data-edit]"),more=e.target.closest("[data-provider-more]"),stats=e.target.closest("[data-provider-stats]");
   if(stats){const p=providers.find(x=>x.id===Number(stats.dataset.providerStats));if(p)location.href=`statistik.html?carrier=${encodeURIComponent(p.name)}&tab=carriers&period=all`;return;}

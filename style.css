@@ -4197,3 +4197,7 @@ body.planning-mode .calculator-shipment-layout{
 @media(max-width:1450px){.provider-filterbar{grid-template-columns:minmax(240px,1fr) repeat(3,minmax(150px,1fr))!important}.provider-filterbar .search-box{grid-column:1/-1}}
 @media(max-width:850px){.provider-filterbar{grid-template-columns:1fr 1fr!important}.provider-filterbar .search-box{grid-column:1/-1}}
 @media(max-width:600px){.provider-filterbar{grid-template-columns:1fr!important}.provider-filterbar .search-box{grid-column:auto}}
+
+/* v6.62 – Dienstleister-Logo öffnet Statistik */
+.provider-stats-avatar{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+.provider-stats-avatar:hover,.provider-stats-avatar:focus{transform:translateY(-1px);box-shadow:0 0 0 2px rgba(8,133,158,.16);outline:none}
