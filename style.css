@@ -4209,3 +4209,6 @@ body.planning-mode .calculator-shipment-layout{
 .invoice-history-row{cursor:pointer}
 .invoice-history-row:hover td{background:#f2f9fa}
 .invoice-history-row:focus{outline:2px solid rgba(8,133,158,.35);outline-offset:-2px}
+
+/* v6.67 */
+.page-version-marker{font-size:9px;font-weight:700;color:#718991;vertical-align:middle;margin-left:5px}

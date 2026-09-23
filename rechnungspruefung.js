@@ -20,6 +20,9 @@ function readStoredChecks(){
   return DEFAULT_CHECKS.map(x=>({...x}));
 }
 let checks=readStoredChecks();
+if((!Array.isArray(checks)||!checks.length)&&Array.isArray(window.__GPK_BOOTSTRAP_INVOICE_CHECKS__)&&window.__GPK_BOOTSTRAP_INVOICE_CHECKS__.length){
+  checks=window.__GPK_BOOTSTRAP_INVOICE_CHECKS__.map(x=>({...x}));
+}
 
 async function hydrateInvoiceChecks(){
   try{
@@ -32,7 +35,9 @@ async function hydrateInvoiceChecks(){
       });
       checks=[...byInvoice.values()];
     }else if(!checks.length){
-      checks=DEFAULT_CHECKS.map(x=>({...x}));
+      checks=(Array.isArray(window.__GPK_BOOTSTRAP_INVOICE_CHECKS__)&&window.__GPK_BOOTSTRAP_INVOICE_CHECKS__.length)
+        ? window.__GPK_BOOTSTRAP_INVOICE_CHECKS__.map(x=>({...x}))
+        : DEFAULT_CHECKS.map(x=>({...x}));
     }
   }catch(_){
     if(!checks.length)checks=DEFAULT_CHECKS.map(x=>({...x}));
@@ -57,6 +62,15 @@ const toastEl = document.getElementById("invoiceToast");
 let editingCheckId="";
 const invoiceSubmitBtn=document.getElementById("invoiceSubmitBtn");
 const cancelInvoiceEditBtn=document.getElementById("cancelInvoiceEditBtn");
+const manualInvoiceForm=document.getElementById("manualInvoiceForm");
+const invNumber=document.getElementById("invNumber");
+const invProvider=document.getElementById("invProvider");
+const invDate=document.getElementById("invDate");
+const invZip=document.getElementById("invZip");
+const invTransport=document.getElementById("invTransport");
+const invAmount=document.getElementById("invAmount");
+const invReviewStatus=document.getElementById("invReviewStatus");
+const invOperation=document.getElementById("invOperation");
 const checkCountEl=document.getElementById("checkCount");
 const okCountEl=document.getElementById("okCount");
 const diffCountEl=document.getElementById("diffCount");
@@ -575,7 +589,8 @@ function renderInvoiceKpis(){
 function operationStatusForCheck(c){const o=findOperationById?.(c.operation);return o?.status||""}
 function operationStatusLabel(v){return ({open:"Offen",waiting:"Warten auf Antwort",confirmed:"Bestätigt",booked:"Gebucht",closed:"Abgeschlossen"})[v]||"—"}
 function renderChecks(){
-  const q=search.value.trim().toLowerCase(), sf=statusFilter.value;
+  if(!rows)return;
+  const q=(search?.value||"").trim().toLowerCase(), sf=statusFilter?.value||"";
   const effectiveStatus=activeInvoiceKpi||sf;
   const filtered=checks.filter(c=>{
     const hay=`${c.invoice} ${c.provider} ${c.operation}`.toLowerCase();
@@ -593,6 +608,14 @@ function renderChecks(){
   </tr>`).join(""):`<tr><td colspan="8" class="invoice-history-empty">Noch keine gespeicherte Prüfung vorhanden.</td></tr>`;
   renderInvoiceKpis();
 }
+
+/* v6.66: Kritische Historie sofort rendern, bevor optionale UI-Handler registriert werden. */
+renderChecks();
+hydrateInvoiceChecks().catch(error=>{
+  console.error("Initiale Rechnungsprüfung konnte nicht geladen werden.",error);
+  if(!checks.length)checks=DEFAULT_CHECKS.map(x=>({...x}));
+  renderChecks();
+});
 
 function findLocalTariff(provider, zip, transport){
   try{
@@ -706,17 +729,17 @@ function endCheckEdit(){
   cancelInvoiceEditBtn.hidden=true;
 }
 cancelInvoiceEditBtn?.addEventListener("click",endCheckEdit);
-rows.addEventListener("click",e=>{
+rows?.addEventListener("click",e=>{
   const id=e.target.closest("[data-edit-check]")?.dataset.editCheck||e.target.closest("[data-check-id]")?.dataset.checkId;
   if(id)openHistoryCheck(checks.find(c=>c.id===id));
 });
-rows.addEventListener("keydown",e=>{
+rows?.addEventListener("keydown",e=>{
   if(e.key!=="Enter"&&e.key!==" ")return;
   const id=e.target.closest("[data-check-id]")?.dataset.checkId;
   if(id){e.preventDefault();openHistoryCheck(checks.find(c=>c.id===id));}
 });
 
-manualInvoiceForm.addEventListener("submit",e=>{
+manualInvoiceForm?.addEventListener("submit",e=>{
   e.preventDefault();
   const provider=invProvider.value, date=invDate.value, zip=invZip.value.trim(), transport=invTransport.value;
   const actual=Number(invAmount.value||0);
@@ -781,31 +804,31 @@ manualInvoiceForm.addEventListener("submit",e=>{
 });
 
 document.querySelectorAll("[data-invoice-mode]").forEach(btn=>btn.addEventListener("click",()=>setInvoiceMode(btn.dataset.invoiceMode)));
-chooseInvoiceBtn.addEventListener("click",()=>invoiceFileInput.click());
-invoiceFileInput.addEventListener("change",async()=>{
+chooseInvoiceBtn?.addEventListener("click",()=>invoiceFileInput.click());
+invoiceFileInput?.addEventListener("change",async()=>{
   if(!invoiceFileInput.files?.length)return;
   await hydrateInvoiceChecks();
   renderChecks();
   mergeInvoiceFiles(invoiceFileInput.files);
 });
-invoiceDropzone.addEventListener("dragover",e=>{e.preventDefault();invoiceDropzone.classList.add("dragging")});
-invoiceDropzone.addEventListener("dragleave",()=>invoiceDropzone.classList.remove("dragging"));
-invoiceDropzone.addEventListener("drop",async e=>{
+invoiceDropzone?.addEventListener("dragover",e=>{e.preventDefault();invoiceDropzone.classList.add("dragging")});
+invoiceDropzone?.addEventListener("dragleave",()=>invoiceDropzone.classList.remove("dragging"));
+invoiceDropzone?.addEventListener("drop",async e=>{
   e.preventDefault();invoiceDropzone.classList.remove("dragging");
   if(!e.dataTransfer.files?.length)return;
   await hydrateInvoiceChecks();
   renderChecks();
   mergeInvoiceFiles(e.dataTransfer.files);
 });
-document.getElementById("reviewPriceSource").addEventListener("change",()=>{
+document.getElementById("reviewPriceSource")?.addEventListener("change",()=>{
   const item=queueItem(reviewInvoiceKey),op=item?.recognized?findOperationForRecognized(item.invoice):null,tariff=item?.recognized?findTariffForRecognized(item.invoice):null;
   if(reviewPriceSource.value==="booking"&&op)reviewExpectedAmount.value=Number(op.price||0).toFixed(2);
   if(reviewPriceSource.value==="tariff"&&tariff)reviewExpectedAmount.value=Number(tariff.price||0).toFixed(2);
   renderReviewEvidence();renderReviewResult();
 });
-document.getElementById("reviewExpectedAmount").addEventListener("input",renderReviewResult);
-document.getElementById("saveRecognizedCheckBtn").addEventListener("click",saveRecognizedReview);
-document.getElementById("closeInvoiceReviewBtn").addEventListener("click",()=>{document.getElementById("invoiceReviewWorkspace").hidden=true;reviewInvoiceKey=""});
+document.getElementById("reviewExpectedAmount")?.addEventListener("input",renderReviewResult);
+document.getElementById("saveRecognizedCheckBtn")?.addEventListener("click",saveRecognizedReview);
+document.getElementById("closeInvoiceReviewBtn")?.addEventListener("click",()=>{document.getElementById("invoiceReviewWorkspace").hidden=true;reviewInvoiceKey=""});
 closeBatchReviewBtn?.addEventListener("click",()=>{invoiceBatchReviewWorkspace.hidden=true;reviewInvoiceKey=""});
 saveBatchDraftBtn?.addEventListener("click",()=>saveBatchInvoiceCheck(false));
 saveBatchCheckBtn?.addEventListener("click",()=>saveBatchInvoiceCheck(true));
@@ -821,11 +844,11 @@ invoiceOperationForm?.addEventListener("submit",saveOperationFromRecognized);
 closeInvoiceOperationModalBtn?.addEventListener("click",closeInvoiceOperationModal);
 cancelInvoiceOperationModalBtn?.addEventListener("click",closeInvoiceOperationModal);
 invoiceOperationModal?.addEventListener("click",e=>{if(e.target===invoiceOperationModal)closeInvoiceOperationModal()});
-[statusFilter,search].forEach(x=>x.addEventListener("input",()=>{
+[statusFilter,search].filter(Boolean).forEach(x=>x.addEventListener("input",()=>{
   if(x===statusFilter)activeInvoiceKpi=statusFilter.value||"";
   renderChecks();
 }));
-statusFilter.addEventListener("change",()=>{activeInvoiceKpi=statusFilter.value||"";renderChecks();});
+statusFilter?.addEventListener("change",()=>{activeInvoiceKpi=statusFilter.value||"";renderChecks();});
 document.querySelectorAll("[data-invoice-kpi]").forEach(btn=>btn.addEventListener("click",()=>{
   const next=btn.dataset.invoiceKpi||"";
   activeInvoiceKpi=(activeInvoiceKpi===next&&next!=="")?"":next;
@@ -834,13 +857,7 @@ document.querySelectorAll("[data-invoice-kpi]").forEach(btn=>btn.addEventListene
 }));
 exportChecksBtn?.addEventListener("click",()=>showToast("Export der Prüfungen wird im nächsten technischen Schritt angebunden."));
 function bootInvoiceAudit(){
-  renderChecks();
   renderInvoiceQueue();
-  hydrateInvoiceChecks().catch(error=>{
-    console.error("Rechnungsprüfungen konnten nicht geladen werden.",error);
-    if(!checks.length)checks=DEFAULT_CHECKS.map(x=>({...x}));
-    renderChecks();
-  });
   const op=new URLSearchParams(location.search).get("operation");
   if(op)prefillFromOperation(op);
 }
