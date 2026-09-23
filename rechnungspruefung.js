@@ -8,18 +8,45 @@ const DEFAULT_CHECKS = [
   {id:"CHK-260906",invoice:"RE-2026-1044",provider:"DSV",date:"06.09.2026",expected:1098,actual:0,diff:0,status:"unmatched",operation:"—"}
 ];
 const INVOICE_CHECK_BACKUP_KEY="gpk_demo_invoice_checks_backup_v1";
+const INVOICE_CHECK_LARGE_KEY="gpk_demo_invoice_checks_large_v1";
+
 function readStoredChecks(){
   try{
     const primary=GPK.read(GPK.KEYS.invoiceChecks,null);
     const backup=GPK.read(INVOICE_CHECK_BACKUP_KEY,null);
     if(Array.isArray(primary)&&primary.length)return primary;
-    if(Array.isArray(backup)&&backup.length){GPK.write(GPK.KEYS.invoiceChecks,backup);return backup;}
+    if(Array.isArray(backup)&&backup.length)return backup;
     if(Array.isArray(primary))return primary;
   }catch(_){}
-  return DEFAULT_CHECKS.map(x=>({...x}));
+  return [];
 }
 let checks=readStoredChecks();
 
+async function hydrateInvoiceChecks(){
+  try{
+    const large=await GPK.largeRead(INVOICE_CHECK_LARGE_KEY,[]);
+    if(Array.isArray(large)&&large.length){
+      const byInvoice=new Map();
+      [...large,...checks].forEach(c=>{
+        const key=String(c?.invoice||c?.id||"").trim().toLowerCase();
+        if(key&&!byInvoice.has(key))byInvoice.set(key,c);
+      });
+      checks=[...byInvoice.values()];
+    }
+  }catch(_){}
+  reconcileChecksFromOperations();
+  persistInvoiceChecks();
+  renderChecks();
+  renderInvoiceQueue();
+}
+
+function persistInvoiceChecks(){
+  try{
+    GPK.write(GPK.KEYS.invoiceChecks,checks);
+    GPK.write(INVOICE_CHECK_BACKUP_KEY,checks);
+  }catch(_){}
+  GPK.largeWrite(INVOICE_CHECK_LARGE_KEY,checks).catch(()=>{});
+}
 const rows = document.getElementById("invoiceCheckRows");
 const statusFilter = document.getElementById("checkStatusFilter");
 const search = document.getElementById("checkSearch");
@@ -274,9 +301,10 @@ function setInvoiceMode(mode){
 function openRecognizedReview(key){
   const item=queueItem(key);if(!item?.recognized)return;
   const inv=item.invoice;
-  if(!providerExists(inv.provider)){showToast(`Bitte zuerst Dienstleister ${inv.provider} anlegen.`);openInvoiceProviderModalFor(key);return}
+  const existing=findExistingCheckByInvoice(inv);
+  if(!providerExists(inv.provider)&&!existing){showToast(`Bitte zuerst Dienstleister ${inv.provider} anlegen.`);openInvoiceProviderModalFor(key);return}
   reviewInvoiceKey=key;
-  const op=findOperationForRecognized(inv),existing=findExistingCheckByInvoice(inv),tariff=findTariffForRecognized(inv);
+  const op=findOperationForRecognized(inv),tariff=findTariffForRecognized(inv);
   const ws=document.getElementById("invoiceReviewWorkspace");
   ws.hidden=false;
   document.getElementById("invoiceReviewTitle").textContent=`Rechnung ${inv.invoice} prüfen`;
@@ -407,7 +435,12 @@ function saveOperationFromRecognized(event){
   const ops=GPK.read(GPK.KEYS.operations,[])||[];
   if(!GPK.write(GPK.KEYS.operations,[op,...ops])){showToast("Vorgang konnte nicht gespeichert werden.");return}
   const oldCheck=findExistingCheckByInvoice(inv);
-  if(oldCheck){checks=checks.map(c=>c.id===oldCheck.id?{...c,operation:op.id,updatedAt:new Date().toISOString()}:c);save();renderChecks();}
+  if(oldCheck){
+    checks=checks.map(c=>c.id===oldCheck.id?{...c,operation:op.id,updatedAt:new Date().toISOString()}:c);
+    save();
+    renderChecks();
+    renderInvoiceKpis();
+  }
   closeInvoiceOperationModal();renderInvoiceQueue();openRecognizedReview(item.key);showToast(`Vorgang ${op.id} angelegt und mit der Rechnung verknüpft.`);
 }
 function euro2(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);}
@@ -431,12 +464,7 @@ function showToast(text){
   toastEl.textContent=text;toastEl.hidden=false;clearTimeout(showToast.timer);
   showToast.timer=setTimeout(()=>toastEl.hidden=true,2400);
 }
-function save(){
-  try{
-    GPK.write(GPK.KEYS.invoiceChecks,checks);
-    GPK.write(INVOICE_CHECK_BACKUP_KEY,checks);
-  }catch(_){}
-}
+function save(){persistInvoiceChecks();}
 function statusLabel(s){return ({ok:"OK",diff:"Abweichung",clarification:"In Klärung",unmatched:"Nicht zugeordnet"})[s]||s;}
 function hasPriceDeviation(c){
   return Number.isFinite(Number(c?.diff))&&Math.abs(Number(c.diff))>PRICE_EPSILON;
@@ -485,8 +513,6 @@ function reconcileChecksFromOperations(){
   });
   if(changed)save();
 }
-reconcileChecksFromOperations();
-save();
 
 function renderInvoiceKpis(){
   const total=checks.length;
@@ -519,7 +545,7 @@ function renderChecks(){
     const hay=`${c.invoice} ${c.provider} ${c.operation}`.toLowerCase();
     return (!q||hay.includes(q))&&(!effectiveStatus||c.status===effectiveStatus);
   });
-  rows.innerHTML=filtered.map(c=>`<tr class="invoice-history-row" data-check-id="${c.id}" tabindex="0" title="Prüfung öffnen und bearbeiten">
+  rows.innerHTML=filtered.length?filtered.map(c=>`<tr class="invoice-history-row" data-check-id="${c.id}" tabindex="0" title="Prüfung öffnen und bearbeiten">
     <td><strong class="table-main">${c.invoice}</strong><small>${c.id}</small></td>
     <td><strong class="table-main">${c.provider}</strong><small>${c.operation||"—"}</small></td>
     <td>${c.date}</td>
@@ -528,7 +554,7 @@ function renderChecks(){
     <td><strong class="${c.diff>PRICE_EPSILON?"invoice-diff-over":c.diff<-PRICE_EPSILON?"invoice-diff-under":"invoice-diff-zero"}">${c.diff?((c.diff>0?"+":"")+euro(c.diff)):c.status==="unmatched"?"—":"0 €"}</strong></td>
     <td><span class="status-pill ${c.status==="ok"?"active":c.status==="diff"?(Number(c.diff)>0?"invoice-status-over":"invoice-status-under"):c.status==="clarification"?"review":"inactive"}">${statusLabel(c.status)}</span></td>
     <td class="row-actions"><button class="icon-button" type="button" data-edit-check="${c.id}" title="Prüfung bearbeiten">›</button></td>
-  </tr>`).join("");
+  </tr>`).join(""):`<tr><td colspan="8" class="invoice-history-empty">Noch keine gespeicherte Prüfung vorhanden.</td></tr>`;
   renderInvoiceKpis();
 }
 
@@ -697,10 +723,19 @@ manualInvoiceForm.addEventListener("submit",e=>{
 
 document.querySelectorAll("[data-invoice-mode]").forEach(btn=>btn.addEventListener("click",()=>setInvoiceMode(btn.dataset.invoiceMode)));
 chooseInvoiceBtn.addEventListener("click",()=>invoiceFileInput.click());
-invoiceFileInput.addEventListener("change",()=>{if(invoiceFileInput.files?.length)mergeInvoiceFiles(invoiceFileInput.files)});
+invoiceFileInput.addEventListener("change",async()=>{
+  if(!invoiceFileInput.files?.length)return;
+  await hydrateInvoiceChecks();
+  mergeInvoiceFiles(invoiceFileInput.files);
+});
 invoiceDropzone.addEventListener("dragover",e=>{e.preventDefault();invoiceDropzone.classList.add("dragging")});
 invoiceDropzone.addEventListener("dragleave",()=>invoiceDropzone.classList.remove("dragging"));
-invoiceDropzone.addEventListener("drop",e=>{e.preventDefault();invoiceDropzone.classList.remove("dragging");if(e.dataTransfer.files?.length)mergeInvoiceFiles(e.dataTransfer.files)});
+invoiceDropzone.addEventListener("drop",async e=>{
+  e.preventDefault();invoiceDropzone.classList.remove("dragging");
+  if(!e.dataTransfer.files?.length)return;
+  await hydrateInvoiceChecks();
+  mergeInvoiceFiles(e.dataTransfer.files);
+});
 document.getElementById("reviewPriceSource").addEventListener("change",()=>{
   const item=queueItem(reviewInvoiceKey),op=item?.recognized?findOperationForRecognized(item.invoice):null,tariff=item?.recognized?findTariffForRecognized(item.invoice):null;
   if(reviewPriceSource.value==="booking"&&op)reviewExpectedAmount.value=Number(op.price||0).toFixed(2);
@@ -739,5 +774,6 @@ document.querySelectorAll("[data-invoice-kpi]").forEach(btn=>btn.addEventListene
 exportChecksBtn.addEventListener("click",()=>showToast("Export der Prüfungen wird im nächsten technischen Schritt angebunden."));
 renderChecks();
 renderInvoiceQueue();
+hydrateInvoiceChecks();
 
 (function(){const op=new URLSearchParams(location.search).get("operation");if(op)prefillFromOperation(op);})();

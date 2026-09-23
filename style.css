@@ -4201,3 +4201,6 @@ body.planning-mode .calculator-shipment-layout{
 /* v6.62 – Dienstleister-Logo öffnet Statistik */
 .provider-stats-avatar{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
 .provider-stats-avatar:hover,.provider-stats-avatar:focus{transform:translateY(-1px);box-shadow:0 0 0 2px rgba(8,133,158,.16);outline:none}
+
+/* v6.63 – persistente Rechnungsprüfungen */
+.invoice-history-empty{text-align:center!important;color:#718991!important;padding:22px!important;background:#fbfdfe}
