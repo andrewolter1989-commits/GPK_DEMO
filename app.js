@@ -292,22 +292,92 @@ function providerVisualHtml(forwarder, sizeClass = "") {
   return `<span class="provider-visual logo-fallback${cls}"><span>${escapeHtml(providerInitials(meta.short || meta.name || forwarder))}</span></span>`;
 }
 
-async function loadAddresses() {
-  const text = await fetchTextSmart("data/Adressen.csv");
-  const rows = parseCsv(text);
-  if (!rows.length) return;
-  const headers = rows[0].map((h) => String(h || "").trim());
-  const idx = (name) => headers.findIndex((h) => h === name);
+function normalizeManagedLocation(x, index = 0) {
+  if (!x) return null;
+  const country = String(x.country || x.land || "").trim().toUpperCase();
+  const postal = normalizePostal(x.zip || x.plz || "");
+  if (!country || !postal) return null;
+  return {
+    id: `master-${String(x.id ?? index).trim()}`,
+    source: "masterdata",
+    name1: String(x.name || x.name1 || "").trim(),
+    name2: String(x.name2 || "").trim(),
+    strasse: String(x.street || x.strasse || "").trim(),
+    plz: postal,
+    stadt: String(x.city || x.stadt || "").trim(),
+    land: country,
+    status: String(x.status || "active").toLowerCase(),
+    contact: String(x.contact || "").trim(),
+    email: String(x.email || "").trim(),
+    phone: String(x.phone || "").trim(),
+    time: String(x.time || "").trim(),
+    notes: String(x.notes || "").trim(),
+  };
+}
 
-  STATE.addresses = rows.slice(1).map((cells, index) => ({
-    id: String(cells[idx("Empfänger-ID")] || `addr-${index}`).trim(),
-    name1: String(cells[idx("NAME1")] || "").trim(),
-    name2: String(cells[idx("NAME2")] || "").trim(),
-    strasse: String(cells[idx("STRASSE")] || "").trim(),
-    plz: normalizePostal(cells[idx("PLZ")] || ""),
-    stadt: String(cells[idx("STADT")] || "").trim(),
-    land: String(cells[idx("LAND")] || "").trim().toUpperCase(),
-  })).filter((r) => r.plz);
+function addressDedupeKey(r) {
+  return [
+    String(r.land || "").toUpperCase(),
+    normalizePostal(r.plz || ""),
+    String(r.name1 || "").trim().toLowerCase(),
+    String(r.strasse || "").trim().toLowerCase()
+  ].join("|");
+}
+
+async function loadAddresses() {
+  const merged = [];
+  const seen = new Set();
+
+  /* Stammdaten sind die führende Quelle. Dadurch stehen in der Kalkulation
+     dieselben Entladestellen zur Verfügung wie unter "Entladestellen". */
+  try {
+    const managed = GPK.read(GPK.KEYS.locations, []) || [];
+    managed
+      .map(normalizeManagedLocation)
+      .filter(Boolean)
+      .filter(r => r.status !== "inactive")
+      .forEach(r => {
+        const key = addressDedupeKey(r);
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(r);
+        }
+      });
+  } catch (error) {
+    console.warn("Entladestellen-Stammdaten konnten nicht gelesen werden.", error);
+  }
+
+  /* Legacy-CSV bleibt als Fallback erhalten, falls dort zusätzliche Adressen
+     gepflegt sind. Stammdaten haben bei Dubletten Vorrang. */
+  try {
+    const text = await fetchTextSmart("data/Adressen.csv");
+    const rows = parseCsv(text);
+    if (rows.length) {
+      const headers = rows[0].map((h) => String(h || "").trim());
+      const idx = (name) => headers.findIndex((h) => h === name);
+      rows.slice(1).map((cells, index) => ({
+        id: String(cells[idx("Empfänger-ID")] || `addr-${index}`).trim(),
+        source: "csv",
+        name1: String(cells[idx("NAME1")] || "").trim(),
+        name2: String(cells[idx("NAME2")] || "").trim(),
+        strasse: String(cells[idx("STRASSE")] || "").trim(),
+        plz: normalizePostal(cells[idx("PLZ")] || ""),
+        stadt: String(cells[idx("STADT")] || "").trim(),
+        land: String(cells[idx("LAND")] || "").trim().toUpperCase(),
+        status: "active",
+      })).filter(r => r.land && r.plz).forEach(r => {
+        const key = addressDedupeKey(r);
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(r);
+        }
+      });
+    }
+  } catch (error) {
+    console.warn("Legacy-Adressdatei konnte nicht gelesen werden.", error);
+  }
+
+  STATE.addresses = merged;
 }
 
 function formatRecipientOption(r) {
@@ -1470,6 +1540,19 @@ async function boot() {
   await Promise.all([loadZones(), loadRates(), loadFloaterConfig(), loadEmailConfig(), loadAddresses(), loadProviderConfig()]);
   initCalculatorPage();
 }
+
+
+document.addEventListener("gpk:local-write", async (event) => {
+  if (event?.detail?.key !== GPK.KEYS.locations) return;
+  await loadAddresses();
+  renderRecipientSelection();
+});
+
+window.addEventListener("storage", async (event) => {
+  if (event.key !== GPK.KEYS.locations) return;
+  await loadAddresses();
+  renderRecipientSelection();
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   boot().catch((error) => {
