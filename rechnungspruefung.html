@@ -22,7 +22,7 @@
         <a class="nav-item active" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.57</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.58</div>
   </aside>
 
   <main class="workspace invoice-workspace">
@@ -42,37 +42,95 @@
       <button class="kpi-card invoice-kpi-filter" type="button" data-invoice-kpi="unmatched" aria-pressed="false"><span>Nicht zugeordnet</span><strong id="unmatchedCount">0</strong><small>Tarif oder Vorgang fehlt</small></button>
     </section>
 
-    <section class="invoice-entry-grid">
-      <article class="invoice-card upload-card">
+    <section class="invoice-mode-switch" aria-label="Erfassungsart">
+      <button class="invoice-mode-btn active" type="button" data-invoice-mode="upload">Rechnung hochladen</button>
+      <button class="invoice-mode-btn" type="button" data-invoice-mode="manual">Rechnung manuell erfassen</button>
+    </section>
+
+    <section class="invoice-entry-grid invoice-upload-mode" id="invoiceUploadMode">
+      <article class="invoice-card upload-card invoice-upload-workspace">
         <div class="invoice-card-head">
-          <div><span class="modal-eyebrow">Datei</span><h2>Rechnung hochladen</h2></div>
-          <span class="future-pill invoice-live-pill">PDF-Test aktiv</span>
-        </div>
-        <div class="invoice-dropzone" id="invoiceDropzone">
-          <div class="drop-icon">⇧</div>
-          <strong>PDF, Excel oder CSV hier ablegen</strong>
-          <span>oder Datei auswählen</span>
-          <button class="secondary compact-button" id="chooseInvoiceBtn" type="button">Datei auswählen</button>
-          <input id="invoiceFileInput" type="file" accept=".pdf,.xlsx,.xls,.csv" hidden>
-        </div>
-        <div class="invoice-hint">PDF auswählen. Für die ersten Tests werden die beiden Contino-Rechnungen automatisch erkannt und können direkt mit einem bestehenden oder neu angelegten Vorgang verknüpft werden.</div>
-        <div class="invoice-recognition-card" id="invoiceRecognitionCard" hidden>
-          <div class="invoice-recognition-head">
-            <div><span class="modal-eyebrow">Erkannt</span><h3 id="recognizedInvoiceHeadline">Rechnung erkannt</h3></div>
-            <span class="status-pill active" id="recognizedInvoiceStatus">Bereit</span>
+          <div>
+            <span class="modal-eyebrow">Datei</span>
+            <h2>Rechnungen hochladen</h2>
+            <p>Mehrere PDFs gleichzeitig ablegen. Jede Rechnung wird separat erkannt, zugeordnet und geprüft.</p>
           </div>
-          <div class="invoice-recognition-grid" id="recognizedInvoiceGrid"></div>
-          <div class="invoice-recognition-match" id="recognizedOperationMatch"></div>
-          <div class="invoice-recognition-actions">
-            <button class="secondary compact-button" id="useRecognizedInvoiceBtn" type="button">In Prüfung übernehmen</button>
-            <button class="primary compact-button" id="createOperationFromInvoiceBtn" type="button">+ Vorgang aus Rechnung anlegen</button>
+          <span class="future-pill invoice-live-pill">Mehrfachupload aktiv</span>
+        </div>
+
+        <div class="invoice-upload-layout">
+          <div>
+            <div class="invoice-dropzone invoice-dropzone-large" id="invoiceDropzone">
+              <div class="drop-icon">⇧</div>
+              <strong>PDF, Excel oder CSV hier ablegen</strong>
+              <span>mehrere Dateien gleichzeitig möglich</span>
+              <button class="secondary compact-button" id="chooseInvoiceBtn" type="button">Dateien auswählen</button>
+              <input id="invoiceFileInput" type="file" accept=".pdf,.xlsx,.xls,.csv" multiple hidden>
+            </div>
+            <div class="invoice-hint">Für den ersten Test werden die beiden Contino-Rechnungen automatisch erkannt. Unbekannte Dienstleister können direkt als Stammdaten angelegt werden.</div>
           </div>
+
+          <div class="invoice-upload-summary">
+            <div><span>Dateien</span><strong id="invoiceQueueCount">0</strong></div>
+            <div><span>Erkannt</span><strong id="invoiceRecognizedCount">0</strong></div>
+            <div><span>Prüfbereit</span><strong id="invoiceReadyCount">0</strong></div>
+            <div><span>Review</span><strong id="invoiceReviewCount">0</strong></div>
+          </div>
+        </div>
+
+        <div id="invoiceRecognitionList" class="invoice-recognition-list">
+          <div class="invoice-empty-workspace">Noch keine Rechnung geladen.</div>
         </div>
       </article>
 
-      <article class="invoice-card manual-card">
+      <article class="invoice-card invoice-review-workspace" id="invoiceReviewWorkspace" hidden>
         <div class="invoice-card-head">
-          <div><span class="modal-eyebrow">Manuell</span><h2>Rechnung erfassen</h2></div>
+          <div>
+            <span class="modal-eyebrow">Prüfung</span>
+            <h2 id="invoiceReviewTitle">Rechnung prüfen</h2>
+            <p id="invoiceReviewSubtitle">Soll- und Istpreis vergleichen und Prüfquelle dokumentieren.</p>
+          </div>
+          <button class="secondary compact-button" id="closeInvoiceReviewBtn" type="button">Prüfung schließen</button>
+        </div>
+
+        <div class="invoice-review-identity" id="invoiceReviewIdentity"></div>
+
+        <div class="invoice-review-grid">
+          <section>
+            <h3>Rechnung / Ist</h3>
+            <div class="invoice-review-values" id="invoiceActualBreakdown"></div>
+          </section>
+          <section>
+            <h3>Sollpreis</h3>
+            <div class="invoice-price-source">
+              <label><span>Preisquelle</span>
+                <select id="reviewPriceSource">
+                  <option value="booking">Buchung / vereinbarter Preis</option>
+                  <option value="tariff">Tarif / Ratenblatt</option>
+                  <option value="phone">Telefonische Preisvereinbarung</option>
+                  <option value="manual">Manuell hinterlegter Sollpreis</option>
+                </select>
+              </label>
+              <label><span>Sollpreis €</span><input id="reviewExpectedAmount" type="number" min="0" step="0.01"></label>
+              <label class="span-2"><span>Nachweis / Notiz zur Preisquelle</span><input id="reviewPriceSourceNote" placeholder="z. B. telefonisch mit Disposition vereinbart"></label>
+            </div>
+            <div class="invoice-source-evidence" id="invoiceSourceEvidence"></div>
+          </section>
+        </div>
+
+        <div class="invoice-review-result" id="invoiceReviewResult"></div>
+
+        <div class="invoice-review-actions">
+          <button class="secondary compact-button" id="openLinkedOperationBtn" type="button">Vorgang öffnen</button>
+          <button class="primary compact-button" id="saveRecognizedCheckBtn" type="button">Prüfung speichern</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="invoice-entry-grid invoice-manual-mode" id="invoiceManualMode" hidden>
+      <article class="invoice-card manual-card invoice-manual-full">
+        <div class="invoice-card-head">
+          <div><span class="modal-eyebrow">Manuell</span><h2>Rechnung manuell erfassen</h2><p>Für Rechnungen ohne automatisch erkennbares Format.</p></div>
         </div>
         <form id="manualInvoiceForm" class="invoice-form-grid">
           <div class="field"><label>Rechnungsnummer</label><input id="invNumber" required placeholder="RE-2026-1048"></div>
@@ -130,6 +188,31 @@
     </section>
   </main>
 </div>
+
+  <div class="modal-backdrop" id="invoiceProviderModal" hidden>
+    <section class="location-modal invoice-provider-modal" role="dialog" aria-modal="true" aria-labelledby="invoiceProviderModalTitle">
+      <div class="modal-head">
+        <div><span class="modal-eyebrow">Stammdaten</span><h2 id="invoiceProviderModalTitle">Dienstleister anlegen</h2></div>
+        <button class="modal-close" id="closeInvoiceProviderModal" type="button" aria-label="Schließen">×</button>
+      </div>
+      <form id="invoiceProviderForm">
+        <div class="location-form-grid">
+          <div class="field span-2"><label>Firmenname</label><input id="invoiceProviderName" required></div>
+          <div class="field"><label>Kurzname / Alias</label><input id="invoiceProviderAlias" placeholder="z. B. CO"></div>
+          <div class="field"><label>Land</label><input id="invoiceProviderCountry" maxlength="2" placeholder="DE"></div>
+          <div class="field span-2"><label>Straße</label><input id="invoiceProviderStreet"></div>
+          <div class="field"><label>PLZ</label><input id="invoiceProviderZip"></div>
+          <div class="field"><label>Ort</label><input id="invoiceProviderCity"></div>
+          <div class="field span-2"><label>Hinweise</label><textarea id="invoiceProviderNotes" rows="2" placeholder="z. B. Dienstleister aus Rechnungsimport angelegt"></textarea></div>
+        </div>
+        <div class="invoice-operation-hint">Ein Ratenblatt ist nicht erforderlich. Die Rechnung kann auch gegen einen gebuchten, telefonisch vereinbarten oder manuell dokumentierten Sollpreis geprüft werden.</div>
+        <div class="modal-actions">
+          <button class="secondary compact-button" id="cancelInvoiceProviderModal" type="button">Abbrechen</button>
+          <button class="primary compact-button" type="submit">Dienstleister speichern</button>
+        </div>
+      </form>
+    </section>
+  </div>
 
   <div class="modal-backdrop" id="invoiceOperationModal" hidden>
     <section class="location-modal invoice-operation-modal" role="dialog" aria-modal="true" aria-labelledby="invoiceOperationModalTitle">
