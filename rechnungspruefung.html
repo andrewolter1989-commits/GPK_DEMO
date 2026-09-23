@@ -22,7 +22,7 @@
         <a class="nav-item active" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.58</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.59</div>
   </aside>
 
   <main class="workspace invoice-workspace">
@@ -123,6 +123,29 @@
         <div class="invoice-review-actions">
           <button class="secondary compact-button" id="openLinkedOperationBtn" type="button">Vorgang öffnen</button>
           <button class="primary compact-button" id="saveRecognizedCheckBtn" type="button">Prüfung speichern</button>
+        </div>
+      </article>
+
+      <article class="invoice-card invoice-batch-review-workspace" id="invoiceBatchReviewWorkspace" hidden>
+        <div class="invoice-card-head">
+          <div>
+            <span class="modal-eyebrow">Sammelrechnung</span>
+            <h2 id="batchReviewTitle">Sammelrechnung prüfen</h2>
+            <p id="batchReviewSubtitle">Jede Rechnungsposition wird separat einer Sendung bzw. einem Vorgang zugeordnet.</p>
+          </div>
+          <button class="secondary compact-button" id="closeBatchReviewBtn" type="button">Prüfung schließen</button>
+        </div>
+        <div class="invoice-batch-summary" id="invoiceBatchSummary"></div>
+        <div class="invoice-batch-statusbar" id="invoiceBatchStatusbar"></div>
+        <div class="invoice-batch-table-wrap">
+          <table class="invoice-batch-table">
+            <thead><tr><th>Pos.</th><th>Datum</th><th>Referenz</th><th>Sendung</th><th>Ziel</th><th>Ist</th><th>Soll</th><th>Abweichung</th><th>Status</th></tr></thead>
+            <tbody id="invoiceBatchRows"></tbody>
+          </table>
+        </div>
+        <div class="invoice-review-actions">
+          <button class="secondary compact-button" id="saveBatchDraftBtn" type="button">Prüfstand speichern</button>
+          <button class="primary compact-button" id="saveBatchCheckBtn" type="button">Sammelrechnung speichern</button>
         </div>
       </article>
     </section>

@@ -47,6 +47,13 @@ const CONTINO_TEST_INVOICES={
   }
 };
 
+
+const HELLMANN_SAMPLE_INVOICE={
+  type:"batch",invoice:"122105",provider:"Hellmann",invoiceDate:"2026-06-22",customerNumber:"0922352",
+  sourceLabel:"Hellmann Worldwide Logistics",netTotal:3609.07,vatRate:19,vatAmount:685.72,grossTotal:4294.79,
+  positions:[{"pos":"001","date":"11.06.2026","shipment":"23289802","reference":"586926","weight":20.0,"actual":33.52,"destCountry":"DE","destPostal":"30165","destCity":"HANNOVER"},{"pos":"002","date":"12.06.2026","shipment":"23403178","reference":"586919","weight":20.0,"actual":42.55,"destCountry":"DE","destPostal":"35578","destCity":"WETZLAR"},{"pos":"003","date":"12.06.2026","shipment":"23403246","reference":"586802","weight":20.0,"actual":47.55,"destCountry":"DE","destPostal":"60388","destCity":"FRANKFURT"},{"pos":"004","date":"12.06.2026","shipment":"23403291","reference":"587318","weight":20.0,"actual":52.95,"destCountry":"DE","destPostal":"88453","destCity":"EROLZHEIM"},{"pos":"005","date":"15.06.2026","shipment":"23514218","reference":"587641","weight":40.0,"actual":61.57,"destCountry":"DE","destPostal":"45309","destCity":"ESSEN"},{"pos":"006","date":"15.06.2026","shipment":"23514225","reference":"586115","weight":15.0,"actual":44.5,"destCountry":"DE","destPostal":"86167","destCity":"AUGSBURG                                              5,00 % DIESELZUSCHLAG                                      1,76"},{"pos":"007","date":"15.06.2026","shipment":"23514232","reference":"20024276","weight":40.0,"actual":68.47,"destCountry":"DE","destPostal":"06112","destCity":"HALLE                                                                           5,00 % DIESELZUSCHLAG                                      2,53"},{"pos":"008","date":"15.06.2026","shipment":"23514249","reference":"587311","weight":40.0,"actual":61.57,"destCountry":"DE","destPostal":"46342","destCity":"VELEN"},{"pos":"009","date":"15.06.2026","shipment":"23514256","reference":"588120, 588118","weight":80.0,"actual":95.44,"destCountry":"DE","destPostal":"45309","destCity":"ESSEN"},{"pos":"010","date":"15.06.2026","shipment":"23514270","reference":"587173","weight":120.0,"actual":101.91,"destCountry":"DE","destPostal":"36381","destCity":"SCHLUECHTERN"},{"pos":"011","date":"15.06.2026","shipment":"23514294","reference":"587215","weight":20.0,"actual":39.87,"destCountry":"DE","destPostal":"74252","destCity":"MASSENBACHHAUSEN"},{"pos":"012","date":"16.06.2026","shipment":"23631168","reference":"587248, 587302","weight":60.0,"actual":111.23,"destCountry":"DE","destPostal":"85622","destCity":"FELDKIRCHEN"},{"pos":"013","date":"16.06.2026","shipment":"23631175","reference":"587117","weight":20.0,"actual":34.79,"destCountry":"DE","destPostal":"26382","destCity":"WILHELMSHAVEN"},{"pos":"014","date":"16.06.2026","shipment":"23631182","reference":"587297","weight":20.0,"actual":34.79,"destCountry":"DE","destPostal":"51063","destCity":"KOELN"},{"pos":"015","date":"16.06.2026","shipment":"23631199","reference":"587322","weight":20.0,"actual":34.79,"destCountry":"DE","destPostal":"47805","destCity":"KREFELD"},{"pos":"016","date":"16.06.2026","shipment":"23631212","reference":"587301","weight":40.0,"actual":66.76,"destCountry":"DE","destPostal":"63263","destCity":"NEU-ISENBURG"},{"pos":"017","date":"16.06.2026","shipment":"23631229","reference":"588394","weight":20.0,"actual":37.69,"destCountry":"DE","destPostal":"01097","destCity":"DRESDEN"},{"pos":"018","date":"16.06.2026","shipment":"23631236","reference":"586084","weight":50.0,"actual":98.14,"destCountry":"DE","destPostal":"41066","destCity":"MOENCHENGLADBACH"},{"pos":"019","date":"16.06.2026","shipment":"23631243","reference":"586240","weight":90.0,"actual":106.04,"destCountry":"DE","destPostal":"41066","destCity":"MOENCHENGLADBACH"},{"pos":"020","date":"16.06.2026","shipment":"23631250","reference":"585693","weight":20.0,"actual":77.26,"destCountry":"DE","destPostal":"63128","destCity":"DIETZENBACH                                                                     5,00 % DIESELZUSCHLAG                                      2,92"},{"pos":"021","date":"16.06.2026","shipment":"23631267","reference":"587242","weight":200.0,"actual":112.53,"destCountry":"DE","destPostal":"37120","destCity":"BOVENDEN"},{"pos":"022","date":"16.06.2026","shipment":"23631274","reference":"585943, 586494, 586267","weight":80.0,"actual":102.94,"destCountry":"DE","destPostal":"22459","destCity":"HAMBURG                                              5,00 % DIESELZUSCHLAG                                      4,14"},{"pos":"023","date":"16.06.2026","shipment":"23631281","reference":"586351","weight":20.0,"actual":37.79,"destCountry":"DE","destPostal":"58553","destCity":"HALVER"},{"pos":"024","date":"16.06.2026","shipment":"23631298","reference":"587022","weight":30.0,"actual":25.75,"destCountry":"DE","destPostal":"40599","destCity":"DUESSELDORF"},{"pos":"025","date":"17.06.2026","shipment":"23756625","reference":"586618","weight":28.0,"actual":72.93,"destCountry":"DE","destPostal":"70736","destCity":"FELLBACH"},{"pos":"026","date":"17.06.2026","shipment":"23756632","reference":"586352","weight":132.0,"actual":141.74,"destCountry":"DE","destPostal":"87509","destCity":"IMMENSTADT"},{"pos":"027","date":"17.06.2026","shipment":"23756649","reference":"586898","weight":20.0,"actual":45.42,"destCountry":"DE","destPostal":"09114","destCity":"CHEMNITZ"},{"pos":"028","date":"17.06.2026","shipment":"23756656","reference":"586788","weight":20.0,"actual":45.42,"destCountry":"DE","destPostal":"18106","destCity":"ROSTOCK"},{"pos":"029","date":"17.06.2026","shipment":"23756663","reference":"586632","weight":20.0,"actual":44.71,"destCountry":"DE","destPostal":"40549","destCity":"DUESSELDORF"},{"pos":"030","date":"17.06.2026","shipment":"23756670","reference":"586979","weight":60.0,"actual":122.16,"destCountry":"DE","destPostal":"83026","destCity":"ROSENHEIM"},{"pos":"031","date":"17.06.2026","shipment":"23756687","reference":"587018","weight":30.0,"actual":93.79,"destCountry":"DE","destPostal":"20537","destCity":"HAMBURG"},{"pos":"032","date":"17.06.2026","shipment":"23756694","reference":"586915                                                                                                 AVIS AUF TOUR                                  3,00","weight":40.0,"actual":82.67,"destCountry":"DE","destPostal":"99092","destCity":"ERFURT                                                      AVISGEBÜHR                                     7,50"},{"pos":"033","date":"17.06.2026","shipment":"23756700","reference":"UEBELKW25","weight":40.0,"actual":39.2,"destCountry":"DE","destPostal":"66887","destCity":"SANKT JULIAN                                                           5,00 % DIESELZUSCHLAG                                      1,34"},{"pos":"034","date":"17.06.2026","shipment":"23756717","reference":"587362","weight":20.0,"actual":52.95,"destCountry":"DE","destPostal":"79291","destCity":"MERDINGEN"},{"pos":"035","date":"17.06.2026","shipment":"23756724","reference":"587150","weight":20.0,"actual":49.71,"destCountry":"DE","destPostal":"73663","destCity":"BERGLEN"},{"pos":"036","date":"17.06.2026","shipment":"23756731","reference":"587028","weight":30.0,"actual":114.19,"destCountry":"DE","destPostal":"73630","destCity":"REMSHALDEN"},{"pos":"037","date":"17.06.2026","shipment":"23756748","reference":"587326","weight":60.0,"actual":114.57,"destCountry":"DE","destPostal":"93437","destCity":"FURTH IM WALD"},{"pos":"038","date":"18.06.2026","shipment":"23864535","reference":"586358","weight":20.0,"actual":48.26,"destCountry":"DE","destPostal":"71277","destCity":"RUTESHEIM"},{"pos":"039","date":"18.06.2026","shipment":"23864542","reference":"586045","weight":20.0,"actual":45.42,"destCountry":"DE","destPostal":"12359","destCity":"BERLIN"},{"pos":"040","date":"18.06.2026","shipment":"23864559","reference":"586156","weight":40.0,"actual":69.46,"destCountry":"DE","destPostal":"10717","destCity":"BERLIN"},{"pos":"041","date":"18.06.2026","shipment":"23864566","reference":"586189","weight":20.0,"actual":45.42,"destCountry":"DE","destPostal":"12107","destCity":"BERLIN"},{"pos":"042","date":"18.06.2026","shipment":"23864580","reference":"586753","weight":40.0,"actual":82.54,"destCountry":"DE","destPostal":"82256","destCity":"FUERSTENFELDBRUCK"},{"pos":"043","date":"18.06.2026","shipment":"23864597","reference":"586260","weight":40.0,"actual":80.37,"destCountry":"DE","destPostal":"60386","destCity":"FRANKFURT                                            5,00 % DIESELZUSCHLAG                                      3,10"},{"pos":"044","date":"18.06.2026","shipment":"23864603","reference":"586653","weight":20.0,"actual":45.42,"destCountry":"DE","destPostal":"13088","destCity":"BERLIN"},{"pos":"045","date":"19.06.2026","shipment":"23978454","reference":"587350","weight":25.0,"actual":65.98,"destCountry":"DE","destPostal":"52353","destCity":"DUEREN"},{"pos":"046","date":"19.06.2026","shipment":"23978461","reference":"587491","weight":200.0,"actual":147.27,"destCountry":"DE","destPostal":"34253","destCity":"LOHFELDEN"},{"pos":"047","date":"19.06.2026","shipment":"23978478","reference":"587402","weight":20.0,"actual":44.71,"destCountry":"DE","destPostal":"40878","destCity":"RATINGEN"},{"pos":"048","date":"19.06.2026","shipment":"23978492","reference":"587561, 587948","weight":40.0,"actual":77.49,"destCountry":"DE","destPostal":"89407","destCity":"DILLINGEN"},{"pos":"049","date":"19.06.2026","shipment":"23978515","reference":"587404","weight":20.0,"actual":41.84,"destCountry":"DE","destPostal":"51674","destCity":"WIEHL"},{"pos":"050","date":"19.06.2026","shipment":"23978522","reference":"587595","weight":20.0,"actual":45.42,"destCountry":"DE","destPostal":"12277","destCity":"BERLIN"},{"pos":"051","date":"19.06.2026","shipment":"23978539","reference":"587570","weight":100.0,"actual":111.55,"destCountry":"DE","destPostal":"18069","destCity":"ROSTOCK"},{"pos":"052","date":"19.06.2026","shipment":"23978546","reference":"586781","weight":20.0,"actual":53.68,"destCountry":"DE","destPostal":"80686","destCity":"MUENCHEN"},{"pos":"053","date":"19.06.2026","shipment":"23978577","reference":"587650","weight":20.0,"actual":54.38,"destCountry":"DE","destPostal":"83278","destCity":"TRAUNSTEIN"}]
+};
+
 let invoiceQueue=[];
 let activeRecognizedKey="";
 let reviewInvoiceKey="";
@@ -83,9 +90,16 @@ function findTariffForRecognized(inv){
 }
 function makeQueueItem(file){
   const no=invoiceNumberFromFile(file),base=CONTINO_TEST_INVOICES[no];
-  if(!base)return {key:`file|${file.name}|${file.size}`,fileName:file.name,status:"review",recognized:false};
-  const inv={...base,sourceFile:file.name};
-  return {key:recognizedKey(inv),fileName:file.name,status:"recognized",recognized:true,invoice:inv};
+  if(base){
+    const inv={...base,sourceFile:file.name};
+    return {key:recognizedKey(inv),fileName:file.name,status:"recognized",recognized:true,invoice:inv};
+  }
+  const lower=String(file?.name||"").toLowerCase();
+  if(lower.includes("hellmann")||lower.includes("122105")){
+    const inv={...HELLMANN_SAMPLE_INVOICE,positions:HELLMANN_SAMPLE_INVOICE.positions.map(p=>({...p})),sourceFile:file.name};
+    return {key:recognizedKey(inv),fileName:file.name,status:"recognized",recognized:true,invoice:inv};
+  }
+  return {key:`file|${file.name}|${file.size}`,fileName:file.name,status:"review",recognized:false};
 }
 function mergeInvoiceFiles(files){
   [...files].map(makeQueueItem).forEach(item=>{
@@ -95,11 +109,92 @@ function mergeInvoiceFiles(files){
   });
   renderInvoiceQueue();
 }
+
+function isBatchInvoice(inv){return inv?.type==="batch"&&Array.isArray(inv.positions)}
+function findOperationForBatchPosition(pos,provider){
+  const ops=GPK.read(GPK.KEYS.operations,[])||[];
+  const ref=String(pos.reference||"").toLowerCase();
+  const shipment=String(pos.shipment||"").toLowerCase();
+  return ops.find(o=>{
+    if(provider&&String(o.provider||"").trim().toLowerCase()!==String(provider).trim().toLowerCase())return false;
+    const hay=`${o.id||""} ${o.externalReference||""} ${o.reference||""} ${o.shipmentNumber||""} ${o.note||""}`.toLowerCase();
+    return (ref&&hay.includes(ref))||(shipment&&hay.includes(shipment));
+  })||null;
+}
+function batchPositionState(pos,provider){
+  const op=findOperationForBatchPosition(pos,provider);
+  if(!op)return {status:"unmatched",label:"Nicht zugeordnet",op:null,expected:null,diff:null};
+  const expected=Number(op.price);
+  if(!(expected>0))return {status:"pending",label:"Nicht geprüft",op,expected:null,diff:null};
+  const diff=Math.round((Number(pos.actual||0)-expected)*100)/100;
+  if(Math.abs(diff)<=PRICE_EPSILON)return {status:"ok",label:"OK",op,expected,diff};
+  if(diff>0)return {status:"over",label:"Abweichung",op,expected,diff};
+  return {status:"under",label:"Abweichung",op,expected,diff};
+}
+function batchCounts(inv){
+  const out={ok:0,over:0,under:0,pending:0,clarification:0,unmatched:0};
+  (inv.positions||[]).forEach(p=>{const s=batchPositionState(p,inv.provider).status;out[s]=(out[s]||0)+1});
+  return out;
+}
+function batchOverallStatus(inv){
+  const c=batchCounts(inv);
+  if(c.unmatched)return "Nicht zugeordnet";
+  if(c.clarification)return "In Klärung";
+  if(c.pending)return "Nicht geprüft";
+  if(c.over||c.under)return "Abweichung";
+  return "OK";
+}
+function batchStatusClass(status){
+  return status==="ok"?"ok":status==="over"?"over":status==="under"?"under":status==="clarification"?"clarification":status==="unmatched"?"unmatched":"pending";
+}
+function openBatchReview(key){
+  const item=queueItem(key);if(!item?.recognized||!isBatchInvoice(item.invoice))return;
+  const inv=item.invoice;
+  reviewInvoiceKey=key;
+  invoiceReviewWorkspace.hidden=true;
+  invoiceBatchReviewWorkspace.hidden=false;
+  batchReviewTitle.textContent=`Rechnung ${inv.invoice} · ${inv.provider}`;
+  batchReviewSubtitle.textContent=`${inv.positions.length} Sendungspositionen · Belegdatum ${deDate(inv.invoiceDate)} · jede Position wird separat geprüft.`;
+  invoiceBatchSummary.innerHTML=`<div><span>Positionen</span><strong>${inv.positions.length}</strong></div><div><span>Netto</span><strong>${euro2(inv.netTotal)}</strong></div><div><span>MwSt. ${inv.vatRate}%</span><strong>${euro2(inv.vatAmount)}</strong></div><div><span>Gesamt</span><strong>${euro2(inv.grossTotal)}</strong></div>`;
+  renderBatchRows();
+  invoiceBatchReviewWorkspace.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function renderBatchRows(){
+  const item=queueItem(reviewInvoiceKey);if(!item?.recognized||!isBatchInvoice(item.invoice))return;
+  const inv=item.invoice,c=batchCounts(inv);
+  invoiceBatchStatusbar.innerHTML=`<span class="batch-status ok">OK <strong>${c.ok}</strong></span><span class="batch-status over">Zu hoch <strong>${c.over}</strong></span><span class="batch-status under">Zu niedrig <strong>${c.under}</strong></span><span class="batch-status pending">Nicht geprüft <strong>${c.pending}</strong></span><span class="batch-status clarification">In Klärung <strong>${c.clarification}</strong></span><span class="batch-status unmatched">Nicht zugeordnet <strong>${c.unmatched}</strong></span><span class="batch-overall">Gesamtstatus: <strong>${batchOverallStatus(inv)}</strong></span>`;
+  invoiceBatchRows.innerHTML=inv.positions.map(pos=>{
+    const s=batchPositionState(pos,inv.provider);
+    const diff=s.diff==null?"—":`${s.diff>0?"+":""}${euro2(s.diff)}`;
+    const expected=s.expected==null?"—":euro2(s.expected);
+    return `<tr class="batch-row-${batchStatusClass(s.status)}"><td>${escapeInvoice(pos.pos)}</td><td>${escapeInvoice(pos.date)}</td><td>${escapeInvoice(pos.reference)}</td><td>${escapeInvoice(pos.shipment)}</td><td>${escapeInvoice(pos.destCountry)} ${escapeInvoice(pos.destPostal)} ${escapeInvoice(pos.destCity)}</td><td><strong>${euro2(pos.actual)}</strong></td><td>${expected}</td><td>${diff}</td><td><span class="batch-line-status ${batchStatusClass(s.status)}">${s.label}</span>${s.op?`<small>${escapeInvoice(s.op.id)}</small>`:""}</td></tr>`;
+  }).join("");
+}
+function saveBatchInvoiceCheck(finalize=false){
+  const item=queueItem(reviewInvoiceKey);if(!item?.recognized||!isBatchInvoice(item.invoice))return;
+  const inv=item.invoice,existing=findExistingCheckByInvoice(inv),counts=batchCounts(inv);
+  const record={
+    id:existing?.id||("CHK-"+Date.now()),invoice:inv.invoice,provider:inv.provider,date:deDate(inv.invoiceDate),
+    zip:"",transport:"Sammelrechnung",expected:inv.netTotal,actual:inv.netTotal,diff:0,
+    status:counts.unmatched?"unmatched":counts.clarification?"clarification":counts.pending?"pending":(counts.over||counts.under)?"diff":"ok",
+    operation:"Sammelrechnung",priceSource:"positionen",priceSourceNote:`${inv.positions.length} Rechnungspositionen`,
+    sourceFile:inv.sourceFile,positionCount:inv.positions.length,batchCounts:counts,netTotal:inv.netTotal,vatAmount:inv.vatAmount,grossTotal:inv.grossTotal,
+    positions:inv.positions.map(p=>{const st=batchPositionState(p,inv.provider);return {...p,matchOperation:st.op?.id||"",expected:st.expected,diff:st.diff,lineStatus:st.status}}),
+    createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()
+  };
+  if(existing)checks=checks.map(c=>c.id===existing.id?record:c);else checks.unshift(record);
+  save();renderChecks();renderInvoiceQueue();renderBatchRows();
+  showToast(finalize?"Sammelrechnung wurde gespeichert.":"Prüfstand wurde gespeichert.");
+}
 function queueStats(){
   return {
     files:invoiceQueue.length,
     recognized:invoiceQueue.filter(x=>x.recognized).length,
-    ready:invoiceQueue.filter(x=>x.recognized&&providerExists(x.invoice.provider)&&!!findOperationForRecognized(x.invoice)).length,
+    ready:invoiceQueue.filter(x=>{
+      if(!x.recognized||!providerExists(x.invoice.provider))return false;
+      if(isBatchInvoice(x.invoice))return x.invoice.positions.some(p=>!!findOperationForBatchPosition(p,x.invoice.provider));
+      return !!findOperationForRecognized(x.invoice);
+    }).length,
     review:invoiceQueue.filter(x=>!x.recognized||!providerExists(x.invoice?.provider)).length
   };
 }
@@ -116,7 +211,17 @@ function renderInvoiceQueue(){
   if(!invoiceQueue.length){list.innerHTML='<div class="invoice-empty-workspace">Noch keine Rechnung geladen.</div>';return}
   list.innerHTML=invoiceQueue.map(item=>{
     if(!item.recognized)return `<article class="invoice-queue-card review"><div class="invoice-queue-main"><div><span class="modal-eyebrow">Review</span><h3>${escapeInvoice(item.fileName)}</h3></div><span class="status-pill review">Format unbekannt</span></div><p>Für dieses Rechnungsformat ist noch kein Parser hinterlegt. Bitte manuell erfassen.</p><div class="invoice-queue-actions"><button class="secondary compact-button" type="button" data-open-manual="${escapeInvoice(item.key)}">Manuell erfassen</button></div></article>`;
-    const inv=item.invoice,op=findOperationForRecognized(inv),existing=findExistingCheckByInvoice(inv),known=providerExists(inv.provider);
+    const inv=item.invoice,existing=findExistingCheckByInvoice(inv),known=providerExists(inv.provider);
+    if(isBatchInvoice(inv)){
+      const counts=batchCounts(inv),state=existing?"Bereits geprüft":!known?"Dienstleister fehlt":batchOverallStatus(inv);
+      return `<article class="invoice-queue-card invoice-queue-card-batch" data-invoice-key="${escapeInvoice(item.key)}">
+        <div class="invoice-queue-main"><div><span class="modal-eyebrow">${escapeInvoice(inv.provider)}</span><h3>Rechnung ${escapeInvoice(inv.invoice)}</h3><p>${inv.positions.length} Positionen · Netto ${euro2(inv.netTotal)} · Gesamt ${euro2(inv.grossTotal)}</p></div><span class="status-pill ${existing?"active":!known?"future":"active"}">${state}</span></div>
+        <div class="invoice-batch-mini"><span class="ok">OK <b>${counts.ok}</b></span><span class="over">Zu hoch <b>${counts.over}</b></span><span class="under">Zu niedrig <b>${counts.under}</b></span><span class="pending">Nicht geprüft <b>${counts.pending}</b></span><span class="unmatched">Nicht zugeordnet <b>${counts.unmatched}</b></span></div>
+        ${!known?`<div class="invoice-queue-notice warning">Dienstleister „${escapeInvoice(inv.provider)}“ ist noch nicht in den Stammdaten angelegt.</div>`:""}
+        <div class="invoice-queue-actions">${!known?`<button class="secondary compact-button" type="button" data-create-provider="${escapeInvoice(item.key)}">+ Dienstleister anlegen</button>`:""}<button class="primary compact-button" type="button" data-review-batch="${escapeInvoice(item.key)}">${existing?"Prüfung öffnen":"Positionen prüfen"}</button></div>
+      </article>`;
+    }
+    const op=findOperationForRecognized(inv);
     const state=existing?"Bereits geprüft":!known?"Dienstleister fehlt":op?"Prüfbereit":"Vorgang fehlt";
     const stateClass=existing?"active":(!known||!op)?"future":"active";
     return `<article class="invoice-queue-card" data-invoice-key="${escapeInvoice(item.key)}">
@@ -145,6 +250,7 @@ function renderInvoiceQueue(){
 }
 function bindQueueActions(){
   document.querySelectorAll("[data-review-invoice]").forEach(b=>b.addEventListener("click",()=>openRecognizedReview(b.dataset.reviewInvoice)));
+  document.querySelectorAll("[data-review-batch]").forEach(b=>b.addEventListener("click",()=>openBatchReview(b.dataset.reviewBatch)));
   document.querySelectorAll("[data-create-operation]").forEach(b=>b.addEventListener("click",()=>openInvoiceOperationModalFor(b.dataset.createOperation)));
   document.querySelectorAll("[data-create-provider]").forEach(b=>b.addEventListener("click",()=>openInvoiceProviderModalFor(b.dataset.createProvider)));
   document.querySelectorAll("[data-open-manual]").forEach(b=>b.addEventListener("click",()=>setInvoiceMode("manual")));
@@ -195,9 +301,9 @@ function renderReviewEvidence(){
 function renderReviewResult(){
   const item=queueItem(reviewInvoiceKey);if(!item?.recognized)return;
   const actual=Number(item.invoice.total||0),expected=Number(document.getElementById("reviewExpectedAmount").value||0),diff=Math.round((actual-expected)*100)/100,pct=expected?diff/expected*100:0;
-  const status=!expected?"unmatched":Math.abs(diff)<=PRICE_EPSILON?"ok":"diff";
+  const status=!expected?"unmatched":Math.abs(diff)<=PRICE_EPSILON?"ok":diff>0?"over":"under";
   const el=document.getElementById("invoiceReviewResult");el.className=`invoice-review-result ${status}`;
-  el.innerHTML=`<div><span>Soll</span><strong>${expected?euro2(expected):"—"}</strong></div><div><span>Ist</span><strong>${euro2(actual)}</strong></div><div><span>Abweichung</span><strong>${expected?`${diff>0?"+":""}${euro2(diff)} · ${pct>0?"+":""}${fmtInvoice(pct,1)}%`:"Sollpreis fehlt"}</strong></div><div><span>Status</span><strong>${statusLabel(status)}</strong></div>`;
+  el.innerHTML=`<div><span>Soll</span><strong>${expected?euro2(expected):"—"}</strong></div><div><span>Ist</span><strong>${euro2(actual)}</strong></div><div><span>Abweichung</span><strong>${expected?`${diff>0?"+":""}${euro2(diff)} · ${pct>0?"+":""}${fmtInvoice(pct,1)}%`:"Sollpreis fehlt"}</strong></div><div><span>Status</span><strong>${status==="over"||status==="under"?"Abweichung":statusLabel(status)}</strong></div>`;
 }
 function saveRecognizedReview(){
   const item=queueItem(reviewInvoiceKey);if(!item?.recognized)return;
@@ -206,13 +312,13 @@ function saveRecognizedReview(){
   const expected=Number(document.getElementById("reviewExpectedAmount").value||0);
   if(!(expected>0)){showToast("Bitte einen Sollpreis eintragen.");return}
   const source=document.getElementById("reviewPriceSource").value,note=document.getElementById("reviewPriceSourceNote").value.trim();
-  if((source==="phone"||source==="manual")&&!note){showToast("Bitte die Herkunft des manuellen Sollpreises dokumentieren.");return}
+  const documentedNote=note||({phone:"Telefonische Preisvereinbarung",manual:"Manuell hinterlegter Sollpreis"}[source]||"");
   const op=findOperationForRecognized(inv),actual=Number(inv.total||0),diff=Math.round((actual-expected)*100)/100,existing=findExistingCheckByInvoice(inv);
   const record={
     id:existing?.id||("CHK-"+Date.now()),invoice:inv.invoice,provider:inv.provider,date:deDate(inv.deliveryDate||inv.invoiceDate),
     zip:inv.destPostal,transport:inv.transport,expected:Math.round(expected*100)/100,actual:Math.round(actual*100)/100,diff,
     basePrice:inv.freight,floaterPercent:inv.surchargePercent||0,floaterAmount:inv.surchargeAmount||0,ancillaryAmount:inv.surchargeAmount||0,
-    status:Math.abs(diff)<=PRICE_EPSILON?"ok":"diff",operation:op?.id||"—",priceSource:source,priceSourceNote:note,
+    status:Math.abs(diff)<=PRICE_EPSILON?"ok":"diff",varianceDirection:Math.abs(diff)<=PRICE_EPSILON?"equal":diff>0?"over":"under",operation:op?.id||"—",priceSource:source,priceSourceNote:documentedNote,
     externalReference:inv.externalReference,shipmentNumber:inv.shipmentNumber,sourceFile:inv.sourceFile,
     createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()
   };
@@ -220,7 +326,7 @@ function saveRecognizedReview(){
   save();
   if(op){
     const ops=GPK.read(GPK.KEYS.operations,[])||[];
-    GPK.write(GPK.KEYS.operations,ops.map(o=>o.id===op.id?{...o,invoiceStatus:record.status,invoiceNumber:inv.invoice,invoiceCheckId:record.id}:o));
+    GPK.write(GPK.KEYS.operations,ops.map(o=>o.id===op.id?{...o,invoiceStatus:record.status,invoiceDirection:record.varianceDirection,invoiceNumber:inv.invoice,invoiceCheckId:record.id}:o));
   }
   renderChecks();renderInvoiceQueue();openRecognizedReview(reviewInvoiceKey);
   showToast(existing?"Prüfung wurde aktualisiert.":"Rechnung wurde geprüft und gespeichert.");
@@ -230,7 +336,7 @@ function openInvoiceProviderModalFor(key){
   activeRecognizedKey=key;const inv=item.invoice;
   document.getElementById("invoiceProviderName").value=inv.provider||"";
   document.getElementById("invoiceProviderAlias").value=(inv.provider||"").replace(/[^A-Za-z0-9]/g,"").slice(0,2).toUpperCase();
-  document.getElementById("invoiceProviderCountry").value=inv.originCountry||"";
+  document.getElementById("invoiceProviderCountry").value=inv.originCountry||(isBatchInvoice(inv)?"DE":"");
   document.getElementById("invoiceProviderStreet").value="";document.getElementById("invoiceProviderZip").value="";document.getElementById("invoiceProviderCity").value="";
   document.getElementById("invoiceProviderNotes").value=`Aus Rechnungsimport ${inv.invoice} angelegt.`;
   document.getElementById("invoiceProviderModal").hidden=false;document.body.classList.add("modal-open");
@@ -545,6 +651,9 @@ document.getElementById("reviewPriceSource").addEventListener("change",()=>{
 reviewExpectedAmount.addEventListener("input",renderReviewResult);
 saveRecognizedCheckBtn.addEventListener("click",saveRecognizedReview);
 closeInvoiceReviewBtn.addEventListener("click",()=>{invoiceReviewWorkspace.hidden=true;reviewInvoiceKey=""});
+closeBatchReviewBtn.addEventListener("click",()=>{invoiceBatchReviewWorkspace.hidden=true;reviewInvoiceKey=""});
+saveBatchDraftBtn.addEventListener("click",()=>saveBatchInvoiceCheck(false));
+saveBatchCheckBtn.addEventListener("click",()=>saveBatchInvoiceCheck(true));
 openLinkedOperationBtn.addEventListener("click",()=>{
   const item=queueItem(reviewInvoiceKey),op=item?.recognized?findOperationForRecognized(item.invoice):null;
   if(op)location.href=`vorgaenge.html?operation=${encodeURIComponent(op.id)}`;

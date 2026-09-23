@@ -4145,3 +4145,45 @@ body.planning-mode .calculator-shipment-layout{
 .invoice-manual-full{max-width:none}.invoice-provider-modal{max-width:700px}
 @media(max-width:1100px){.invoice-upload-layout,.invoice-review-grid{grid-template-columns:1fr}.invoice-recognition-list{grid-template-columns:1fr}.invoice-review-identity{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.invoice-upload-summary,.invoice-review-result,.invoice-review-identity,.invoice-queue-facts{grid-template-columns:1fr 1fr}.invoice-price-source{grid-template-columns:1fr}}
+
+
+/* v6.59 – Rechnungsprüfung: Sichtbarkeit, Sammelrechnungen, Richtungsfarben */
+.invoice-upload-mode[hidden],.invoice-manual-mode[hidden],.invoice-review-workspace[hidden],.invoice-batch-review-workspace[hidden]{display:none!important}
+.invoice-recognition-list{grid-template-columns:1fr!important}
+.invoice-queue-card{width:100%}
+.invoice-review-result.over{background:#fff0ef;border-color:#efc4c0}
+.invoice-review-result.over strong{color:#a53b34}
+.invoice-review-result.under{background:#fff8e7;border-color:#ead59b}
+.invoice-review-result.under strong{color:#866216}
+.invoice-operation-status.diff-over{background:#fff0ef!important;border-color:#efc4c0!important;color:#a53b34!important}
+.invoice-operation-status.diff-under{background:#fff8e7!important;border-color:#ead59b!important;color:#866216!important}
+.invoice-operation-status.clarification{background:#fff4e6!important;border-color:#ecd1a5!important;color:#8b601c!important}
+.invoice-batch-review-workspace{margin-top:12px}
+.invoice-batch-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.invoice-batch-summary>div{border:1px solid #dce7ea;background:#f9fcfd;border-radius:9px;padding:10px}
+.invoice-batch-summary span{display:block;font-size:8px;text-transform:uppercase;color:#7b9097;font-weight:800}
+.invoice-batch-summary strong{display:block;margin-top:3px;font-size:15px;color:#174653}
+.invoice-batch-statusbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.batch-status{border:1px solid #dce7ea;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:800}
+.batch-status.ok{background:#eaf7f0;border-color:#cae8d7;color:#216e52}
+.batch-status.over{background:#fff0ef;border-color:#efc4c0;color:#a53b34}
+.batch-status.under{background:#fff8e7;border-color:#ead59b;color:#866216}
+.batch-status.pending{background:#f1f5f6;color:#657d85}
+.batch-status.clarification{background:#fff4e6;border-color:#ecd1a5;color:#8b601c}
+.batch-status.unmatched{background:#f7eef0;border-color:#e5d1d6;color:#805663}
+.batch-overall{margin-left:auto;font-size:10px;color:#526d76}
+.invoice-batch-table-wrap{overflow:auto;border:1px solid #dce7ea;border-radius:9px}
+.invoice-batch-table{width:100%;border-collapse:collapse;min-width:1050px}
+.invoice-batch-table th{position:sticky;top:0;background:#f2f7f8;color:#6d858d;font-size:8px;text-transform:uppercase;letter-spacing:.04em;padding:8px;text-align:left;border-bottom:1px solid #dce7ea}
+.invoice-batch-table td{padding:8px;font-size:9px;border-bottom:1px solid #e6eef0;color:#244d58;vertical-align:middle}
+.invoice-batch-table tr:last-child td{border-bottom:0}
+.batch-row-over{background:#fff8f7}.batch-row-under{background:#fffbf2}.batch-row-ok{background:#fbfefc}
+.batch-line-status{display:inline-block;border-radius:999px;padding:4px 7px;font-size:8px;font-weight:800}
+.batch-line-status.ok{background:#eaf7f0;color:#216e52}.batch-line-status.over{background:#fde8e6;color:#a53b34}.batch-line-status.under{background:#fff1c9;color:#866216}
+.batch-line-status.pending{background:#edf2f4;color:#657d85}.batch-line-status.unmatched{background:#f4e9ec;color:#805663}
+.invoice-batch-table td small{display:block;color:#80949b;margin-top:2px}
+.invoice-batch-mini{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.invoice-batch-mini span{border-radius:999px;padding:4px 7px;font-size:8px;font-weight:800}
+.invoice-batch-mini .ok{background:#eaf7f0;color:#216e52}.invoice-batch-mini .over{background:#fde8e6;color:#a53b34}.invoice-batch-mini .under{background:#fff1c9;color:#866216}
+.invoice-batch-mini .pending{background:#edf2f4;color:#657d85}.invoice-batch-mini .unmatched{background:#f4e9ec;color:#805663}
+@media(max-width:900px){.invoice-batch-summary{grid-template-columns:1fr 1fr}.batch-overall{width:100%;margin-left:0}}

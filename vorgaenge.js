@@ -46,8 +46,12 @@ function invoiceForOperation(id){return invoiceChecks().filter(c=>String(c.opera
 function invoiceStatusHtml(o){
   const c=invoiceForOperation(o.id);
   if(!c)return `<button type="button" class="invoice-operation-status pending invoice-status-action" data-invoice-operation="${esc(o.id)}">Nicht geprüft</button>`;
-  if(c.status==="ok")return `<button type="button" class="invoice-operation-status ok invoice-status-action" data-invoice-operation="${esc(o.id)}">OK · ${esc(c.invoice||"Rechnung")}</button>`;
-  if(c.status==="diff")return `<button type="button" class="invoice-operation-status diff invoice-status-action" data-invoice-operation="${esc(o.id)}">Abweichung · ${esc(c.invoice||"")}</button>`;
+  if(c.status==="ok")return `<button type="button" class="invoice-operation-status ok invoice-status-action" data-invoice-operation="${esc(o.id)}">OK</button>`;
+  if(c.status==="clarification")return `<button type="button" class="invoice-operation-status clarification invoice-status-action" data-invoice-operation="${esc(o.id)}">In Klärung</button>`;
+  if(c.status==="diff"){
+    const direction=c.varianceDirection||(Number(c.diff)>0?"over":"under");
+    return `<button type="button" class="invoice-operation-status ${direction==="over"?"diff-over":"diff-under"} invoice-status-action" data-invoice-operation="${esc(o.id)}">Abweichung</button>`;
+  }
   return `<button type="button" class="invoice-operation-status unmatched invoice-status-action" data-invoice-operation="${esc(o.id)}">Nicht zugeordnet</button>`;
 }
 function saveOperations(){GPK.write(GPK.KEYS.operations,operations)}
