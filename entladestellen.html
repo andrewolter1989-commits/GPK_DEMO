@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.54</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.55</div>
     </aside>
 
     <main class="workspace masterdata-workspace">
@@ -72,6 +72,7 @@
                 <th>Adresse</th>
                 <th>Land</th>
                 <th>Ansprechpartner</th>
+                <th>Angelegt</th>
                 <th>Status</th>
                 <th class="actions-col"></th>
               </tr>
@@ -147,6 +148,10 @@
             <label for="notes">Hinweise</label>
             <textarea id="notes" rows="3" placeholder="Rampe, Zufahrt, Avis, interne Notiz ..."></textarea>
           </div>
+        </div>
+        <div class="location-audit-panel" id="locationAuditPanel" hidden>
+          <div class="location-audit-head"><strong>Änderungsverlauf</strong><small id="locationAuditMeta">—</small></div>
+          <div class="location-audit-list" id="locationAuditList"></div>
         </div>
         <div class="modal-actions modal-actions-split">
           <button class="danger-outline compact-button" id="deleteLocationBtn" type="button" hidden>Entladestelle löschen</button>

@@ -471,12 +471,18 @@ async function saveCalculatorLocation(event){
     email:document.getElementById("calculatorLocationEmail")?.value?.trim()||"",
     time:document.getElementById("calculatorLocationTime")?.value?.trim()||"",
     status:document.getElementById("calculatorLocationStatus")?.value||"active",
-    notes:document.getElementById("calculatorLocationNotes")?.value?.trim()||""
+    notes:document.getElementById("calculatorLocationNotes")?.value?.trim()||"",
+    createdAt:new Date().toISOString(),
+    createdBy:String(window.GPK_CURRENT_USER?.name||"Lokale Demo"),
+    updatedAt:new Date().toISOString(),
+    updatedBy:String(window.GPK_CURRENT_USER?.name||"Lokale Demo"),
+    history:[]
   };
   const msg=document.getElementById("calculatorLocationDuplicate");
   if(!candidate.name||!candidate.country||!candidate.zip||!candidate.city){ if(msg){msg.hidden=false;msg.textContent="Bitte Firmenname, Land, PLZ und Ort ausfüllen.";} return; }
   const duplicate=findLocationDuplicate(candidate);
   if(duplicate){ if(msg){msg.hidden=false;msg.innerHTML=`Mögliche Dublette: <strong>${escapeHtml(duplicate.name||"Entladestelle")}</strong>, ${escapeHtml(duplicate.zip||"")} ${escapeHtml(duplicate.city||"")}. Bitte vorhandenen Datensatz auswählen.`;} return; }
+  candidate.history=[{at:candidate.createdAt,user:candidate.createdBy,action:"Angelegt",details:`${candidate.country} ${candidate.zip} ${candidate.city}`}];
   const managed=GPK.read(GPK.KEYS.locations,[])||[];
   if(!GPK.write(GPK.KEYS.locations,[...managed,candidate])){ if(msg){msg.hidden=false;msg.textContent="Entladestelle konnte nicht gespeichert werden.";} return; }
   const countrySelect=document.getElementById("destCountry"), postalInput=document.getElementById("postalCode");

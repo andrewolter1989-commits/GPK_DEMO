@@ -21,6 +21,58 @@ const count = document.getElementById("locationCount");
 const modal = document.getElementById("locationModal");
 const form = document.getElementById("locationForm");
 
+const LOCATION_AUDIT_KEY = GPK.KEYS.locationAudit || "gpk_demo_location_audit_v1";
+let locationAudit = GPK.read(LOCATION_AUDIT_KEY, []) || [];
+
+function sameId(a,b){ return String(a ?? "") === String(b ?? ""); }
+function currentUserName(){ return String(window.GPK_CURRENT_USER?.name || "Lokale Demo"); }
+function isoNow(){ return new Date().toISOString(); }
+function inferCreatedAt(item){
+  if(item?.createdAt) return item.createdAt;
+  const m=String(item?.id||"").match(/^LOC-(\d{11,})$/);
+  if(m){ const d=new Date(Number(m[1])); if(!isNaN(d)) return d.toISOString(); }
+  return "";
+}
+function formatDateTime(value){
+  const d=new Date(value||"");
+  if(isNaN(d)) return "—";
+  return d.toLocaleDateString("de-DE")+" · "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+}
+function ensureLocationMetadata(){
+  let changed=false;
+  locations.forEach(item=>{
+    const inferred=inferCreatedAt(item);
+    if(!item.createdAt && inferred){ item.createdAt=inferred; changed=true; }
+    if(!item.createdBy && inferred){ item.createdBy="Lokale Demo"; changed=true; }
+    if(!Array.isArray(item.history)){ item.history=[]; changed=true; }
+  });
+  if(changed) GPK.write(GPK.KEYS.locations,locations);
+}
+function addLocationAudit(item, action, details=""){
+  const entry={id:`LA-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,locationId:String(item?.id||""),at:isoNow(),user:currentUserName(),action,details};
+  locationAudit.unshift(entry);
+  locationAudit=locationAudit.slice(0,500);
+  GPK.write(LOCATION_AUDIT_KEY,locationAudit);
+  if(item){ item.history=Array.isArray(item.history)?item.history:[]; item.history.push({at:entry.at,user:entry.user,action,details}); }
+  return entry;
+}
+function locationHistory(item){
+  const local=Array.isArray(item?.history)?item.history:[];
+  const global=locationAudit.filter(x=>sameId(x.locationId,item?.id));
+  const all=[...local,...global].filter((x,i,a)=>a.findIndex(y=>y.at===x.at&&y.action===x.action&&y.user===x.user)===i);
+  return all.sort((a,b)=>new Date(b.at||0)-new Date(a.at||0));
+}
+function renderLocationAudit(item){
+  const panel=document.getElementById("locationAuditPanel"),meta=document.getElementById("locationAuditMeta"),list=document.getElementById("locationAuditList");
+  if(!panel||!meta||!list)return;
+  if(!item){ panel.hidden=true; return; }
+  panel.hidden=false;
+  const createdAt=item.createdAt||inferCreatedAt(item), createdBy=item.createdBy||"—";
+  meta.textContent=createdAt?`Angelegt ${formatDateTime(createdAt)} · ${createdBy}`:"Anlagedatum für Bestandsdatensatz nicht vorhanden";
+  const hist=locationHistory(item);
+  list.innerHTML=hist.length?hist.map(x=>`<div><span>${esc(formatDateTime(x.at))}</span><strong>${esc(x.user||"—")}</strong><b>${esc(x.action||"Änderung")}</b>${x.details?`<small>${esc(x.details)}</small>`:""}</div>`).join(""):'<div class="location-audit-empty">Noch keine Änderungen protokolliert.</div>';
+}
+
 function esc(v=""){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 
 function render(){
@@ -43,13 +95,14 @@ function render(){
       <td><strong class="table-main">${esc(x.street)}</strong><small>${esc(x.zip)} ${esc(x.city)}</small></td>
       <td><span class="country-pill">${esc(x.country)}</span></td>
       <td><strong class="table-main">${esc(x.contact || "—")}</strong><small>${esc(x.email || x.phone || "Keine Kontaktdaten")}</small></td>
+      <td><strong class="table-main">${esc(x.createdAt ? new Date(x.createdAt).toLocaleDateString("de-DE") : "Bestand")}</strong><small>${esc(x.createdBy || "—")}</small></td>
       <td><span class="status-pill ${x.status}">${x.status==="active" ? "Aktiv" : "Inaktiv"}</span></td>
       <td class="row-actions">
         <button class="icon-button" data-edit="${x.id}" title="Bearbeiten">✎</button>
         <button class="icon-button more-button" data-more="${x.id}" title="Weitere Aktionen">•••</button>
       </td>
     </tr>
-  `).join("") || `<tr><td colspan="6" class="empty-state">Keine Entladestellen für diesen Filter gefunden.</td></tr>`;
+  `).join("") || `<tr><td colspan="7" class="empty-state">Keine Entladestellen für diesen Filter gefunden.</td></tr>`;
 }
 
 function showToast(text){
@@ -74,6 +127,7 @@ function openModal(item=null){
   document.getElementById("activeState").value = item?.status ?? "active";
   document.getElementById("notes").value = item?.notes ?? "";
   document.getElementById("deleteLocationBtn").hidden = !item;
+  renderLocationAudit(item);
   modal.hidden = false;
   document.body.classList.add("modal-open");
 }
@@ -93,7 +147,7 @@ function closeLocationContextMenu(){
 }
 function openLocationContextMenu(button,id){
   closeLocationContextMenu();
-  const item=locations.find(x=>x.id===Number(id)); if(!item)return;
+  const item=locations.find(x=>sameId(x.id,id)); if(!item)return;
   const menu=document.createElement("div");
   menu.id="locationContextMenu"; menu.className="record-context-menu";
   menu.innerHTML=`
@@ -110,6 +164,8 @@ function openLocationContextMenu(button,id){
     if(action==="edit")openModal(item);
     if(action==="toggle"){
       item.status=item.status==="active"?"inactive":"active";
+      item.updatedAt=isoNow(); item.updatedBy=currentUserName();
+      addLocationAudit(item,item.status==="active"?"Aktiviert":"Deaktiviert");
       GPK.write(GPK.KEYS.locations,locations);render();
       showToast(`Entladestelle ${item.status==="active"?"aktiviert":"deaktiviert"}.`);
     }
@@ -117,17 +173,18 @@ function openLocationContextMenu(button,id){
   });
 }
 function deleteLocation(id){
-  const item=locations.find(x=>x.id===Number(id));if(!item)return;
+  const item=locations.find(x=>sameId(x.id,id));if(!item)return;
   if(!confirm(`Entladestelle "${item.name}" wirklich löschen? Bestehende Vorgänge bleiben in der Historie erhalten.`))return;
-  locations=locations.filter(x=>x.id!==Number(id));
+  addLocationAudit(item,"Gelöscht",`${item.country||""} ${item.zip||""} ${item.city||""}`.trim());
+  locations=locations.filter(x=>!sameId(x.id,id));
   GPK.write(GPK.KEYS.locations,locations);
-  if(editingId===Number(id))closeModal();
+  if(sameId(editingId,id))closeModal();
   editingId=null;render();showToast("Entladestelle wurde gelöscht.");
 }
 rows.addEventListener("click",e=>{
   const edit=e.target.closest("[data-edit]");
   const more=e.target.closest("[data-more]");
-  if(edit){const item=locations.find(x=>x.id===Number(edit.dataset.edit));if(item)openModal(item);return;}
+  if(edit){const item=locations.find(x=>sameId(x.id,edit.dataset.edit));if(item)openModal(item);return;}
   if(more){openLocationContextMenu(more,more.dataset.more);return;}
 });
 document.addEventListener("click",e=>{
@@ -143,12 +200,19 @@ form.addEventListener("submit",e=>{
     phone: phone.value.trim(), email: email.value.trim(), time: timeWindow.value.trim(),
     status: activeState.value, notes: notes.value.trim()
   };
-  if(editingId){
-    Object.assign(locations.find(x=>x.id===editingId), data);
-    showToast("Entladestelle wurde in der Layout-Demo aktualisiert.");
+  if(editingId!==null){
+    const item=locations.find(x=>sameId(x.id,editingId));
+    if(!item){ showToast("Entladestelle konnte nicht gefunden werden."); return; }
+    const changed=Object.keys(data).filter(k=>String(item[k]??"")!==String(data[k]??""));
+    Object.assign(item,data,{updatedAt:isoNow(),updatedBy:currentUserName()});
+    addLocationAudit(item,"Bearbeitet",changed.length?`Geändert: ${changed.join(", ")}`:"Ohne Feldänderung gespeichert");
+    showToast("Entladestelle wurde aktualisiert.");
   } else {
-    locations.unshift({id:Date.now(), ...data});
-    showToast("Entladestelle wurde in der Layout-Demo angelegt.");
+    const now=isoNow(), user=currentUserName();
+    const item={id:`LOC-${Date.now()}`, ...data, createdAt:now, createdBy:user, updatedAt:now, updatedBy:user, history:[]};
+    addLocationAudit(item,"Angelegt",`${item.country} ${item.zip} ${item.city}`);
+    locations.unshift(item);
+    showToast("Entladestelle wurde angelegt.");
   }
   GPK.write(GPK.KEYS.locations, locations);
   closeModal();
@@ -174,11 +238,13 @@ document.getElementById("exportBtn").addEventListener("click",async ()=>{
       "Entladestellen":locations.map(x=>({
         "Firmenname":x.name,"Land":x.country,"PLZ":x.zip,"Ort":x.city,"Straße":x.street,
         "Ansprechpartner":x.contact,"E-Mail":x.email,"Telefon":x.phone,"Zeitfenster":x.time,
-        "Hinweise":x.notes,"Aktiv":x.status==="active"?"Ja":"Nein"
+        "Hinweise":x.notes,"Aktiv":x.status==="active"?"Ja":"Nein",
+        "Angelegt am":x.createdAt||"","Angelegt von":x.createdBy||"","Geändert am":x.updatedAt||"","Geändert von":x.updatedBy||""
       }))
     });
     showToast("Entladestellen exportiert.");
   }catch(err){showToast("Export fehlgeschlagen: "+err.message);}
 });
 
+ensureLocationMetadata();
 render();

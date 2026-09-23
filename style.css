@@ -4064,3 +4064,8 @@ body.planning-mode .calculator-shipment-layout{
 .calculator-location-duplicate{margin:0 22px 12px;border:1px solid #e6c7c3;background:#fff4f2;color:#8f4039;border-radius:8px;padding:9px 10px;font-size:10px}
 #calculatorLocationModal .location-modal{max-width:760px}
 #calculatorLocationModal .modal-actions{justify-content:flex-end}
+
+/* v6.55 – Entladestellen Bearbeitung & Audit */
+.location-audit-panel{margin:0 22px 14px;border:1px solid #d9e6e9;border-radius:10px;background:#f8fbfc;padding:10px 12px}
+.location-audit-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:7px}.location-audit-head strong{font-size:11px;color:#174653}.location-audit-head small{font-size:9px;color:#718991}
+.location-audit-list{max-height:150px;overflow:auto}.location-audit-list>div{display:grid;grid-template-columns:125px 110px 90px 1fr;gap:8px;padding:6px 0;border-top:1px solid #e6eef0;font-size:9px;color:#607d86}.location-audit-list>div:first-child{border-top:0}.location-audit-list strong,.location-audit-list b{color:#274f59}.location-audit-list small{font-size:9px;color:#6e858d}.location-audit-empty{display:block!important;padding:10px!important;text-align:center;color:#78909a}
