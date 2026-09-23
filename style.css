@@ -4212,3 +4212,8 @@ body.planning-mode .calculator-shipment-layout{
 
 /* v6.67 */
 .page-version-marker{font-size:9px;font-weight:700;color:#718991;vertical-align:middle;margin-left:5px}
+
+/* v6.68 */
+#collapseInvoiceWorkspaceBtn{margin-left:auto}
+.invoice-mode-switch .invoice-mode-btn{cursor:pointer}
+.invoice-batch-review-workspace:not([hidden]),.invoice-review-workspace:not([hidden]){display:block}
