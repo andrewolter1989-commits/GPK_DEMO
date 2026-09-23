@@ -4059,3 +4059,8 @@ body.planning-mode .calculator-shipment-layout{
 
 /* v6.52 – Importkorrektur */
 .shipment-header-control>label select{width:100%}
+
+/* v6.54 – Entladestelle direkt aus Kalkulation in Stammdaten anlegen */
+.calculator-location-duplicate{margin:0 22px 12px;border:1px solid #e6c7c3;background:#fff4f2;color:#8f4039;border-radius:8px;padding:9px 10px;font-size:10px}
+#calculatorLocationModal .location-modal{max-width:760px}
+#calculatorLocationModal .modal-actions{justify-content:flex-end}

@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.53</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.54</div>
     </aside>
 
     <main class="workspace masterdata-workspace calculator-workspace">
@@ -64,14 +64,7 @@
                 <span class="field-hint" id="recipientHint">Passende Entladestellen werden automatisch aus den hinterlegten Stammdaten geladen.</span>
               </div>
             </div>
-            <div id="manualRecipientBox" class="manual-recipient-box planning-only" style="display:none;">
-              <div class="manual-recipient-title">Neue Entladestelle erfassen</div>
-              <div class="manual-recipient-grid">
-                <div class="field"><label for="recipientName">Name</label><input id="recipientName" type="text" placeholder="Firmenname" /></div>
-                <div class="field"><label for="recipientStreet">Straße</label><input id="recipientStreet" type="text" placeholder="Straße / Hausnummer" /></div>
-                <div class="field"><label for="recipientCity">Ort</label><input id="recipientCity" type="text" placeholder="Ort" /></div>
-              </div>
-            </div>
+
           </section>
 
           <section class="workflow-section split-section calculator-shipment-layout">
@@ -182,6 +175,32 @@
       </section>
     </main>
   </div>
+  <div class="modal-backdrop" id="calculatorLocationModal" hidden>
+    <section class="location-modal" role="dialog" aria-modal="true" aria-labelledby="calculatorLocationModalTitle">
+      <div class="modal-head">
+        <div><span class="modal-eyebrow">Stammdaten</span><h2 id="calculatorLocationModalTitle">Neue Entladestelle</h2></div>
+        <button class="modal-close" id="calculatorLocationClose" type="button" aria-label="Schließen">×</button>
+      </div>
+      <form id="calculatorLocationForm">
+        <div class="location-form-grid">
+          <div class="field span-2"><label for="calculatorLocationName">Firmenname</label><input id="calculatorLocationName" required placeholder="z. B. Musterwerke GmbH"></div>
+          <div class="field"><label for="calculatorLocationCountry">Land</label><select id="calculatorLocationCountry" required></select></div>
+          <div class="field"><label for="calculatorLocationZip">PLZ</label><input id="calculatorLocationZip" required placeholder="24939"></div>
+          <div class="field"><label for="calculatorLocationCity">Ort</label><input id="calculatorLocationCity" required placeholder="Flensburg"></div>
+          <div class="field span-2"><label for="calculatorLocationStreet">Straße</label><input id="calculatorLocationStreet" placeholder="Straße / Hausnummer"></div>
+          <div class="field"><label for="calculatorLocationContact">Ansprechpartner</label><input id="calculatorLocationContact" placeholder="Name"></div>
+          <div class="field"><label for="calculatorLocationPhone">Telefon</label><input id="calculatorLocationPhone" placeholder="+49 ..."></div>
+          <div class="field span-2"><label for="calculatorLocationEmail">E-Mail</label><input id="calculatorLocationEmail" type="email" placeholder="name@firma.de"></div>
+          <div class="field"><label for="calculatorLocationTime">Zeitfenster</label><input id="calculatorLocationTime" placeholder="z. B. 08:00–15:00"></div>
+          <div class="field"><label for="calculatorLocationStatus">Status</label><select id="calculatorLocationStatus"><option value="active">Aktiv</option><option value="inactive">Inaktiv</option></select></div>
+          <div class="field span-2"><label for="calculatorLocationNotes">Hinweise</label><textarea id="calculatorLocationNotes" rows="3" placeholder="Rampe, Zufahrt, Avis, interne Notiz ..."></textarea></div>
+        </div>
+        <div class="calculator-location-duplicate" id="calculatorLocationDuplicate" hidden></div>
+        <div class="modal-actions"><button class="secondary compact-button" id="calculatorLocationCancel" type="button">Abbrechen</button><button class="primary compact-button" type="submit">Entladestelle speichern</button></div>
+      </form>
+    </section>
+  </div>
+
   <script src="gpk-core.js"></script>
   <script src="api-client.js"></script>
   <script src="gpk-data.js"></script>

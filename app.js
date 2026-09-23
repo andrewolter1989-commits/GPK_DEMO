@@ -386,55 +386,114 @@ function formatRecipientOption(r) {
   return [name, address].filter(Boolean).join(" – ");
 }
 
-function renderRecipientSelection() {
+function renderRecipientSelection(preferredId = "") {
   const select = document.getElementById("recipientSelect");
-  const box = document.getElementById("manualRecipientBox");
   const hint = document.getElementById("recipientHint");
   const country = String(document.getElementById("destCountry")?.value || "").toUpperCase();
   const postal = normalizePostal(document.getElementById("postalCode")?.value || "");
   if (!select) return;
-
   STATE.recipientsById = {};
   if (!country || !postal) {
     select.disabled = true;
     select.innerHTML = '<option value="">Bitte zuerst Land und PLZ eingeben</option>';
-    if (box) box.style.display = "none";
     if (hint) hint.textContent = "Entladestelle ist für Preisvergleich und Verfügbarkeitsanfrage optional.";
     return;
   }
-
-  const matches = STATE.addresses.filter((r) => r.land === country && r.plz === postal);
+  const matches = STATE.addresses.filter((r) => r.land === country && r.plz === postal && String(r.status || "active").toLowerCase() !== "inactive");
   matches.forEach((r) => { STATE.recipientsById[r.id] = r; });
   select.disabled = false;
-
-  const optional = '<option value="" selected>Ohne Entladestelle</option>';
+  const optional = '<option value="">Ohne Entladestelle</option>';
   const existing = matches.map((r) => `<option value="${escapeHtml(r.id)}">${escapeHtml(formatRecipientOption(r))}</option>`).join("");
-  select.innerHTML = optional + existing + '<option value="manual">+ Neuer Empfänger</option>';
-  if (box) box.style.display = "none";
+  select.innerHTML = optional + existing + '<option value="new-masterdata">+ Neuer Empfänger</option>';
+  select.value = preferredId && STATE.recipientsById[preferredId] ? preferredId : "";
   if (hint) hint.textContent = matches.length
     ? `${matches.length} passende Entladestelle${matches.length === 1 ? "" : "n"} gefunden · Auswahl optional.`
-    : "Keine bekannte Entladestelle gefunden · für Verfügbarkeitsanfragen kann ohne Entladestelle fortgefahren werden.";
+    : "Keine bekannte Entladestelle gefunden · optional ohne Entladestelle fortfahren oder neuen Empfänger anlegen.";
 }
 
-function onRecipientSelectChange() {
-  const select = document.getElementById("recipientSelect");
-  const box = document.getElementById("manualRecipientBox");
-  if (box) box.style.display = select?.value === "manual" ? "block" : "none";
+function ensureCalculatorLocationCountries(selectedCountry) {
+  const target = document.getElementById("calculatorLocationCountry");
+  const source = document.getElementById("destCountry");
+  if (!target) return;
+  const values = [];
+  [...(source?.options || [])].forEach((o) => {
+    const value = String(o.value || "").trim().toUpperCase();
+    if (value && !values.some((x) => x.value === value)) values.push({value, label:o.textContent || value});
+  });
+  const selected = String(selectedCountry || "").toUpperCase();
+  if (selected && !values.some((x) => x.value === selected)) values.push({value:selected,label:selected});
+  target.innerHTML = values.map((x) => `<option value="${escapeHtml(x.value)}">${escapeHtml(x.label)}</option>`).join("");
+  target.value = selected || values[0]?.value || "DE";
 }
 
-function getSelectedRecipient() {
-  const select = document.getElementById("recipientSelect");
-  if (!select?.value) return null;
-  if (select.value !== "manual") return STATE.recipientsById[select.value] || null;
-  return {
-    id: "manual",
-    name1: document.getElementById("recipientName")?.value?.trim() || "",
-    name2: "",
-    strasse: document.getElementById("recipientStreet")?.value?.trim() || "",
-    plz: normalizePostal(document.getElementById("postalCode")?.value || ""),
-    stadt: document.getElementById("recipientCity")?.value?.trim() || "",
-    land: String(document.getElementById("destCountry")?.value || "").toUpperCase(),
+function openCalculatorLocationModal() {
+  const modal = document.getElementById("calculatorLocationModal");
+  const country = String(document.getElementById("destCountry")?.value || "").toUpperCase();
+  const postal = normalizePostal(document.getElementById("postalCode")?.value || "");
+  ensureCalculatorLocationCountries(country);
+  document.getElementById("calculatorLocationZip").value = postal;
+  ["calculatorLocationName","calculatorLocationCity","calculatorLocationStreet","calculatorLocationContact","calculatorLocationPhone","calculatorLocationEmail","calculatorLocationTime","calculatorLocationNotes"].forEach((id)=>{const el=document.getElementById(id);if(el)el.value="";});
+  document.getElementById("calculatorLocationStatus").value = "active";
+  const msg = document.getElementById("calculatorLocationDuplicate");
+  if (msg) { msg.hidden = true; msg.textContent = ""; }
+  if (modal) { modal.hidden = false; document.body.classList.add("modal-open"); }
+  setTimeout(()=>document.getElementById("calculatorLocationName")?.focus(),0);
+}
+
+function closeCalculatorLocationModal(resetSelection = true) {
+  const modal = document.getElementById("calculatorLocationModal");
+  if (modal) modal.hidden = true;
+  document.body.classList.remove("modal-open");
+  if (resetSelection) { const select=document.getElementById("recipientSelect"); if(select) select.value=""; }
+}
+function normalizedLocationCompare(v){ return String(v||"").trim().toLowerCase().replace(/\s+/g," "); }
+function findLocationDuplicate(candidate){
+  const managed=GPK.read(GPK.KEYS.locations,[])||[];
+  return managed.find((x)=>{
+    const sameCountry=String(x.country||"").toUpperCase()===candidate.country;
+    const sameZip=normalizePostal(x.zip||"")===candidate.zip;
+    const sameName=normalizedLocationCompare(x.name)===normalizedLocationCompare(candidate.name);
+    const sameStreet=Boolean(candidate.street)&&normalizedLocationCompare(x.street)===normalizedLocationCompare(candidate.street);
+    return sameCountry&&sameZip&&(sameName||sameStreet);
+  })||null;
+}
+async function saveCalculatorLocation(event){
+  event.preventDefault();
+  const candidate={
+    id:`LOC-${Date.now()}`,
+    name:document.getElementById("calculatorLocationName")?.value?.trim()||"",
+    country:String(document.getElementById("calculatorLocationCountry")?.value||"").toUpperCase(),
+    zip:normalizePostal(document.getElementById("calculatorLocationZip")?.value||""),
+    city:document.getElementById("calculatorLocationCity")?.value?.trim()||"",
+    street:document.getElementById("calculatorLocationStreet")?.value?.trim()||"",
+    contact:document.getElementById("calculatorLocationContact")?.value?.trim()||"",
+    phone:document.getElementById("calculatorLocationPhone")?.value?.trim()||"",
+    email:document.getElementById("calculatorLocationEmail")?.value?.trim()||"",
+    time:document.getElementById("calculatorLocationTime")?.value?.trim()||"",
+    status:document.getElementById("calculatorLocationStatus")?.value||"active",
+    notes:document.getElementById("calculatorLocationNotes")?.value?.trim()||""
   };
+  const msg=document.getElementById("calculatorLocationDuplicate");
+  if(!candidate.name||!candidate.country||!candidate.zip||!candidate.city){ if(msg){msg.hidden=false;msg.textContent="Bitte Firmenname, Land, PLZ und Ort ausfüllen.";} return; }
+  const duplicate=findLocationDuplicate(candidate);
+  if(duplicate){ if(msg){msg.hidden=false;msg.innerHTML=`Mögliche Dublette: <strong>${escapeHtml(duplicate.name||"Entladestelle")}</strong>, ${escapeHtml(duplicate.zip||"")} ${escapeHtml(duplicate.city||"")}. Bitte vorhandenen Datensatz auswählen.`;} return; }
+  const managed=GPK.read(GPK.KEYS.locations,[])||[];
+  if(!GPK.write(GPK.KEYS.locations,[...managed,candidate])){ if(msg){msg.hidden=false;msg.textContent="Entladestelle konnte nicht gespeichert werden.";} return; }
+  const countrySelect=document.getElementById("destCountry"), postalInput=document.getElementById("postalCode");
+  if(countrySelect&&[...countrySelect.options].some((o)=>o.value===candidate.country))countrySelect.value=candidate.country;
+  if(postalInput)postalInput.value=candidate.zip;
+  await loadAddresses();
+  closeCalculatorLocationModal(false);
+  renderRecipientSelection(`master-${candidate.id}`);
+}
+function onRecipientSelectChange(){
+  const select=document.getElementById("recipientSelect");
+  if(select?.value==="new-masterdata"){ select.value=""; openCalculatorLocationModal(); }
+}
+function getSelectedRecipient(){
+  const select=document.getElementById("recipientSelect");
+  if(!select?.value||select.value==="new-masterdata")return null;
+  return STATE.recipientsById[select.value]||null;
 }
 
 function detectZoneColumns(headers) {
@@ -802,7 +861,6 @@ function getEffectiveLoadMeters(shipmentType, loadMetersInput) {
 function validateInput({ destCountry, postalCode, shipmentType, loadMeters, weight, pallets, slots, volume, nonStackable, avis }) {
   if (!destCountry) return "Bitte zuerst ein Land wählen.";
   if (!postalCode || String(postalCode).trim().length < 2) return "Bitte eine gültige PLZ eingeben.";
-  if (CALCULATION_MODE === "planning" && document.getElementById("recipientSelect")?.value === "manual" && !document.getElementById("recipientName")?.value?.trim()) return "Bitte bei einer neuen Entladestelle mindestens den Namen eingeben.";
   if (!SHIPMENT_TYPES[shipmentType]) return "Bitte eine Transportart wählen.";
   const cfg=getCalcFieldConfig();
   if (shipmentType === "teilladung" && cfg.teilladungLdm && !Number.isFinite(loadMeters)) return "Bitte Lademeter eingeben.";
@@ -1384,6 +1442,10 @@ const freeTextInput = document.getElementById("freeText");
   postalInput?.addEventListener("change", renderRecipientSelection);
   postalInput?.addEventListener("blur", renderRecipientSelection);
   document.getElementById("recipientSelect")?.addEventListener("change", onRecipientSelectChange);
+  document.getElementById("calculatorLocationForm")?.addEventListener("submit", saveCalculatorLocation);
+  document.getElementById("calculatorLocationClose")?.addEventListener("click",()=>closeCalculatorLocationModal(true));
+  document.getElementById("calculatorLocationCancel")?.addEventListener("click",()=>closeCalculatorLocationModal(true));
+  document.getElementById("calculatorLocationModal")?.addEventListener("click",(event)=>{if(event.target?.id==="calculatorLocationModal")closeCalculatorLocationModal(true);});
   transportSwitch?.addEventListener("change", updateTransportUi);
   updatePostalPlaceholder();
   updateTransportUi();
@@ -1520,7 +1582,6 @@ document.getElementById("summaryDeliveryDate").textContent = formatDisplayDate(d
 if (pickupDateInput) pickupDateInput.value = "";
 if (deliveryDateInput) deliveryDateInput.value = "";
 if (freeTextInput) freeTextInput.value = "";
-      ["recipientName","recipientStreet","recipientCity"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
       updatePostalPlaceholder();
       renderRecipientSelection();
       updateTransportUi();

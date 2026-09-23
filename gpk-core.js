@@ -1,7 +1,7 @@
 
 window.GPK = window.GPK || {};
 
-GPK.VERSION = "6.53";
+GPK.VERSION = "6.54";
 
 GPK.KEYS = Object.freeze({
   locations: "gpk_demo_locations_v1",
@@ -155,7 +155,7 @@ GPK.setActiveNavigation = function() {
 GPK.installDemoBadge = function() {
   const footer = document.querySelector(".sidebar-foot");
   if (!footer) return;
-  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.53 <span class="sidebar-demo-label">· Lokal</span>';
+  footer.innerHTML = '<span class="status-dot"></span> Prototype v6.54 <span class="sidebar-demo-label">· Lokal</span>';
 };
 
 document.addEventListener("DOMContentLoaded", () => {
