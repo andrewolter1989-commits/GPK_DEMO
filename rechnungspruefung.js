@@ -389,7 +389,7 @@ function saveOperationFromRecognized(event){
     created:new Date().toLocaleDateString("de-DE")+" · "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
     createdAt:new Date().toISOString(),user:currentInvoiceUser(),transport:document.getElementById("newOpTransport").value,customer:inv.recipient||"",
     note:document.getElementById("newOpNote").value,externalReference:inv.externalReference,shipmentNumber:inv.shipmentNumber,invoiceNumber:inv.invoice,
-    invoiceActual:inv.total,invoiceFreight:inv.freight,invoiceSurchargeAmount:inv.surchargeAmount,invoiceSurchargeName:inv.surchargeName,
+    invoiceActual:inv.total,invoiceFreight:inv.freight,invoiceSurchargeAmount:inv.surchargeAmount,invoiceSurchargeName:inv.surchargeName,invoiceStatus:"pending",
     originName:inv.originName,originCountry:inv.originCountry,originPostal:inv.originPostal,destCountry:inv.destCountry,destPostal:inv.destPostal,
     ldm:Number(document.getElementById("newOpLdm").value||0),slots:Number(document.getElementById("newOpSlots").value||0),weight:Number(inv.weight||0),priceSource:"manual/phone"
   };
@@ -432,6 +432,40 @@ function normalizeCheckStatus(c){
   return c;
 }
 checks=checks.map(normalizeCheckStatus);
+
+/* v6.61: Prüfungen dürfen nicht "verschwinden", wenn ein früherer Build zwar
+   den Vorgang mit Rechnungsdaten aktualisiert hat, aber der separate Check-
+   Datensatz fehlte. In diesem Fall wird die Prüfung aus dem verknüpften
+   Vorgang rekonstruiert. Bestehende Prüfungen haben immer Vorrang. */
+function reconcileChecksFromOperations(){
+  const ops=GPK.read(GPK.KEYS.operations,[])||[];
+  if(!Array.isArray(ops))return;
+  const existingInvoices=new Set(checks.map(c=>String(c.invoice||'').trim().toLowerCase()).filter(Boolean));
+  let changed=false;
+  ops.forEach(o=>{
+    const invoice=String(o.invoiceNumber||'').trim();
+    if(!invoice||existingInvoices.has(invoice.toLowerCase()))return;
+    const actual=Number(o.invoiceActual);
+    const expected=Number(o.price);
+    const explicitStatus=String(o.invoiceStatus||'').trim();
+    if(!Number.isFinite(actual)||actual<=0||!Number.isFinite(expected)||expected<=0)return;
+    if(!explicitStatus||explicitStatus==='pending'||explicitStatus==='unmatched')return;
+    const diff=Math.round((actual-expected)*100)/100;
+    const status=Math.abs(diff)<=PRICE_EPSILON?'ok':explicitStatus==='clarification'?'clarification':'diff';
+    checks.unshift({
+      id:o.invoiceCheckId||`CHK-REC-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      invoice,provider:o.provider||'Unbekannt',date:deDate(o.deliveryDate||o.delivery||o.date),
+      zip:relationZip(o),transport:o.transport||'',expected,actual,diff,status,operation:o.id||'—',
+      varianceDirection:Math.abs(diff)<=PRICE_EPSILON?'equal':diff>0?'over':'under',
+      priceSource:o.priceSource||'booking',priceSourceNote:`Aus Vorgang ${o.id||''} rekonstruiert`,
+      externalReference:o.externalReference||'',shipmentNumber:o.shipmentNumber||'',
+      createdAt:o.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),recovered:true
+    });
+    existingInvoices.add(invoice.toLowerCase());changed=true;
+  });
+  if(changed)GPK.write(GPK.KEYS.invoiceChecks,checks);
+}
+reconcileChecksFromOperations();
 save();
 
 function renderInvoiceKpis(){

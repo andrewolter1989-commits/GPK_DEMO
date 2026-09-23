@@ -140,7 +140,7 @@ let currentTab="overview";
 const state={country:"",region:"",recipient:"",relation:"",transport:"",carrier:"",user:"",floater:"",from:"",to:"",compare:"previous",period:"month"};
 
 function defaultDates(){
-  const dates=FLOW_BASE.map(x=>x.date).filter(Boolean).sort((a,b)=>a-b);
+  const dates=[...FLOW_BASE,...ALL_OPS].map(x=>x.date).filter(Boolean).sort((a,b)=>a-b);
   const end=dates.at(-1)||new Date(),start=new Date(end);
   start.setDate(1);
   state.from=isoDate(start);state.to=isoDate(end);
@@ -154,7 +154,7 @@ function syncState(){
   state.user=$("anUser").value;state.floater=$("anFloater").value;
 }
 function periodPreset(){
-  const dates=FLOW_BASE.map(x=>x.date).filter(Boolean).sort((a,b)=>a-b);
+  const dates=[...FLOW_BASE,...ALL_OPS].map(x=>x.date).filter(Boolean).sort((a,b)=>a-b);
   const end=dates.at(-1)||new Date(),start=new Date(end),p=$("anPeriod").value;
   if(p==="all"){state.from=dates[0]?isoDate(dates[0]):"";state.to=isoDate(end)}
   else if(p==="week"){start.setDate(end.getDate()-6);state.from=isoDate(start);state.to=isoDate(end)}
@@ -320,21 +320,26 @@ function renderCarriers(){
   const focus=$("providerAnalyticsFocus");
   if(state.carrier){
     const flow=filterRows(FLOW_BASE),ops=filterRows(ALL_OPS),bookingsFocus=ops.filter(x=>x.eventType==="booking");
+    /* Wenn für einen neuen Dienstleister noch keine historischen Sendungsdaten
+       importiert wurden, bilden die gebuchten Vorgänge bereits die Statistik.
+       So erscheinen neu angelegte Contino/Hellmann-Touren sofort. */
+    const providerRows=flow.length?flow:bookingsFocus;
+    const providerCost=flow.length?sum(flow,x=>x.cost):sum(bookingsFocus,x=>x.cost);
     focus.hidden=false;
     $("providerAnalyticsTitle").textContent=`${state.carrier} · Statistik`;
     $("providerAnalyticsSubtitle").textContent="Touren, Ziele, Mengen und Kosten für die aktuelle Filterauswahl.";
     $("providerAnalyticsKpis").innerHTML=[
       metricCard("Touren / Buchungen",fmt(bookingsFocus.length),"gebuchte Vorgänge",null),
-      metricCard("Sendungen",fmt(flow.length),"historisch / gebucht",null),
-      metricCard("Gesamtkosten",money(sum(flow,x=>x.cost)),"",null),
-      metricCard("Gewicht",`${fmt(sum(flow,x=>x.weight)/1000,1)} t`,"",null),
-      metricCard("Paletten",fmt(sum(flow,x=>x.pallets),1),"",null),
-      metricCard("Lademeter",fmt(sum(flow,x=>x.ldm),1),"LDM",null)
+      metricCard("Sendungen",fmt(providerRows.length),flow.length?"historische Sendungsdaten":"aus gebuchten Vorgängen",null),
+      metricCard("Gesamtkosten",money(providerCost),flow.length?"Sendungskosten":"gebuchte Preise",null),
+      metricCard("Gewicht",`${fmt(sum(providerRows,x=>x.weight)/1000,1)} t`,"",null),
+      metricCard("Paletten",fmt(sum(providerRows,x=>x.pallets),1),"",null),
+      metricCard("Lademeter",fmt(sum(providerRows,x=>x.ldm),1),"LDM",null)
     ].join("");
-    const countries=groupBy(flow,x=>x.destCountry||"—").sort((a,b)=>b[1].length-a[1].length).slice(0,10);
-    const relations=groupBy(flow,x=>x.relation||[x.destCountry,x.destPostal,x.destCity].filter(Boolean).join(" ")||"—").sort((a,b)=>b[1].length-a[1].length).slice(0,10);
-    barList("providerCountryBars",countries,a=>a.length,v=>`${fmt(v)} Sendungen`,"country");
-    barList("providerRelationBars",relations,a=>a.length,v=>`${fmt(v)} Sendungen`,"relation");
+    const countries=groupBy(providerRows,x=>x.destCountry||"—").sort((a,b)=>b[1].length-a[1].length).slice(0,10);
+    const relations=groupBy(providerRows,x=>x.relation||[x.destCountry,x.destPostal,x.destCity].filter(Boolean).join(" ")||"—").sort((a,b)=>b[1].length-a[1].length).slice(0,10);
+    barList("providerCountryBars",countries,a=>a.length,v=>`${fmt(v)} Touren`,"country");
+    barList("providerRelationBars",relations,a=>a.length,v=>`${fmt(v)} Touren`,"relation");
   }else{focus.hidden=true;}
   const names=new Set([...stats.map(x=>x.carrier),...bookBy.map(x=>x[0])]);
   const rows=[...names].map(name=>{const s=stats.find(x=>x.carrier===name)||{parts:0,best:0,booked:0,sum:0,gap:0,gapN:0},b=(bookBy.find(x=>x[0]===name)||[null,[]])[1];return {...s,carrier:name,bookings:b.length,bookCost:sum(b,x=>x.cost)}}).sort((a,b)=>b.bookings-a.bookings||b.parts-a.parts);
