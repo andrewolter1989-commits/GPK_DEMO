@@ -16,7 +16,6 @@ function readStoredChecks(){
     const backup=GPK.read(INVOICE_CHECK_BACKUP_KEY,null);
     if(Array.isArray(primary)&&primary.length)return primary;
     if(Array.isArray(backup)&&backup.length)return backup;
-    if(Array.isArray(primary))return primary;
   }catch(_){}
   return DEFAULT_CHECKS.map(x=>({...x}));
 }
@@ -65,6 +64,39 @@ const clarificationCountEl=document.getElementById("clarificationCount");
 const unmatchedCountEl=document.getElementById("unmatchedCount");
 const okShareEl=document.getElementById("okShare");
 const diffSumEl=document.getElementById("diffSum");
+
+const chooseInvoiceBtn=document.getElementById("chooseInvoiceBtn");
+const invoiceFileInput=document.getElementById("invoiceFileInput");
+const invoiceDropzone=document.getElementById("invoiceDropzone");
+const invoiceUploadMode=document.getElementById("invoiceUploadMode");
+const invoiceManualMode=document.getElementById("invoiceManualMode");
+const invoiceReviewWorkspace=document.getElementById("invoiceReviewWorkspace");
+const invoiceBatchReviewWorkspace=document.getElementById("invoiceBatchReviewWorkspace");
+const closeBatchReviewBtn=document.getElementById("closeBatchReviewBtn");
+const saveBatchDraftBtn=document.getElementById("saveBatchDraftBtn");
+const saveBatchCheckBtn=document.getElementById("saveBatchCheckBtn");
+const reviewPriceSource=document.getElementById("reviewPriceSource");
+const reviewExpectedAmount=document.getElementById("reviewExpectedAmount");
+const reviewPriceSourceNote=document.getElementById("reviewPriceSourceNote");
+const openLinkedOperationBtn=document.getElementById("openLinkedOperationBtn");
+const invoiceProviderForm=document.getElementById("invoiceProviderForm");
+const invoiceProviderModal=document.getElementById("invoiceProviderModal");
+const closeInvoiceProviderModalBtn=document.getElementById("closeInvoiceProviderModal");
+const cancelInvoiceProviderModalBtn=document.getElementById("cancelInvoiceProviderModal");
+const invoiceOperationForm=document.getElementById("invoiceOperationForm");
+const invoiceOperationModal=document.getElementById("invoiceOperationModal");
+const closeInvoiceOperationModalBtn=document.getElementById("closeInvoiceOperationModal");
+const cancelInvoiceOperationModalBtn=document.getElementById("cancelInvoiceOperationModal");
+const exportChecksBtn=document.getElementById("exportChecksBtn");
+const invoiceQueueCount=document.getElementById("invoiceQueueCount");
+const invoiceRecognizedCount=document.getElementById("invoiceRecognizedCount");
+const invoiceReadyCount=document.getElementById("invoiceReadyCount");
+const invoiceReviewCount=document.getElementById("invoiceReviewCount");
+const invoiceBatchRows=document.getElementById("invoiceBatchRows");
+const invoiceBatchSummary=document.getElementById("invoiceBatchSummary");
+const invoiceBatchStatusbar=document.getElementById("invoiceBatchStatusbar");
+const batchReviewTitle=document.getElementById("batchReviewTitle");
+const batchReviewSubtitle=document.getElementById("batchReviewSubtitle");
 let activeInvoiceKpi="";
 const PRICE_EPSILON=0.009;
 
@@ -774,21 +806,21 @@ document.getElementById("reviewPriceSource").addEventListener("change",()=>{
 document.getElementById("reviewExpectedAmount").addEventListener("input",renderReviewResult);
 document.getElementById("saveRecognizedCheckBtn").addEventListener("click",saveRecognizedReview);
 document.getElementById("closeInvoiceReviewBtn").addEventListener("click",()=>{document.getElementById("invoiceReviewWorkspace").hidden=true;reviewInvoiceKey=""});
-closeBatchReviewBtn.addEventListener("click",()=>{invoiceBatchReviewWorkspace.hidden=true;reviewInvoiceKey=""});
-saveBatchDraftBtn.addEventListener("click",()=>saveBatchInvoiceCheck(false));
-saveBatchCheckBtn.addEventListener("click",()=>saveBatchInvoiceCheck(true));
-openLinkedOperationBtn.addEventListener("click",()=>{
+closeBatchReviewBtn?.addEventListener("click",()=>{invoiceBatchReviewWorkspace.hidden=true;reviewInvoiceKey=""});
+saveBatchDraftBtn?.addEventListener("click",()=>saveBatchInvoiceCheck(false));
+saveBatchCheckBtn?.addEventListener("click",()=>saveBatchInvoiceCheck(true));
+openLinkedOperationBtn?.addEventListener("click",()=>{
   const item=queueItem(reviewInvoiceKey),op=item?.recognized?findOperationForRecognized(item.invoice):null;
   if(op)location.href=`vorgaenge.html?operation=${encodeURIComponent(op.id)}`;
 });
-invoiceProviderForm.addEventListener("submit",saveInvoiceProvider);
-closeInvoiceProviderModal.addEventListener("click",closeInvoiceProviderModal);
-cancelInvoiceProviderModal.addEventListener("click",closeInvoiceProviderModal);
-invoiceProviderModal.addEventListener("click",e=>{if(e.target===invoiceProviderModal)closeInvoiceProviderModal()});
-invoiceOperationForm.addEventListener("submit",saveOperationFromRecognized);
-closeInvoiceOperationModal.addEventListener("click",closeInvoiceOperationModal);
-cancelInvoiceOperationModal.addEventListener("click",closeInvoiceOperationModal);
-invoiceOperationModal.addEventListener("click",e=>{if(e.target===invoiceOperationModal)closeInvoiceOperationModal()});
+invoiceProviderForm?.addEventListener("submit",saveInvoiceProvider);
+closeInvoiceProviderModalBtn?.addEventListener("click",closeInvoiceProviderModal);
+cancelInvoiceProviderModalBtn?.addEventListener("click",closeInvoiceProviderModal);
+invoiceProviderModal?.addEventListener("click",e=>{if(e.target===invoiceProviderModal)closeInvoiceProviderModal()});
+invoiceOperationForm?.addEventListener("submit",saveOperationFromRecognized);
+closeInvoiceOperationModalBtn?.addEventListener("click",closeInvoiceOperationModal);
+cancelInvoiceOperationModalBtn?.addEventListener("click",closeInvoiceOperationModal);
+invoiceOperationModal?.addEventListener("click",e=>{if(e.target===invoiceOperationModal)closeInvoiceOperationModal()});
 [statusFilter,search].forEach(x=>x.addEventListener("input",()=>{
   if(x===statusFilter)activeInvoiceKpi=statusFilter.value||"";
   renderChecks();
@@ -800,9 +832,16 @@ document.querySelectorAll("[data-invoice-kpi]").forEach(btn=>btn.addEventListene
   statusFilter.value=activeInvoiceKpi;
   renderChecks();
 }));
-exportChecksBtn.addEventListener("click",()=>showToast("Export der Prüfungen wird im nächsten technischen Schritt angebunden."));
-renderChecks();
-renderInvoiceQueue();
-hydrateInvoiceChecks();
-
-(function(){const op=new URLSearchParams(location.search).get("operation");if(op)prefillFromOperation(op);})();
+exportChecksBtn?.addEventListener("click",()=>showToast("Export der Prüfungen wird im nächsten technischen Schritt angebunden."));
+function bootInvoiceAudit(){
+  renderChecks();
+  renderInvoiceQueue();
+  hydrateInvoiceChecks().catch(error=>{
+    console.error("Rechnungsprüfungen konnten nicht geladen werden.",error);
+    if(!checks.length)checks=DEFAULT_CHECKS.map(x=>({...x}));
+    renderChecks();
+  });
+  const op=new URLSearchParams(location.search).get("operation");
+  if(op)prefillFromOperation(op);
+}
+bootInvoiceAudit();
