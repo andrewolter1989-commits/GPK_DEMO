@@ -222,8 +222,8 @@ function renderInvoiceQueue(){
       </article>`;
     }
     const op=findOperationForRecognized(inv);
-    const state=existing?"Bereits geprüft":!known?"Dienstleister fehlt":op?"Prüfbereit":"Vorgang fehlt";
-    const stateClass=existing?"active":(!known||!op)?"future":"active";
+    const state=existing?(op?"Bereits geprüft":"Prüfung vorhanden · Vorgang fehlt"):!known?"Dienstleister fehlt":op?"Prüfbereit":"Vorgang fehlt";
+    const stateClass=existing&&op?"active":(!known||!op)?"future":"active";
     return `<article class="invoice-queue-card" data-invoice-key="${escapeInvoice(item.key)}">
       <div class="invoice-queue-main">
         <div><span class="modal-eyebrow">${escapeInvoice(inv.provider)}</span><h3>Rechnung ${escapeInvoice(inv.invoice)}</h3><p>${escapeInvoice(inv.originCountry)} ${escapeInvoice(inv.originPostal)} → ${escapeInvoice(inv.destCountry)} ${escapeInvoice(inv.destPostal)} · ${escapeInvoice(inv.shipmentNumber)}</p></div>
@@ -235,13 +235,13 @@ function renderInvoiceQueue(){
         <span><small>Zuschlag</small><strong>${euro2(inv.surchargeAmount)}</strong></span>
         <span><small>Gesamt</small><strong>${euro2(inv.total)}</strong></span>
       </div>
-      ${existing?`<div class="invoice-queue-notice success">Diese Rechnungsnummer ist bereits als Prüfung ${escapeInvoice(existing.id)} gespeichert. Es wird keine zweite Prüfung angelegt.</div>`:""}
+      ${existing?`<div class="invoice-queue-notice ${op?"success":"warning"}">${op?`Prüfung ${escapeInvoice(existing.id)} ist gespeichert und mit einem Vorgang verknüpft.`:`Prüfung ${escapeInvoice(existing.id)} ist gespeichert, aber noch keinem Vorgang zugeordnet. Sie kann geöffnet, korrigiert und nachträglich verknüpft werden.`}</div>`:""}
       ${!known?`<div class="invoice-queue-notice warning">Dienstleister „${escapeInvoice(inv.provider)}“ ist noch nicht in den Stammdaten angelegt.</div>`:""}
-      ${known&&!op?`<div class="invoice-queue-notice warning">Kein passender Vorgang gefunden. Vor dem Prüfen kann ein Vorgang aus der Rechnung angelegt werden.</div>`:""}
+      ${known&&!op?`<div class="invoice-queue-notice warning">Kein passender Vorgang gefunden. Die Preisprüfung kann bestehen, die operative Zuordnung ist aber noch offen.</div>`:""}
       ${op?`<div class="invoice-queue-notice success">Vorgang gefunden: ${escapeInvoice(op.id)} · Soll ${euro2(op.price||0)}</div>`:""}
       <div class="invoice-queue-actions">
         ${!known?`<button class="secondary compact-button" type="button" data-create-provider="${escapeInvoice(item.key)}">+ Dienstleister anlegen</button>`:""}
-        ${known&&!op&&!existing?`<button class="secondary compact-button" type="button" data-create-operation="${escapeInvoice(item.key)}">+ Vorgang anlegen</button>`:""}
+        ${known&&!op?`<button class="secondary compact-button" type="button" data-create-operation="${escapeInvoice(item.key)}">+ Vorgang anlegen / zuordnen</button>`:""}
         <button class="primary compact-button" type="button" data-review-invoice="${escapeInvoice(item.key)}">${existing?"Prüfung öffnen":"In Prüfung übernehmen"}</button>
       </div>
     </article>`;
@@ -395,7 +395,9 @@ function saveOperationFromRecognized(event){
   };
   const ops=GPK.read(GPK.KEYS.operations,[])||[];
   if(!GPK.write(GPK.KEYS.operations,[op,...ops])){showToast("Vorgang konnte nicht gespeichert werden.");return}
-  closeInvoiceOperationModal();renderInvoiceQueue();openRecognizedReview(item.key);showToast(`Vorgang ${op.id} angelegt. Rechnung kann jetzt geprüft werden.`);
+  const oldCheck=findExistingCheckByInvoice(inv);
+  if(oldCheck){checks=checks.map(c=>c.id===oldCheck.id?{...c,operation:op.id,updatedAt:new Date().toISOString()}:c);save();renderChecks();}
+  closeInvoiceOperationModal();renderInvoiceQueue();openRecognizedReview(item.key);showToast(`Vorgang ${op.id} angelegt und mit der Rechnung verknüpft.`);
 }
 function euro2(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);}
 function currentInvoiceUser(){
@@ -469,8 +471,8 @@ function renderChecks(){
     <td>${c.date}</td>
     <td><strong class="price-cell">${euro(c.expected)}</strong></td>
     <td><strong class="price-cell">${c.actual?euro(c.actual):"—"}</strong></td>
-    <td><strong class="${c.diff>0?"invoice-diff-pos":"invoice-diff-zero"}">${c.diff?((c.diff>0?"+":"")+euro(c.diff)):c.status==="unmatched"?"—":"0 €"}</strong></td>
-    <td><span class="status-pill ${c.status==="ok"?"active":c.status==="diff"?"future":c.status==="clarification"?"review":"inactive"}">${statusLabel(c.status)}</span></td>
+    <td><strong class="${c.diff>PRICE_EPSILON?"invoice-diff-over":c.diff<-PRICE_EPSILON?"invoice-diff-under":"invoice-diff-zero"}">${c.diff?((c.diff>0?"+":"")+euro(c.diff)):c.status==="unmatched"?"—":"0 €"}</strong></td>
+    <td><span class="status-pill ${c.status==="ok"?"active":c.status==="diff"?(Number(c.diff)>0?"invoice-status-over":"invoice-status-under"):c.status==="clarification"?"review":"inactive"}">${statusLabel(c.status)}</span></td>
     <td class="row-actions"><button class="icon-button" type="button" data-edit-check="${c.id}" title="Prüfung bearbeiten">›</button></td>
   </tr>`).join("");
   renderInvoiceKpis();
@@ -541,6 +543,7 @@ function isoDateFromDe(v){
 }
 function startCheckEdit(c){
   if(!c)return;
+  setInvoiceMode("manual");
   editingCheckId=c.id;
   ensureProviderOption(c.provider);invProvider.value=c.provider||"";
   invNumber.value=c.invoice||"";
@@ -618,6 +621,8 @@ manualInvoiceForm.addEventListener("submit",e=>{
   invoiceResultCard.hidden=false;
 
   const existing=editingCheckId?checks.find(c=>c.id===editingCheckId):null;
+  const duplicate=!existing?checks.find(c=>String(c.invoice||"").trim().toLowerCase()===String(invNumber.value||"").trim().toLowerCase()):null;
+  if(duplicate){showToast(`Rechnung ${invNumber.value.trim()} ist bereits als Prüfung ${duplicate.id} vorhanden.`);startCheckEdit(duplicate);return;}
   const c={
     id:existing?.id||("CHK-"+Date.now()),
     invoice:invNumber.value.trim(),
@@ -625,7 +630,7 @@ manualInvoiceForm.addEventListener("submit",e=>{
     expected:Math.round(expected*100)/100,actual:Math.round(actual*100)/100,diff:Math.round(diff*100)/100,
     basePrice:Math.round(base*100)/100,floaterPercent:Number(floater.value)||0,floaterAmount:Math.round(floaterAmount*100)/100,
     ancillaryAmount:Math.round(storedAncillary*100)/100,
-    status,operation:invOperation.value.trim()||"—",
+    status,varianceDirection:Math.abs(diff)<=PRICE_EPSILON?"equal":diff>0?"over":"under",operation:invOperation.value.trim()||"—",
     createdAt:existing?.createdAt||new Date().toISOString(),
     updatedAt:new Date().toISOString()
   };

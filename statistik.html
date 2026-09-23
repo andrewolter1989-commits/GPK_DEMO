@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.59</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.60</div>
   </aside>
 
   <main class="main-content analytics-page">
@@ -160,6 +160,14 @@
       </section>
 
       <section class="analytics-panel" id="anCarriersPanel" hidden>
+        <article class="analytics-card provider-analytics-focus" id="providerAnalyticsFocus" hidden>
+          <div class="analytics-card-head"><div><h2 id="providerAnalyticsTitle">Dienstleister im Detail</h2><p id="providerAnalyticsSubtitle">Touren, Ziele, Mengen und Kosten des ausgewählten Dienstleisters.</p></div></div>
+          <div class="analytics-kpi-grid compact" id="providerAnalyticsKpis"></div>
+          <div class="analytics-grid two provider-analytics-detail-grid">
+            <div><h3>Top-Zielländer</h3><div id="providerCountryBars"></div></div>
+            <div><h3>Top-Relationen / Ziele</h3><div id="providerRelationBars"></div></div>
+          </div>
+        </article>
         <article class="analytics-card">
           <div class="analytics-card-head"><div><h2>Dienstleisteranalyse</h2><p>Teilnahme, günstigste Angebote, Buchungen und Gewinnquote.</p></div></div>
           <div class="analytics-table-wrap"><table class="analytics-table"><thead><tr><th>Dienstleister</th><th>Teilnahmen</th><th>Günstigster</th><th>Buchungen</th><th>Gewinnquote</th><th>Ø Preis</th><th>Ø Abstand Bestpreis</th></tr></thead><tbody id="carrierRows"></tbody></table></div>

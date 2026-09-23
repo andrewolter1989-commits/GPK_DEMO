@@ -317,6 +317,25 @@ function offerStats(){
 }
 function renderCarriers(){
   const bookings=bookingOps(),stats=offerStats(),bookBy=groupBy(bookings,x=>x.carrier);
+  const focus=$("providerAnalyticsFocus");
+  if(state.carrier){
+    const flow=filterRows(FLOW_BASE),ops=filterRows(ALL_OPS),bookingsFocus=ops.filter(x=>x.eventType==="booking");
+    focus.hidden=false;
+    $("providerAnalyticsTitle").textContent=`${state.carrier} · Statistik`;
+    $("providerAnalyticsSubtitle").textContent="Touren, Ziele, Mengen und Kosten für die aktuelle Filterauswahl.";
+    $("providerAnalyticsKpis").innerHTML=[
+      metricCard("Touren / Buchungen",fmt(bookingsFocus.length),"gebuchte Vorgänge",null),
+      metricCard("Sendungen",fmt(flow.length),"historisch / gebucht",null),
+      metricCard("Gesamtkosten",money(sum(flow,x=>x.cost)),"",null),
+      metricCard("Gewicht",`${fmt(sum(flow,x=>x.weight)/1000,1)} t`,"",null),
+      metricCard("Paletten",fmt(sum(flow,x=>x.pallets),1),"",null),
+      metricCard("Lademeter",fmt(sum(flow,x=>x.ldm),1),"LDM",null)
+    ].join("");
+    const countries=groupBy(flow,x=>x.destCountry||"—").sort((a,b)=>b[1].length-a[1].length).slice(0,10);
+    const relations=groupBy(flow,x=>x.relation||[x.destCountry,x.destPostal,x.destCity].filter(Boolean).join(" ")||"—").sort((a,b)=>b[1].length-a[1].length).slice(0,10);
+    barList("providerCountryBars",countries,a=>a.length,v=>`${fmt(v)} Sendungen`,"country");
+    barList("providerRelationBars",relations,a=>a.length,v=>`${fmt(v)} Sendungen`,"relation");
+  }else{focus.hidden=true;}
   const names=new Set([...stats.map(x=>x.carrier),...bookBy.map(x=>x[0])]);
   const rows=[...names].map(name=>{const s=stats.find(x=>x.carrier===name)||{parts:0,best:0,booked:0,sum:0,gap:0,gapN:0},b=(bookBy.find(x=>x[0]===name)||[null,[]])[1];return {...s,carrier:name,bookings:b.length,bookCost:sum(b,x=>x.cost)}}).sort((a,b)=>b.bookings-a.bookings||b.parts-a.parts);
   $("carrierRows").innerHTML=rows.map(x=>`<tr data-cross-key="carrier" data-cross-value="${esc(x.carrier)}"><td><strong>${esc(x.carrier)}</strong></td><td>${fmt(x.parts)}</td><td>${fmt(x.best)}</td><td>${fmt(x.bookings)}</td><td>${x.parts?fmt(x.bookings/x.parts*100,1)+"%":"—"}</td><td>${x.parts?money2(x.sum/x.parts):"—"}</td><td>${x.gapN?fmt(x.gap/x.gapN,1)+"%":"—"}</td></tr>`).join("")||emptyRow(7);
@@ -403,5 +422,20 @@ $("analyticsExportBtn").addEventListener("click",async()=>{
 (async function bootstrapAnalytics(){
   A.shipments=await GPK.largeRead(GPK.KEYS.shipments,[]);
   refreshAnalyticsSources();
-  fillOptions();defaultDates();periodPreset();syncState();renderAll();
+  fillOptions();defaultDates();periodPreset();
+  const params=new URLSearchParams(location.search);
+  const requestedCarrier=(params.get("carrier")||"").trim();
+  const requestedTab=(params.get("tab")||"").trim();
+  const requestedPeriod=(params.get("period")||"").trim();
+  if(requestedPeriod&&[...$("anPeriod").options].some(o=>o.value===requestedPeriod)){$("anPeriod").value=requestedPeriod;periodPreset();}
+  if(requestedCarrier){
+    const carrierSelect=$("anCarrier");
+    if(![...carrierSelect.options].some(o=>o.value===requestedCarrier)){const opt=document.createElement("option");opt.value=requestedCarrier;opt.textContent=requestedCarrier;carrierSelect.appendChild(opt);}
+    carrierSelect.value=requestedCarrier;
+    if(!requestedPeriod){$("anPeriod").value="all";periodPreset();}
+  }
+  syncState();
+  if(requestedTab&&["overview","flows","costs","carriers","users","pricing"].includes(requestedTab))setTab(requestedTab);
+  else if(requestedCarrier)setTab("carriers");
+  else renderAll();
 })();
