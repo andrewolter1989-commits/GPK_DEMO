@@ -26,6 +26,181 @@ const diffSumEl=document.getElementById("diffSum");
 let activeInvoiceKpi="";
 const PRICE_EPSILON=0.009;
 
+const CONTINO_TEST_INVOICES={
+  "2611120253":{
+    invoice:"2611120253",provider:"Contino",invoiceDate:"2026-09-08",dueDate:"2026-10-29",
+    externalReference:"2026-08-13751",shipmentNumber:"1504916.1",
+    originName:"Flittig.Dk Aps",originCountry:"DK",originPostal:"6000",originCity:"Kolding",
+    recipient:"Tchibo GmbH",destCountry:"DE",destPostal:"20537",destCity:"Hamburg Borgfelde",
+    pickupDate:"2026-09-01",deliveryDate:"2026-09-02",ldm:13.60,slots:0,weight:0,
+    freight:384.00,surchargeName:"Energiekrise Zuschlag",surchargePercent:7,surchargeAmount:26.88,total:410.88,
+    transport:"FTL"
+  },
+  "2611120258":{
+    invoice:"2611120258",provider:"Contino",invoiceDate:"2026-09-08",dueDate:"2026-10-29",
+    externalReference:"2026-08-13782",shipmentNumber:"1507579.1",
+    originName:"Rossmann - ZL Kiel",originCountry:"DE",originPostal:"24109",originCity:"Melsdorf",
+    recipient:"Trixie Heimtierbedarf GmbH & Co. KG.",destCountry:"DE",destPostal:"24963",destCity:"Tarp",
+    pickupDate:"2026-09-03",deliveryDate:"2026-09-04",ldm:13.60,slots:34,weight:0,
+    freight:500.00,surchargeName:"Energiekrise Zuschlag",surchargePercent:7,surchargeAmount:35.00,total:535.00,
+    transport:"FTL"
+  }
+};
+let recognizedInvoice=null;
+
+function invoiceNumberFromFile(file){
+  const name=String(file?.name||"");
+  const m=name.match(/(?:Rechnungen[_ -])?(\d{10})(?:_|\.|$)/i);
+  return m?.[1]||"";
+}
+function findOperationForRecognized(inv){
+  const ops=GPK.read(GPK.KEYS.operations,[])||[];
+  if(!Array.isArray(ops))return null;
+  const ref=String(inv?.externalReference||"").toLowerCase();
+  const shipment=String(inv?.shipmentNumber||"").toLowerCase();
+  return ops.find(o=>{
+    const hay=`${o.id||""} ${o.externalReference||""} ${o.reference||""} ${o.shipmentNumber||""} ${o.note||""}`.toLowerCase();
+    return (ref&&hay.includes(ref))||(shipment&&hay.includes(shipment));
+  })||null;
+}
+function setInvoiceProvider(name){
+  ensureProviderOption(name);
+  invProvider.value=name||"";
+}
+function fillManualFromRecognized(inv,operation=null){
+  if(!inv)return;
+  invNumber.value=inv.invoice||"";
+  setInvoiceProvider(inv.provider||"");
+  invDate.value=inv.deliveryDate||inv.pickupDate||inv.invoiceDate||"";
+  invZip.value=inv.destPostal||"";
+  invTransport.value=inv.transport||"FTL";
+  invAmount.value=Number(inv.total||0).toFixed(2);
+  invOperation.value=operation?.id||"";
+  invReviewStatus.value="auto";
+  manualInvoiceForm.closest(".manual-card")?.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function renderRecognizedInvoice(inv,file){
+  recognizedInvoice=inv;
+  const card=document.getElementById("invoiceRecognitionCard");
+  if(!card)return;
+  card.hidden=false;
+  document.getElementById("recognizedInvoiceHeadline").textContent=`Rechnung ${inv.invoice} · ${inv.provider}`;
+  document.getElementById("recognizedInvoiceGrid").innerHTML=`
+    <div><span>Referenz</span><strong>${inv.externalReference||"—"}</strong></div>
+    <div><span>Sendung</span><strong>${inv.shipmentNumber||"—"}</strong></div>
+    <div><span>Relation</span><strong>${inv.originCountry} ${inv.originPostal} → ${inv.destCountry} ${inv.destPostal}</strong></div>
+    <div><span>Transport</span><strong>${Number(inv.ldm||0).toLocaleString("de-DE")} LDM${inv.slots?` · ${inv.slots} Stellplätze`:""}</strong></div>
+    <div><span>Grundfracht</span><strong>${euro2(inv.freight)}</strong></div>
+    <div><span>${inv.surchargeName||"Zuschlag"}</span><strong>${euro2(inv.surchargeAmount)}${inv.surchargePercent?` · ${inv.surchargePercent}%`:""}</strong></div>
+    <div><span>Rechnung gesamt</span><strong>${euro2(inv.total)}</strong></div>
+    <div><span>Datei</span><strong>${file?.name||"—"}</strong></div>`;
+  const op=findOperationForRecognized(inv);
+  const match=document.getElementById("recognizedOperationMatch");
+  const createBtn=document.getElementById("createOperationFromInvoiceBtn");
+  if(op){
+    match.className="invoice-recognition-match matched";
+    match.innerHTML=`<strong>Passender Vorgang gefunden:</strong> ${op.id} · ${op.provider||"—"} · Soll ${euro2(op.price||0)}`;
+    createBtn.hidden=true;
+    document.getElementById("recognizedInvoiceStatus").textContent="Vorgang gefunden";
+  }else{
+    match.className="invoice-recognition-match unmatched";
+    match.innerHTML=`<strong>Keine passende Sendung / kein Vorgang gefunden.</strong> Über „Vorgang aus Rechnung anlegen“ kann für den Test direkt eine Buchung erzeugt werden.`;
+    createBtn.hidden=false;
+    document.getElementById("recognizedInvoiceStatus").textContent="Nicht zugeordnet";
+  }
+}
+function recognizeInvoiceFile(file){
+  const no=invoiceNumberFromFile(file);
+  const inv=CONTINO_TEST_INVOICES[no];
+  if(inv){
+    renderRecognizedInvoice({...inv,sourceFile:file.name},file);
+    showToast(`Contino Rechnung ${no} erkannt.`);
+    return;
+  }
+  recognizedInvoice=null;
+  const card=document.getElementById("invoiceRecognitionCard");
+  if(card){
+    card.hidden=false;
+    document.getElementById("recognizedInvoiceHeadline").textContent="PDF noch nicht automatisch erkannt";
+    document.getElementById("recognizedInvoiceGrid").innerHTML=`<div class="span-all"><span>Datei</span><strong>${file?.name||"—"}</strong></div>`;
+    document.getElementById("recognizedOperationMatch").innerHTML="Für dieses Rechnungsformat ist noch kein Parser hinterlegt. Die manuelle Erfassung bleibt verfügbar.";
+    document.getElementById("createOperationFromInvoiceBtn").hidden=true;
+    document.getElementById("useRecognizedInvoiceBtn").hidden=true;
+    document.getElementById("recognizedInvoiceStatus").textContent="Review";
+  }
+}
+function euro2(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);}
+function currentInvoiceUser(){
+  return window.GPK_CURRENT_USER?.name||"Lokale Demo";
+}
+function makeInvoiceOperationId(inv){
+  const d=String(inv.deliveryDate||inv.invoiceDate||"").replaceAll("-","").slice(2);
+  const suffix=String(Date.now()).slice(-4);
+  return `GPK-${d}-${suffix}`;
+}
+function openInvoiceOperationModal(){
+  if(!recognizedInvoice)return;
+  const inv=recognizedInvoice;
+  document.getElementById("newOpReference").value=inv.externalReference||"";
+  document.getElementById("newOpShipment").value=inv.shipmentNumber||"";
+  document.getElementById("newOpProvider").value=inv.provider||"";
+  document.getElementById("newOpRelation").value=`${inv.originCountry} ${inv.originPostal} ${inv.originCity||""} → ${inv.destCountry} ${inv.destPostal} ${inv.destCity||""}`.replace(/\s+/g," ").trim();
+  document.getElementById("newOpPickup").value=inv.pickupDate||"";
+  document.getElementById("newOpDelivery").value=inv.deliveryDate||"";
+  document.getElementById("newOpLdm").value=inv.ldm??"";
+  document.getElementById("newOpSlots").value=inv.slots??"";
+  document.getElementById("newOpTransport").value=inv.transport||"FTL";
+  document.getElementById("newOpExpected").value=Number(inv.total||0).toFixed(2);
+  document.getElementById("newOpBase").value=Number(inv.freight||0).toFixed(2);
+  document.getElementById("newOpAncillary").value=Number(inv.surchargeAmount||0).toFixed(2);
+  document.getElementById("newOpNote").value=`Aus Rechnung ${inv.invoice} angelegt · Referenz ${inv.externalReference} · Sendung ${inv.shipmentNumber}`;
+  document.getElementById("invoiceOperationSource").innerHTML=`<strong>${inv.provider} · Rechnung ${inv.invoice}</strong><span>Ist ${euro2(inv.total)} · ${inv.originCountry} ${inv.originPostal} → ${inv.destCountry} ${inv.destPostal}</span>`;
+  document.getElementById("invoiceOperationModal").hidden=false;
+  document.body.classList.add("modal-open");
+}
+function closeInvoiceOperationModal(){
+  document.getElementById("invoiceOperationModal").hidden=true;
+  document.body.classList.remove("modal-open");
+}
+function saveOperationFromRecognized(event){
+  event.preventDefault();
+  const inv=recognizedInvoice;if(!inv)return;
+  const expected=Number(document.getElementById("newOpExpected").value||0);
+  const base=Number(document.getElementById("newOpBase").value||0);
+  const ancillary=Number(document.getElementById("newOpAncillary").value||0);
+  const op={
+    id:makeInvoiceOperationId(inv),type:"booking",status:"closed",
+    relation:document.getElementById("newOpRelation").value,
+    provider:inv.provider,price:Math.round(expected*100)/100,
+    basePrice:Math.round(base*100)/100,ancillaryAmount:Math.round(ancillary*100)/100,
+    floaterAmount:0,floaterPercent:0,
+    date:deDate(inv.deliveryDate),pickupDate:inv.pickupDate,delivery:inv.deliveryDate,
+    deliveryDate:inv.deliveryDate,created:new Date().toLocaleDateString("de-DE")+" · "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
+    createdAt:new Date().toISOString(),user:currentInvoiceUser(),
+    transport:document.getElementById("newOpTransport").value,
+    customer:inv.recipient||"",note:document.getElementById("newOpNote").value,
+    externalReference:inv.externalReference,shipmentNumber:inv.shipmentNumber,
+    invoiceNumber:inv.invoice,invoiceActual:inv.total,
+    invoiceFreight:inv.freight,invoiceSurchargeAmount:inv.surchargeAmount,
+    invoiceSurchargeName:inv.surchargeName,
+    originName:inv.originName,originCountry:inv.originCountry,originPostal:inv.originPostal,
+    destCountry:inv.destCountry,destPostal:inv.destPostal,
+    ldm:Number(document.getElementById("newOpLdm").value||0),
+    slots:Number(document.getElementById("newOpSlots").value||0),
+    weight:Number(inv.weight||0)
+  };
+  const ops=GPK.read(GPK.KEYS.operations,[])||[];
+  if(!GPK.write(GPK.KEYS.operations,[op,...ops])){
+    showToast("Vorgang konnte nicht gespeichert werden.");
+    return;
+  }
+  closeInvoiceOperationModal();
+  fillManualFromRecognized(inv,op);
+  renderRecognizedInvoice(inv,{name:inv.sourceFile||""});
+  showToast(`Vorgang ${op.id} angelegt. Rechnung ist zur Prüfung vorbereitet.`);
+}
+
+
 
 
 function euro(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(n)||0);}
@@ -253,16 +428,25 @@ manualInvoiceForm.addEventListener("submit",e=>{
 
 chooseInvoiceBtn.addEventListener("click",()=>invoiceFileInput.click());
 invoiceFileInput.addEventListener("change",()=>{
-  if(invoiceFileInput.files?.[0]){
-    showToast(`${invoiceFileInput.files[0].name} ausgewählt. Automatische Erkennung kommt später.`);
-  }
+  if(invoiceFileInput.files?.[0])recognizeInvoiceFile(invoiceFileInput.files[0]);
 });
 invoiceDropzone.addEventListener("dragover",e=>{e.preventDefault();invoiceDropzone.classList.add("dragging")});
 invoiceDropzone.addEventListener("dragleave",()=>invoiceDropzone.classList.remove("dragging"));
 invoiceDropzone.addEventListener("drop",e=>{
   e.preventDefault();invoiceDropzone.classList.remove("dragging");
-  if(e.dataTransfer.files?.[0])showToast(`${e.dataTransfer.files[0].name} abgelegt. Automatische Erkennung kommt später.`);
+  if(e.dataTransfer.files?.[0])recognizeInvoiceFile(e.dataTransfer.files[0]);
 });
+document.getElementById("useRecognizedInvoiceBtn")?.addEventListener("click",()=>{
+  if(!recognizedInvoice)return;
+  const op=findOperationForRecognized(recognizedInvoice);
+  fillManualFromRecognized(recognizedInvoice,op);
+  showToast(op?"Rechnung und Vorgang in Prüfung übernommen.":"Rechnung übernommen. Vorgang fehlt noch.");
+});
+document.getElementById("createOperationFromInvoiceBtn")?.addEventListener("click",openInvoiceOperationModal);
+document.getElementById("invoiceOperationForm")?.addEventListener("submit",saveOperationFromRecognized);
+document.getElementById("closeInvoiceOperationModal")?.addEventListener("click",closeInvoiceOperationModal);
+document.getElementById("cancelInvoiceOperationModal")?.addEventListener("click",closeInvoiceOperationModal);
+document.getElementById("invoiceOperationModal")?.addEventListener("click",e=>{if(e.target?.id==="invoiceOperationModal")closeInvoiceOperationModal();});
 [statusFilter,search].forEach(x=>x.addEventListener("input",()=>{
   if(x===statusFilter)activeInvoiceKpi=statusFilter.value||"";
   renderChecks();

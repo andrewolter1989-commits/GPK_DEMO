@@ -11,16 +11,18 @@
   <aside class="sidebar">
     <div class="brand-block"><img class="brand-logo" src="logo.png" alt="GP Kollund – Make logistics smarter"></div>
     <nav class="side-nav" aria-label="Hauptnavigation">
-        <a class="nav-item" href="index.html"><span class="nav-icon">⌁</span><span>Kalkulation</span></a>
-        <a class="nav-item" href="vorgaenge.html"><span class="nav-icon">↗</span><span>Anfragen & Buchungen</span></a>
-        <a class="nav-item" href="entladestellen.html"><span class="nav-icon">◎</span><span>Entladestellen</span></a>
-        <a class="nav-item" href="dienstleister.html"><span class="nav-icon">▦</span><span>Dienstleister</span></a>
-        <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a><a class="nav-item" href="sendungsdaten.html"><span class="nav-icon">↗</span><span>Sendungsdaten</span></a><a class="nav-item" href="statistik.html"><span class="nav-icon">◩</span><span>Statistik / Transportanalyse</span></a>
-        <a class="nav-item" href="dashboard.html"><span class="nav-icon">▥</span><span>Auswertungen</span></a>
+        <a class="nav-item" href="index.html"><span class="nav-icon">⌂</span><span>Kalkulation</span></a>
+        <a class="nav-item" href="vorgaenge.html"><span class="nav-icon">▣</span><span>Anfragen & Buchungen</span></a>
+        <a class="nav-item" href="entladestellen.html"><span class="nav-icon">⌖</span><span>Entladestellen</span></a>
+        <a class="nav-item" href="dienstleister.html"><span class="nav-icon">◫</span><span>Dienstleister</span></a>
+        <a class="nav-item" href="tarife.html"><span class="nav-icon">≡</span><span>Tarife</span></a>
+        <a class="nav-item" href="sendungsdaten.html"><span class="nav-icon">↗</span><span>Sendungsdaten</span></a>
+        <a class="nav-item" href="statistik.html"><span class="nav-icon">◩</span><span>Statistik / Transportanalyse</span></a>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">▤</span><span>Auswertungen</span></a>
         <a class="nav-item active" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.55</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.57</div>
   </aside>
 
   <main class="workspace invoice-workspace">
@@ -44,7 +46,7 @@
       <article class="invoice-card upload-card">
         <div class="invoice-card-head">
           <div><span class="modal-eyebrow">Datei</span><h2>Rechnung hochladen</h2></div>
-          <span class="future-pill">Layout-Demo</span>
+          <span class="future-pill invoice-live-pill">PDF-Test aktiv</span>
         </div>
         <div class="invoice-dropzone" id="invoiceDropzone">
           <div class="drop-icon">⇧</div>
@@ -53,7 +55,19 @@
           <button class="secondary compact-button" id="chooseInvoiceBtn" type="button">Datei auswählen</button>
           <input id="invoiceFileInput" type="file" accept=".pdf,.xlsx,.xls,.csv" hidden>
         </div>
-        <div class="invoice-hint">Später werden Rechnungsnummer, Dienstleister, Transportdatum und Beträge automatisch erkannt.</div>
+        <div class="invoice-hint">PDF auswählen. Für die ersten Tests werden die beiden Contino-Rechnungen automatisch erkannt und können direkt mit einem bestehenden oder neu angelegten Vorgang verknüpft werden.</div>
+        <div class="invoice-recognition-card" id="invoiceRecognitionCard" hidden>
+          <div class="invoice-recognition-head">
+            <div><span class="modal-eyebrow">Erkannt</span><h3 id="recognizedInvoiceHeadline">Rechnung erkannt</h3></div>
+            <span class="status-pill active" id="recognizedInvoiceStatus">Bereit</span>
+          </div>
+          <div class="invoice-recognition-grid" id="recognizedInvoiceGrid"></div>
+          <div class="invoice-recognition-match" id="recognizedOperationMatch"></div>
+          <div class="invoice-recognition-actions">
+            <button class="secondary compact-button" id="useRecognizedInvoiceBtn" type="button">In Prüfung übernehmen</button>
+            <button class="primary compact-button" id="createOperationFromInvoiceBtn" type="button">+ Vorgang aus Rechnung anlegen</button>
+          </div>
+        </div>
       </article>
 
       <article class="invoice-card manual-card">
@@ -64,7 +78,7 @@
           <div class="field"><label>Rechnungsnummer</label><input id="invNumber" required placeholder="RE-2026-1048"></div>
           <div class="field"><label>Dienstleister</label>
             <select id="invProvider" required>
-              <option value="LIT">LIT</option><option value="Transimeksa">Transimeksa</option>
+              <option value="Contino">Contino</option><option value="LIT">LIT</option><option value="Transimeksa">Transimeksa</option>
               <option value="Bertschi">Bertschi</option><option value="Duvenbeck">Duvenbeck</option>
               <option value="Dachser">Dachser</option><option value="Raben">Raben</option><option value="DSV">DSV</option>
             </select>
@@ -116,6 +130,41 @@
     </section>
   </main>
 </div>
+
+  <div class="modal-backdrop" id="invoiceOperationModal" hidden>
+    <section class="location-modal invoice-operation-modal" role="dialog" aria-modal="true" aria-labelledby="invoiceOperationModalTitle">
+      <div class="modal-head">
+        <div>
+          <span class="modal-eyebrow">Rechnungsprüfung</span>
+          <h2 id="invoiceOperationModalTitle">Vorgang aus Rechnung anlegen</h2>
+        </div>
+        <button class="modal-close" id="closeInvoiceOperationModal" type="button" aria-label="Schließen">×</button>
+      </div>
+      <form id="invoiceOperationForm">
+        <div class="invoice-operation-source" id="invoiceOperationSource"></div>
+        <div class="location-form-grid">
+          <div class="field span-2"><label>Referenz / ext. Auftragsnummer</label><input id="newOpReference" readonly></div>
+          <div class="field"><label>Sendungsnummer</label><input id="newOpShipment" readonly></div>
+          <div class="field"><label>Dienstleister</label><input id="newOpProvider" readonly></div>
+          <div class="field span-2"><label>Relation</label><input id="newOpRelation" readonly></div>
+          <div class="field"><label>Abholdatum</label><input id="newOpPickup" type="date" readonly></div>
+          <div class="field"><label>Lieferdatum</label><input id="newOpDelivery" type="date" readonly></div>
+          <div class="field"><label>LDM</label><input id="newOpLdm" type="number" step="0.01"></div>
+          <div class="field"><label>Stellplätze</label><input id="newOpSlots" type="number" step="1"></div>
+          <div class="field"><label>Transportart</label><select id="newOpTransport"><option>FTL</option><option>Teilladung</option><option>Mega</option><option>Jumbo</option></select></div>
+          <div class="field"><label>Soll-/Buchungspreis €</label><input id="newOpExpected" type="number" min="0" step="0.01" required placeholder="z. B. 410,88"></div>
+          <div class="field"><label>Soll Grundfracht €</label><input id="newOpBase" type="number" min="0" step="0.01"></div>
+          <div class="field"><label>Soll Zuschläge €</label><input id="newOpAncillary" type="number" min="0" step="0.01"></div>
+          <div class="field span-2"><label>Notiz</label><textarea id="newOpNote" rows="2"></textarea></div>
+        </div>
+        <div class="invoice-operation-hint">Der Vorgang wird unter „Anfragen & Buchungen“ gespeichert. Anschließend wird die Rechnung automatisch mit diesem Vorgang in die manuelle Prüfung übernommen.</div>
+        <div class="modal-actions">
+          <button class="secondary compact-button" id="cancelInvoiceOperationModal" type="button">Abbrechen</button>
+          <button class="primary compact-button" type="submit">Vorgang anlegen & prüfen</button>
+        </div>
+      </form>
+    </section>
+  </div>
 
 <div class="toast" id="invoiceToast" hidden></div>
   <script src="gpk-core.js"></script>

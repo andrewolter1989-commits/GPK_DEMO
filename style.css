@@ -4069,3 +4069,26 @@ body.planning-mode .calculator-shipment-layout{
 .location-audit-panel{margin:0 22px 14px;border:1px solid #d9e6e9;border-radius:10px;background:#f8fbfc;padding:10px 12px}
 .location-audit-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:7px}.location-audit-head strong{font-size:11px;color:#174653}.location-audit-head small{font-size:9px;color:#718991}
 .location-audit-list{max-height:150px;overflow:auto}.location-audit-list>div{display:grid;grid-template-columns:125px 110px 90px 1fr;gap:8px;padding:6px 0;border-top:1px solid #e6eef0;font-size:9px;color:#607d86}.location-audit-list>div:first-child{border-top:0}.location-audit-list strong,.location-audit-list b{color:#274f59}.location-audit-list small{font-size:9px;color:#6e858d}.location-audit-empty{display:block!important;padding:10px!important;text-align:center;color:#78909a}
+
+
+/* v6.57 – Rechnung → Vorgang → Prüfung */
+.invoice-live-pill{background:#e9f7ef;color:#197451;border-color:#c8e7d4}
+.invoice-recognition-card{margin-top:10px;border:1px solid #cfe1e5;background:#f8fbfc;border-radius:10px;padding:10px}
+.invoice-recognition-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:9px}
+.invoice-recognition-head h3{margin:2px 0 0;font-size:12px;color:#173f4a}
+.invoice-recognition-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.invoice-recognition-grid>div{border:1px solid #dce7ea;background:#fff;border-radius:7px;padding:7px}
+.invoice-recognition-grid span{display:block;font-size:8px;text-transform:uppercase;color:#7a9098;font-weight:800}
+.invoice-recognition-grid strong{display:block;font-size:10px;color:#174653;margin-top:2px}
+.invoice-recognition-grid .span-all{grid-column:1/-1}
+.invoice-recognition-match{margin-top:8px;border-radius:8px;padding:8px 9px;font-size:9px}
+.invoice-recognition-match.matched{background:#eaf7f0;border:1px solid #cbe7d7;color:#256f55}
+.invoice-recognition-match.unmatched{background:#fff8e8;border:1px solid #ebd9a7;color:#80621d}
+.invoice-recognition-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:9px}
+.invoice-operation-modal{max-width:760px}
+.invoice-operation-source{margin:0 22px 12px;border:1px solid #cee1e5;background:#f4fafb;border-radius:9px;padding:9px 10px}
+.invoice-operation-source strong,.invoice-operation-source span{display:block}
+.invoice-operation-source strong{font-size:11px;color:#174653}
+.invoice-operation-source span{font-size:9px;color:#6f8790;margin-top:2px}
+.invoice-operation-hint{margin:0 22px 12px;color:#67818a;font-size:9px}
+@media(max-width:760px){.invoice-recognition-grid{grid-template-columns:1fr}.invoice-recognition-actions{flex-direction:column}}
