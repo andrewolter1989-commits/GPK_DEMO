@@ -4204,3 +4204,8 @@ body.planning-mode .calculator-shipment-layout{
 
 /* v6.63 – persistente Rechnungsprüfungen */
 .invoice-history-empty{text-align:center!important;color:#718991!important;padding:22px!important;background:#fbfdfe}
+
+/* v6.64 – Rechnungs-Historie sichtbar und bedienbar */
+.invoice-history-row{cursor:pointer}
+.invoice-history-row:hover td{background:#f2f9fa}
+.invoice-history-row:focus{outline:2px solid rgba(8,133,158,.35);outline-offset:-2px}
