@@ -14,7 +14,7 @@ const defaultProviders = [
 let providers=GPK.read(GPK.KEYS.providers,null); if(!Array.isArray(providers)||!providers.length){providers=defaultProviders;GPK.write(GPK.KEYS.providers,providers);}
 providers=providers.map(p=>({...p,contacts:Array.isArray(p.contacts)?p.contacts:(p.contact||p.email||p.phone?[{id:Date.now()+Math.random(),name:p.contact||"",emails:p.email||"",phone:p.phone||"",purposes:["booking","availability","price"],countries:"*"}]:[])}));
 let editingId=null;
-const rows=document.getElementById("providerRows"),search=document.getElementById("providerSearch"),statusFilter=document.getElementById("providerStatusFilter"),rateFilter=document.getElementById("providerRateFilter"),countryFilter=document.getElementById("providerCountryFilter"),mailFilter=document.getElementById("providerMailFilter"),sortFilter=document.getElementById("providerSortFilter"),modal=document.getElementById("providerModal"),form=document.getElementById("providerForm");
+const rows=document.getElementById("providerRows"),search=document.getElementById("providerSearch"),mailFilter=document.getElementById("providerMailFilter"),sortFilter=document.getElementById("providerSortFilter"),modal=document.getElementById("providerModal"),form=document.getElementById("providerForm"),activeFilterCard=document.getElementById("providerActiveFilterCard"),inactiveFilterCard=document.getElementById("providerInactiveFilterCard"),inactiveProviderCount=document.getElementById("inactiveProviderCount"),countryFilterButton=document.getElementById("providerCountryFilterButton"),countryPopover=document.getElementById("providerCountryPopover"),countrySearch=document.getElementById("providerCountrySearch"),countryOptions=document.getElementById("providerCountryOptions"),countryClear=document.getElementById("providerCountryClear"),selectedCountrySummary=document.getElementById("selectedCountrySummary");
 function esc(v=""){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 function initials(p){return(p.alias||p.name.split(/\s+/).map(x=>x[0]).join("").slice(0,2)).toUpperCase();}
 function primaryContact(p){return (p.contacts||[])[0]||{};}
@@ -63,10 +63,10 @@ function providerLogoSrc(p){
 }
 function providerAvatarMarkup(p){
   const src=providerLogoSrc(p);
-  const attrs=`data-provider-stats="${p.id}" title="Statistiken für ${esc(p.name)} anzeigen" role="button" tabindex="0"`;
+  const attrs=`data-provider-summary="${p.id}" title="Stammdaten von ${esc(p.name)} anzeigen" role="button" tabindex="0"`;
   return src
-    ? `<div class="provider-avatar provider-avatar-logo provider-stats-avatar" ${attrs}><img src="${esc(src)}" alt="${esc(p.name)} Logo" onerror="this.parentElement.classList.remove('provider-avatar-logo');this.remove();this.parentElement.textContent='${esc(initials(p))}'"></div>`
-    : `<div class="provider-avatar provider-stats-avatar" ${attrs}>${esc(initials(p))}</div>`;
+    ? `<div class="provider-avatar provider-avatar-logo provider-summary-trigger" ${attrs}><img src="${esc(src)}" alt="${esc(p.name)} Logo" onerror="this.parentElement.classList.remove('provider-avatar-logo');this.remove();this.parentElement.textContent='${esc(initials(p))}'"></div>`
+    : `<div class="provider-avatar provider-summary-trigger" ${attrs}>${esc(initials(p))}</div>`;
 }
 function updateProviderLogoPreview(value){
   const box=document.getElementById("providerLogoPreview");if(!box)return;
@@ -90,51 +90,24 @@ function countryOptionsForContact(providerName,selectedRaw="*"){
   </div>`;
 }
 
-function refreshProviderCountryFilter(){
-  if(!countryFilter)return;
-  const current=countryFilter.value;
-  const countries=[...new Set(providers.flatMap(p=>providerTariffCountries(p.name)))].filter(Boolean).sort();
-  countryFilter.innerHTML='<option value="">Alle Tarif-Länder</option>'+countries.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  if(countries.includes(current))countryFilter.value=current;
+let providerStatusSelection="";
+let selectedProviderCountries=new Set();
+function allProviderTariffCountries(){return [...new Set(providers.flatMap(p=>providerTariffCountries(p.name)))].filter(Boolean).sort();}
+function renderProviderCountryOptions(){
+  if(!countryOptions)return;
+  const q=(countrySearch?.value||"").trim().toUpperCase();
+  const countries=allProviderTariffCountries().filter(c=>!q||c.includes(q));
+  countryOptions.innerHTML=countries.map(c=>`<label class="provider-country-choice"><input type="checkbox" value="${esc(c)}" ${selectedProviderCountries.has(c)?"checked":""}><span>${esc(c)}</span></label>`).join("")||'<div class="empty-state">Keine Länder gefunden.</div>';
+  const selected=[...selectedProviderCountries].sort();if(selectedCountrySummary)selectedCountrySummary.textContent=selected.length?selected.join(", "):"Alle Länder";
 }
+function toggleStatusFilter(status){providerStatusSelection=providerStatusSelection===status?"":status;activeFilterCard?.classList.toggle("active",providerStatusSelection==="active");inactiveFilterCard?.classList.toggle("active",providerStatusSelection==="inactive");render();}
 function render(){
-  providers.forEach(p=>{p.rates=providerRateCount(p.name,p.rates);p.currentFloater=currentProviderFloater(p);});
-  refreshProviderCountryFilter();
-  const q=search.value.trim().toLowerCase(),status=statusFilter.value,rf=rateFilter.value,cf=countryFilter?.value||"",mf=mailFilter?.value||"",sort=sortFilter?.value||"az";
-  let filtered=providers.filter(p=>{
-    const contacts=(p.contacts||[]).map(c=>`${c.name} ${c.emails} ${c.phone} ${c.countries}`).join(" ");
-    const tariffCountries=providerTariffCountries(p.name).join(" ");
-    const hay=`${p.name} ${p.alias} ${p.city||""} ${p.country||""} ${contacts} ${tariffCountries}`.toLowerCase();
-    const rateOK=!rf||(rf==="with"?p.rates>0:p.rates===0);
-    const countries=providerTariffCountries(p.name);
-    const countryOK=!cf||countries.includes(cf);
-    const hasMail=(p.contacts||[]).some(c=>String(c.emails||"").trim());
-    const mailOK=!mf||(mf==="with"?hasMail:!hasMail);
-    return(!q||hay.includes(q))&&(!status||p.status===status)&&rateOK&&countryOK&&mailOK
-  });
-  filtered=filtered.slice().sort((a,b)=>{
-    if(sort==="za")return String(b.name).localeCompare(String(a.name),"de",{sensitivity:"base"});
-    if(sort==="rates")return (b.rates-a.rates)||String(a.name).localeCompare(String(b.name),"de",{sensitivity:"base"});
-    if(sort==="newest")return (Number(b.id)||0)-(Number(a.id)||0);
-    return String(a.name).localeCompare(String(b.name),"de",{sensitivity:"base"});
-  });
-  providerCount.textContent=filtered.length;
-  activeProviderCount.textContent=filtered.filter(p=>p.status==="active").length;
-  ratedProviderCount.textContent=filtered.filter(p=>p.rates>0).length;
-  missingMailCount.textContent=filtered.filter(p=>!(p.contacts||[]).some(c=>String(c.emails||"").trim())).length;
-  visibleProviderCount.textContent=filtered.length;
-  rows.innerHTML=filtered.map(p=>{
-    const c=primaryContact(p);
-    const countries=providerTariffCountries(p.name);
-    return `<tr>
-      <td><div class="provider-name-cell">${providerAvatarMarkup(p)}<div><button type="button" class="provider-stats-link" data-provider-stats="${p.id}" title="Statistiken für ${esc(p.name)} anzeigen">${esc(p.name)}</button><small>${esc(p.alias||"Kein Alias")} · ${esc(p.country||"—")} ${esc(p.city||"")}</small></div></div></td>
-      <td><strong class="table-main">${esc(c.name||"—")}</strong><small>${esc(c.emails||c.phone||"Keine Kontaktdaten")}${(p.contacts||[]).length>1?` · +${p.contacts.length-1} weitere`:""}</small>${countries.length?`<small class="provider-tariff-countries">Tarif-Länder: ${countries.map(esc).join(", ")}</small>`:""}</td>
-      <td><strong class="provider-number">${p.rates}</strong><a class="inline-add-link tariff-show-link" href="tarife.html?provider=${encodeURIComponent(p.name)}">Tarife anzeigen</a><a class="inline-add-link" href="tarife.html?provider=${encodeURIComponent(p.name)}&new=1">+ Tarif hinzufügen</a></td>
-      <td><span class="floater-pill">${esc(p.currentFloater||p.floater||"—")}</span></td>
-      <td><span class="status-pill ${p.status}">${p.status==="active"?"Aktiv":"Inaktiv"}</span></td>
-      <td class="row-actions"><button class="icon-button" data-edit="${p.id}" title="Bearbeiten">✎</button><button class="icon-button more-button" data-provider-more="${p.id}" title="Weitere Aktionen">•••</button></td>
-    </tr>`
-  }).join("")||`<tr><td colspan="6" class="empty-state">Keine Dienstleister für diesen Filter gefunden.</td></tr>`;
+  providers.forEach(p=>{p.rates=providerRateCount(p.name,p.rates);p.currentFloater=currentProviderFloater(p);});renderProviderCountryOptions();
+  const q=(search?.value||"").trim().toLowerCase(),mf=mailFilter?.value||"",sort=sortFilter?.value||"az";
+  let filtered=providers.filter(p=>{const contacts=(p.contacts||[]).map(c=>`${c.name} ${c.emails} ${c.phone} ${c.countries}`).join(" ");const countries=providerTariffCountries(p.name);const hay=`${p.name} ${p.alias} ${p.city||""} ${p.country||""} ${contacts} ${countries.join(" ")}`.toLowerCase();const statusOK=!providerStatusSelection||p.status===providerStatusSelection;const countryOK=!selectedProviderCountries.size||countries.some(c=>selectedProviderCountries.has(c));const hasMail=(p.contacts||[]).some(c=>String(c.emails||"").trim());const mailOK=!mf||(mf==="with"?hasMail:!hasMail);return(!q||hay.includes(q))&&statusOK&&countryOK&&mailOK;});
+  filtered=filtered.slice().sort((a,b)=>{if(sort==="za")return String(b.name).localeCompare(String(a.name),"de",{sensitivity:"base"});if(sort==="rates")return(b.rates-a.rates)||String(a.name).localeCompare(String(b.name),"de",{sensitivity:"base"});if(sort==="newest")return(Number(b.id)||0)-(Number(a.id)||0);return String(a.name).localeCompare(String(b.name),"de",{sensitivity:"base"});});
+  activeProviderCount.textContent=filtered.filter(p=>p.status==="active").length;if(inactiveProviderCount)inactiveProviderCount.textContent=filtered.filter(p=>p.status==="inactive").length;visibleProviderCount.textContent=filtered.length;
+  rows.innerHTML=filtered.map(p=>{const c=primaryContact(p),countries=providerTariffCountries(p.name);return `<tr><td><div class="provider-name-cell">${providerAvatarMarkup(p)}<div><button type="button" class="provider-summary-link" data-provider-summary="${p.id}" title="Stammdaten von ${esc(p.name)} anzeigen">${esc(p.name)}</button><small>${esc(p.alias||"Kein Alias")} · ${esc(p.country||"—")} ${esc(p.city||"")}</small></div></div></td><td><strong class="table-main">${esc(c.name||"—")}</strong><small>${esc(c.emails||c.phone||"Keine Kontaktdaten")}${(p.contacts||[]).length>1?` · +${p.contacts.length-1} weitere`:""}</small>${countries.length?`<small class="provider-tariff-countries">Tarif-Länder: ${countries.map(esc).join(", ")}</small>`:""}</td><td><strong class="provider-number">${p.rates}</strong><a class="inline-add-link tariff-show-link" href="tarife.html?provider=${encodeURIComponent(p.name)}">Tarife anzeigen</a><a class="inline-add-link" href="tarife.html?provider=${encodeURIComponent(p.name)}&new=1">+ Tarif hinzufügen</a></td><td><span class="floater-pill">${esc(p.currentFloater||p.floater||"—")}</span></td><td><span class="status-pill ${p.status}">${p.status==="active"?"Aktiv":"Inaktiv"}</span></td><td class="row-actions"><button class="icon-button" data-edit="${p.id}" title="Bearbeiten">✎</button><button class="icon-button more-button" data-provider-more="${p.id}" title="Weitere Aktionen">•••</button></td></tr>`}).join("")||`<tr><td colspan="6" class="empty-state">Keine Dienstleister für diesen Filter gefunden.</td></tr>`;
 }
 function toast(text){providerToast.textContent=text;providerToast.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>providerToast.hidden=true,2400)}
 function contactRow(c={}){
@@ -171,6 +144,13 @@ function collectContacts(){
     };
   }).filter(c=>c.name||c.emails||c.phone);
 }
+let summaryProviderId=null;
+function openProviderSummary(p){
+  if(!p)return;summaryProviderId=p.id;const countries=providerTariffCountries(p.name),contacts=p.contacts||[],logo=providerLogoSrc(p);
+  const el=id=>document.getElementById(id);
+  el("providerSummaryTitle").textContent=p.name;el("providerSummaryName").textContent=p.name;el("providerSummaryAddress").textContent=[p.street,[p.zip,p.city].filter(Boolean).join(" "),p.country].filter(Boolean).join(" · ")||"Keine Anschrift hinterlegt";el("providerSummaryAlias").textContent=p.alias||"—";el("providerSummaryRates").textContent=String(providerRateCount(p.name,p.rates));el("providerSummaryFloater").textContent=currentProviderFloater(p)||"—";el("providerSummaryCountries").textContent=countries.length?countries.join(", "):"Keine Tarif-Länder";const st=el("providerSummaryStatus");st.textContent=p.status==="active"?"Aktiv":"Inaktiv";st.className=`status-pill ${p.status}`;el("providerSummaryAvatar").innerHTML=logo?`<img src="${esc(logo)}" alt="${esc(p.name)} Logo">`:`<span>${esc(initials(p))}</span>`;el("providerSummaryContacts").innerHTML=contacts.length?contacts.map(c=>`<div class="provider-summary-contact"><strong>${esc(c.name||"Ansprechpartner")}</strong><span>${esc(c.emails||"Keine E-Mail")}</span><span>${esc(c.phone||"Kein Telefon")}</span><small>${esc(c.countries==="*"?"Alle Tarif-Länder":c.countries||"—")}</small></div>`).join(""):'<div class="empty-state">Keine Ansprechpartner hinterlegt.</div>';el("providerSummaryNotes").textContent=p.notes||"Keine Hinweise hinterlegt.";el("providerSummaryModal").hidden=false;document.body.classList.add("modal-open");
+}
+function closeProviderSummary(){document.getElementById("providerSummaryModal").hidden=true;document.body.classList.remove("modal-open");}
 function openModal(p=null){editingId=p?.id??null;providerModalTitle.textContent=p?"Dienstleister bearbeiten":"Neuer Dienstleister";providerName.value=p?.name??"";providerAlias.value=p?.alias??"";providerStatus.value=p?.status??"active";providerStreet.value=p?.street??"";providerZip.value=p?.zip??"";providerCity.value=p?.city??"";providerCountry.value=p?.country??"DE";providerLogo.value=p?.logo??"";updateProviderLogoPreview(providerLogo.value);providerNotes.value=p?.notes??"";renderContacts(p?.contacts||[]);deleteProviderBtn.hidden=!p;modal.hidden=false;document.body.classList.add("modal-open");}
 function closeModal(){modal.hidden=true;document.body.classList.remove("modal-open")}
 newProviderBtn.addEventListener("click",()=>openModal());cancelProviderModalBtn.addEventListener("click",closeModal);document.getElementById("closeProviderModalX")?.addEventListener("click",closeModal);addProviderContactBtn.addEventListener("click",()=>providerContacts.insertAdjacentHTML("beforeend",contactRow({})));providerContacts.addEventListener("click",e=>{const b=e.target.closest(".remove-provider-contact");if(b&&providerContacts.children.length>1)b.closest(".provider-contact-card").remove();});function closeProviderContextMenu(){document.getElementById("providerContextMenu")?.remove();}
@@ -205,20 +185,8 @@ function openProviderContextMenu(button,id){
     if(action==="delete")deleteProvider(p.id);
   });
 }
-rows.addEventListener("keydown",e=>{
-  const statsTarget=e.target.closest?.("[data-provider-stats]");
-  if(statsTarget&&(e.key==="Enter"||e.key===" ")){
-    e.preventDefault();
-    const p=providers.find(x=>x.id===Number(statsTarget.dataset.providerStats));
-    if(p)location.href=`statistik.html?carrier=${encodeURIComponent(p.name)}&tab=carriers&period=all`;
-  }
-});
-rows.addEventListener("click",e=>{
-  const edit=e.target.closest("[data-edit]"),more=e.target.closest("[data-provider-more]"),stats=e.target.closest("[data-provider-stats]");
-  if(stats){const p=providers.find(x=>x.id===Number(stats.dataset.providerStats));if(p)location.href=`statistik.html?carrier=${encodeURIComponent(p.name)}&tab=carriers&period=all`;return;}
-  if(edit){const p=providers.find(x=>x.id===Number(edit.dataset.edit));if(p)openModal(p);return;}
-  if(more){openProviderContextMenu(more,more.dataset.providerMore);return;}
-});
+rows.addEventListener("keydown",e=>{const target=e.target.closest?.("[data-provider-summary]");if(target&&(e.key==="Enter"||e.key===" ")){e.preventDefault();const p=providers.find(x=>x.id===Number(target.dataset.providerSummary));if(p)openProviderSummary(p);}});
+rows.addEventListener("click",e=>{const edit=e.target.closest("[data-edit]"),more=e.target.closest("[data-provider-more]"),summary=e.target.closest("[data-provider-summary]");if(summary){const p=providers.find(x=>x.id===Number(summary.dataset.providerSummary));if(p)openProviderSummary(p);return;}if(edit){const p=providers.find(x=>x.id===Number(edit.dataset.edit));if(p)openModal(p);return;}if(more){openProviderContextMenu(more,more.dataset.providerMore);return;}});
 document.addEventListener("click",e=>{if(!e.target.closest("#providerContextMenu")&&!e.target.closest("[data-provider-more]"))closeProviderContextMenu();});
 deleteProviderBtn.addEventListener("click",()=>deleteProvider(editingId));
 
@@ -239,7 +207,7 @@ providerLogoFile.addEventListener("change",()=>{
 removeProviderLogoBtn.addEventListener("click",()=>{providerLogo.value="";providerLogoFile.value="";updateProviderLogoPreview("");});
 providerName.addEventListener("change",()=>renderContacts(collectContacts()));
 form.addEventListener("submit",e=>{e.preventDefault();const contacts=collectContacts();const data={name:providerName.value.trim(),alias:providerAlias.value.trim(),status:providerStatus.value,street:providerStreet.value.trim(),zip:providerZip.value.trim(),city:providerCity.value.trim(),country:providerCountry.value.trim().toUpperCase(),logo:providerLogo.value.trim(),notes:providerNotes.value.trim(),contacts,contact:contacts[0]?.name||"",phone:contacts[0]?.phone||"",email:contacts[0]?.emails?.split(",")[0]?.trim()||""};if(editingId){Object.assign(providers.find(x=>x.id===editingId),data);toast("Dienstleister aktualisiert.")}else{providers.unshift({id:Date.now(),rates:0,floater:"",...data});toast("Dienstleister angelegt.")}GPK.write(GPK.KEYS.providers,providers);closeModal();render();});
-[search,statusFilter,rateFilter,countryFilter,mailFilter,sortFilter].filter(Boolean).forEach(x=>{x.addEventListener("input",render);x.addEventListener("change",render)});
+[search,mailFilter,sortFilter].filter(Boolean).forEach(x=>{x.addEventListener("input",render);x.addEventListener("change",render)});activeFilterCard?.addEventListener("click",()=>toggleStatusFilter("active"));inactiveFilterCard?.addEventListener("click",()=>toggleStatusFilter("inactive"));countryFilterButton?.addEventListener("click",e=>{e.stopPropagation();countryPopover.hidden=!countryPopover.hidden;if(!countryPopover.hidden){renderProviderCountryOptions();countrySearch?.focus();}});countryClear?.addEventListener("click",()=>{selectedProviderCountries.clear();renderProviderCountryOptions();render();});countrySearch?.addEventListener("input",renderProviderCountryOptions);countryOptions?.addEventListener("change",e=>{const cb=e.target.closest('input[type="checkbox"]');if(!cb)return;cb.checked?selectedProviderCountries.add(cb.value):selectedProviderCountries.delete(cb.value);renderProviderCountryOptions();render();});document.addEventListener("click",e=>{if(countryPopover&&!countryPopover.hidden&&!e.target.closest(".provider-country-filter-card"))countryPopover.hidden=true;});document.getElementById("closeProviderSummaryX")?.addEventListener("click",closeProviderSummary);document.getElementById("closeProviderSummaryBtn")?.addEventListener("click",closeProviderSummary);document.getElementById("providerSummaryModal")?.addEventListener("click",e=>{if(e.target.id==="providerSummaryModal")closeProviderSummary();});document.getElementById("editProviderFromSummaryBtn")?.addEventListener("click",()=>{const p=providers.find(x=>x.id===Number(summaryProviderId));closeProviderSummary();if(p)openModal(p);});
 importProvidersBtn.addEventListener("click",()=>chooseImportFile(async file=>{try{await GPKImport.open("providers",file);gpkImportConfirmBtn.onclick=()=>{const result=GPKImport.confirm();providers=(GPK.read(GPK.KEYS.providers,[])||[]).map(p=>({...p,contacts:p.contacts||[]}));render();toast(result.message);};}catch(err){toast("Import fehlgeschlagen: "+err.message);}}));
 exportProvidersBtn.addEventListener("click",async()=>{try{await exportWorkbook("GP_Kollund_Dienstleister.xlsx",{"Dienstleister":providers.map(x=>({"Dienstleister":x.name,"Alias":x.alias,"Straße":x.street||"","PLZ":x.zip||"","Ort":x.city||"","Land":x.country||"","Ansprechpartner":primaryContact(x).name||"","E-Mail":primaryContact(x).emails||"","Telefon":primaryContact(x).phone||"","Anzahl Kontakte":(x.contacts||[]).length,"Anzahl Tarife":x.rates,"Floater":currentProviderFloater(x)||x.floater,"Aktiv":x.status==="active"?"Ja":"Nein","Logo":x.logo,"Hinweise":x.notes}))});toast("Dienstleister exportiert.")}catch(err){toast("Export fehlgeschlagen: "+err.message);}});render();
 

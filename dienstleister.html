@@ -24,7 +24,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.68</div>
+      <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.69</div>
     </aside>
 
     <main class="workspace masterdata-workspace">
@@ -41,42 +41,23 @@
           </div>
         </div>
 
-        <div class="provider-kpis">
-          <div class="provider-kpi"><span>Aktiv in Auswahl</span><strong id="activeProviderCount">0</strong></div>
-          <div class="provider-kpi"><span>Auswahl gesamt</span><strong id="providerCount">0</strong></div>
-          <div class="provider-kpi"><span>Mit Tarifen in Auswahl</span><strong id="ratedProviderCount">0</strong></div>
-          <div class="provider-kpi"><span>Ohne E-Mail in Auswahl</span><strong id="missingMailCount">0</strong></div>
+        <div class="provider-kpis provider-filter-kpis">
+          <button class="provider-kpi provider-filter-card" id="providerActiveFilterCard" type="button"><span>Aktiv</span><strong id="activeProviderCount">0</strong><small>anklicken zum Filtern</small></button>
+          <button class="provider-kpi provider-filter-card" id="providerInactiveFilterCard" type="button"><span>Inaktiv</span><strong id="inactiveProviderCount">0</strong><small>anklicken zum Filtern</small></button>
+          <div class="provider-kpi provider-country-filter-card">
+            <button id="providerCountryFilterButton" class="provider-country-filter-button" type="button"><span>Land auswählen</span><strong id="selectedCountrySummary">Alle Länder</strong><small>Tarif-Länder auswählen</small></button>
+            <div class="provider-country-popover" id="providerCountryPopover" hidden>
+              <div class="provider-country-popover-head"><strong>Tarif-Länder</strong><button id="providerCountryClear" type="button">Alle</button></div>
+              <label class="provider-country-search"><input id="providerCountrySearch" type="search" placeholder="Land suchen, z. B. DE"></label>
+              <div id="providerCountryOptions" class="provider-country-options"></div>
+            </div>
+          </div>
+          <div class="provider-kpi provider-sort-card"><span>Sortieren nach</span><select id="providerSortFilter"><option value="az">A–Z</option><option value="za">Z–A</option><option value="rates">Meiste Tarife zuerst</option><option value="newest">Neueste zuerst</option></select><small>Reihenfolge der Liste</small></div>
         </div>
 
-        <div class="masterdata-filterbar provider-filterbar">
-          <label class="search-box">
-            <span class="search-icon">⌕</span>
-            <input id="providerSearch" type="search" placeholder="Dienstleister, Alias oder Ansprechpartner suchen">
-          </label>
-          <select id="providerStatusFilter">
-            <option value="">Alle Status</option>
-            <option value="active">Aktiv</option>
-            <option value="inactive">Inaktiv</option>
-          </select>
-          <select id="providerRateFilter">
-            <option value="">Alle Tarife</option>
-            <option value="with">Mit Tarifen</option>
-            <option value="without">Ohne Tarife</option>
-          </select>
-          <select id="providerCountryFilter">
-            <option value="">Alle Tarif-Länder</option>
-          </select>
-          <select id="providerMailFilter">
-            <option value="">Alle E-Mail-Status</option>
-            <option value="with">Mit E-Mail</option>
-            <option value="without">Ohne E-Mail</option>
-          </select>
-          <select id="providerSortFilter">
-            <option value="az">A–Z</option>
-            <option value="za">Z–A</option>
-            <option value="rates">Meiste Tarife zuerst</option>
-            <option value="newest">Neueste zuerst</option>
-          </select>
+        <div class="masterdata-filterbar provider-filterbar provider-filterbar-compact">
+          <label class="search-box"><span class="search-icon">⌕</span><input id="providerSearch" type="search" placeholder="Dienstleister, Alias oder Ansprechpartner suchen"></label>
+          <select id="providerMailFilter"><option value="">E-Mail Status</option><option value="with">Mit E-Mail</option><option value="without">Ohne E-Mail</option></select>
         </div>
 
         <div class="masterdata-meta">
@@ -102,6 +83,19 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div class="modal-backdrop" id="providerSummaryModal" hidden>
+    <section class="location-modal provider-summary-modal" role="dialog" aria-modal="true" aria-labelledby="providerSummaryTitle">
+      <div class="modal-head"><div><span class="modal-eyebrow">Stammdaten</span><h2 id="providerSummaryTitle">Dienstleister</h2></div><button class="modal-close" id="closeProviderSummaryX" type="button">×</button></div>
+      <div class="provider-summary-body">
+        <div class="provider-summary-hero"><div id="providerSummaryAvatar" class="provider-summary-avatar"></div><div><h3 id="providerSummaryName"></h3><p id="providerSummaryAddress"></p></div><span id="providerSummaryStatus" class="status-pill active">Aktiv</span></div>
+        <div class="provider-summary-grid"><div><span>Alias / Kürzel</span><strong id="providerSummaryAlias">—</strong></div><div><span>Tarife</span><strong id="providerSummaryRates">0</strong></div><div><span>Floater</span><strong id="providerSummaryFloater">—</strong></div><div><span>Tarif-Länder</span><strong id="providerSummaryCountries">—</strong></div></div>
+        <section class="provider-summary-section"><div class="provider-summary-section-head"><strong>Ansprechpartner</strong></div><div id="providerSummaryContacts" class="provider-summary-contacts"></div></section>
+        <section class="provider-summary-section"><div class="provider-summary-section-head"><strong>Hinweise</strong></div><p id="providerSummaryNotes" class="provider-summary-notes">—</p></section>
+      </div>
+      <div class="modal-actions"><button class="secondary compact-button" id="closeProviderSummaryBtn" type="button">Schließen</button><button class="primary compact-button" id="editProviderFromSummaryBtn" type="button">Stammdaten bearbeiten</button></div>
+    </section>
   </div>
 
   <div class="modal-backdrop" id="providerModal" hidden>
