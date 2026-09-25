@@ -4220,3 +4220,36 @@ body.planning-mode .calculator-shipment-layout{
 
 /* v6.69 – Dienstleister Detailansicht & Filter */
 .provider-filter-kpis{align-items:stretch}.provider-filter-card{appearance:none;text-align:left;cursor:pointer;font-family:inherit}.provider-filter-card:hover{border-color:#9fcbd4;background:#f7fbfc}.provider-filter-card.active{background:#e7f5f7;border-color:#70b9c7;box-shadow:inset 0 0 0 1px #70b9c7}.provider-filter-card small,.provider-country-filter-card small,.provider-sort-card small{display:block;margin-top:4px;color:#799098;font-size:9px}.provider-country-filter-card{position:relative;padding:0!important}.provider-country-filter-button{appearance:none;border:0;background:transparent;width:100%;height:100%;padding:14px 16px;text-align:left;cursor:pointer;font-family:inherit;color:inherit}.provider-country-filter-button span{display:block;text-transform:uppercase;font-size:10px;font-weight:800;color:#78909a}.provider-country-filter-button strong{display:block;margin-top:6px;font-size:18px;color:#153f4a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.provider-country-popover{position:absolute;z-index:40;top:calc(100% + 7px);left:0;width:290px;background:#fff;border:1px solid #cfdfe3;border-radius:11px;box-shadow:0 14px 34px rgba(20,60,70,.18);padding:10px}.provider-country-popover[hidden]{display:none!important}.provider-country-popover-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.provider-country-popover-head button{border:0;background:transparent;color:#087f98;font-weight:800;cursor:pointer}.provider-country-search input{width:100%;height:34px;border:1px solid #cfdfe3;border-radius:8px;padding:0 9px;margin-bottom:8px}.provider-country-options{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:190px;overflow:auto}.provider-country-choice{display:flex;align-items:center;gap:5px;border:1px solid #dce7ea;border-radius:7px;padding:7px;background:#fbfdfe;font-size:10px;font-weight:700;cursor:pointer}.provider-sort-card select{width:100%;margin-top:7px;height:36px;border:1px solid #cfdfe3;border-radius:8px;background:#fff;padding:0 8px;font-weight:700;color:#174653}.provider-filterbar-compact{grid-template-columns:minmax(280px,1fr) 210px!important}.provider-summary-link{appearance:none;border:0;background:transparent;padding:0;color:#083f50;font:inherit;font-weight:800;cursor:pointer;text-align:left}.provider-summary-link:hover{text-decoration:underline}.provider-summary-trigger{cursor:pointer}.provider-summary-modal{max-width:760px}.provider-summary-body{padding:0 22px 18px}.provider-summary-hero{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:8px 0 16px;border-bottom:1px solid #e0eaed}.provider-summary-avatar{width:56px;height:56px;border:1px solid #c8dde2;border-radius:12px;background:#f2fafb;display:flex;align-items:center;justify-content:center;font-weight:900;color:#08758d;overflow:hidden}.provider-summary-avatar img{width:100%;height:100%;object-fit:contain}.provider-summary-hero h3{margin:0;color:#123f4b;font-size:18px}.provider-summary-hero p{margin:4px 0 0;color:#718991;font-size:11px}.provider-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.provider-summary-grid>div{border:1px solid #dce7ea;border-radius:9px;padding:10px;background:#f9fcfd}.provider-summary-grid span{display:block;font-size:8px;text-transform:uppercase;font-weight:800;color:#7b9097}.provider-summary-grid strong{display:block;margin-top:4px;color:#174653;font-size:12px}.provider-summary-section{border-top:1px solid #e1eaec;padding-top:12px;margin-top:12px}.provider-summary-section-head{margin-bottom:8px;color:#174653}.provider-summary-contacts{display:grid;gap:7px}.provider-summary-contact{display:grid;grid-template-columns:1.2fr 1.5fr 1fr auto;gap:8px;align-items:center;border:1px solid #e0eaed;border-radius:8px;padding:9px;background:#fbfdfe;font-size:10px}.provider-summary-contact span,.provider-summary-contact small{color:#70878f}.provider-summary-notes{margin:0;color:#56717a;font-size:11px;white-space:pre-wrap}@media(max-width:800px){.provider-summary-grid{grid-template-columns:1fr 1fr}.provider-summary-contact{grid-template-columns:1fr}.provider-filterbar-compact{grid-template-columns:1fr!important}}
+
+/* v6.70 – E-Mail-Status Filter auf volle Filtergröße */
+.provider-filterbar-compact{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 280px!important;
+  gap:12px!important;
+  align-items:center!important;
+}
+.provider-filterbar-compact #providerMailFilter{
+  width:100%!important;
+  min-width:280px!important;
+  height:44px!important;
+  min-height:44px!important;
+  padding:0 14px!important;
+  border-radius:10px!important;
+  font-size:13px!important;
+  font-weight:700!important;
+}
+.provider-filterbar-compact .search-box{
+  min-height:44px!important;
+}
+.provider-filterbar-compact .search-box input{
+  height:44px!important;
+  min-height:44px!important;
+}
+@media(max-width:800px){
+  .provider-filterbar-compact{
+    grid-template-columns:1fr!important;
+  }
+  .provider-filterbar-compact #providerMailFilter{
+    min-width:0!important;
+  }
+}
