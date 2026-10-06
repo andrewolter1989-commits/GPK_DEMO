@@ -408,7 +408,7 @@ exportShipmentsBtn.addEventListener("click",async()=>{
   const flat=shipments.map(x=>({
     "Projekt":x.projectName||"",
     "Spediteur":x.carrier||"","Rechnungsnummer":x.invoiceNumber||"","Rechnungsposition":x.invoicePosition||"","Rechnungsdatum":x.invoiceDate||"","Leistungsdatum":x.serviceDate||"","Abholdatum":x.shipmentDate||"","Lieferdatum":x.deliveryDate||"",
-    "Auftragsnummer":x.orderNo||"","Sendungsnummer":x.shipmentId||"","Frachtbriefnummer":x.waybillNo||"","Referenznummer":x.referenceNo||"",
+    "Auftragsnummer":x.orderNo||"","Sendungsnummer":cleanShipmentIdentifier(x),"Frachtbriefnummer":x.waybillNo||"","Referenznummer":x.referenceNo||"",
     "Absender":x.originName||"","Start Land":x.originCountry||"","Start PLZ":x.originPostal||"","Start Ort":x.originCity||"",
     "Empfänger":x.destName||x.customer||"","Ziel Land":x.destCountry||"","Ziel PLZ":x.destPostal||"","Ziel Ort":x.destCity||"",
     "Transportart":x.service||"","Paletten":x.pallets??"","Kolli":x.colli??"","Stellplätze":x.slots??"","Gewicht kg":x.weight??"","LDM":x.ldm??"","CBM":x.volume??"","Kilometer":x.distanceKm??"",

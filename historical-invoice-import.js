@@ -203,46 +203,55 @@ function providerTune(x,text){
     x.shipmentDate=x.serviceDate||x.shipmentDate||x.invoiceDate;
     x.orderNo=firstMatch(f,/\bAuftragsnummer\s+([0-9]{6,})\b/i)||x.orderNo;
 
-    // YALIN: read the single transport row as a bounded block.
-    // Example:
-    // Ladestelle Salux GmbH, D-06526 Sangerhausen
-    // Entladestelle Palram GmbH, D-39218 Schönebeck
-    const transportBlock=firstMatch(
-      f,
-      /\bLadestelle\s+(.+?)\s+Entladestelle\s+(.+?)(?=\s+200\s+Fracht\s+lt\.?\s+Vereinbarung|\s+Fracht\s+lt\.?\s+Vereinbarung|\s+Netto\b)/i,
-      0
-    );
+    const cleanPartyTail=(v="")=>String(v||"")
+      .replace(/\s+/g," ")
+      .split(/\b(?:Fracht\s+lt\.?|Fracht|Netto|Steuerfrei|Steuerpflichtig|MwSt\.?|Gesamtsumme|Zahlbar|Zahlungsziel|Es\s+gelten|Allgemeinen|Geschäftsbedingungen)\b/i)[0]
+      .replace(/[|;,]+$/,"").trim();
 
-    let originRaw="",destRaw="";
-    if(transportBlock){
-      const m=transportBlock.match(/\bLadestelle\s+(.+?)\s+Entladestelle\s+(.+)$/i);
-      if(m){originRaw=String(m[1]||"").trim();destRaw=String(m[2]||"").trim()}
-    }
-    if(!originRaw){
-      originRaw=firstMatch(f,/\bLadestelle\s+(.+?)(?=\s+Entladestelle\b)/i);
-    }
-    if(!destRaw){
-      destRaw=firstMatch(f,/\bEntladestelle\s+(.+?)(?=\s+200\s+Fracht\s+lt\.?\s+Vereinbarung|\s+Fracht\s+lt\.?\s+Vereinbarung|\s+Netto\b)/i);
-    }
+    const partyFromLabel=(label)=>{
+      // First choice: exact line from OCR.
+      let raw=lineStartingValue(text,[label]);
+      raw=cleanPartyTail(raw);
+      if(raw && /\d{5}|\d{2}-\d{3}/.test(raw))return raw;
 
-    const parseDEParty=(raw)=>{
-      const t=String(raw||"").replace(/\s+/g," ").replace(/[;,]+$/,"").trim();
-      // country prefix is optional in OCR; city stops at end because block is bounded above
-      const m=t.match(/^(.*?)\s*,?\s*(?:(DE|D|PL)[-\s])?(\d{5}|\d{2}-\d{3})\s+(.+)$/i);
-      if(!m)return null;
-      const cc=(m[2]||"DE").toUpperCase()==="D"?"DE":(m[2]||"DE").toUpperCase();
-      return {name:String(m[1]||"").trim(),country:cc,postal:String(m[3]||"").trim(),city:String(m[4]||"").trim()}
+      // Second choice: bounded flat-text extraction, stopping at the next invoice field.
+      const re=new RegExp("\\b"+label+"\\s+(.+?)(?=\\s+(?:Entladestelle|Ladestelle|Ware|200\\b|Fracht\\s+lt\\.?|Netto\\b|Steuerfrei|Steuerpflichtig|MwSt\\.?|Gesamtsumme|Zahlbar|Es\\s+gelten))","i");
+      raw=cleanPartyTail(firstMatch(f,re));
+      return raw;
     };
 
-    const op=parseDEParty(originRaw);
+    const parseParty=(raw)=>{
+      const t=cleanPartyTail(raw);
+      if(!t)return null;
+      // D-06526 Sangerhausen / D-39218 Schönebeck / PL-86-300 Grudziadz
+      let m=t.match(/^(.*?)\s*,?\s*(DE|D|PL)[-\s]?(\d{5}|\d{2}-\d{3})\s+([A-Za-zÄÖÜäöüß.\-]+(?:\s+[A-Za-zÄÖÜäöüß.\-]+){0,2})/i);
+      if(m){
+        return {
+          name:String(m[1]||"").replace(/[;,]+$/,"").trim(),
+          country:(m[2].toUpperCase()==="D"?"DE":m[2].toUpperCase()),
+          postal:String(m[3]||"").trim(),
+          city:String(m[4]||"").trim()
+        };
+      }
+      // OCR sometimes drops D-/DE-.
+      m=t.match(/^(.*?)\s*,?\s*(\d{5})\s+([A-Za-zÄÖÜäöüß.\-]+(?:\s+[A-Za-zÄÖÜäöüß.\-]+){0,2})/i);
+      if(m){
+        return {name:String(m[1]||"").replace(/[;,]+$/,"").trim(),country:"DE",postal:m[2],city:String(m[3]||"").trim()};
+      }
+      return null;
+    };
+
+    const originRaw=partyFromLabel("Ladestelle");
+    const destRaw=partyFromLabel("Entladestelle");
+    const op=parseParty(originRaw),dp=parseParty(destRaw);
+
     if(op)setPartyFields(x,"origin",op.name,op.country,op.postal,op.city);
-    else if(originRaw)setParty("origin",originRaw);
+    else{x.originName="";x.originCountry="";x.originPostal="";x.originCity=""}
 
-    const dp=parseDEParty(destRaw);
     if(dp)setPartyFields(x,"dest",dp.name,dp.country,dp.postal,dp.city);
-    else if(destRaw)setParty("dest",destRaw);
+    else{x.destName="";x.customer="";x.destCountry="";x.destPostal="";x.destCity=""}
 
-    // YALIN 11353 has no business reference number; do not invent one from nearby text.
+    // Only keep a real reference if an explicit Referenznummer field exists.
     const ref=firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.|Leistungstag))/i);
     x.referenceNo=normalizeInvoiceReference(ref)||"";
 
@@ -256,7 +265,6 @@ function providerTune(x,text){
     if(fr!==null){x.freight=fr;x.actualTotal=fr}
 
     x.service="";
-    // Never duplicate order number into shipment number merely because shipment no. is absent.
     if(x.shipmentId===x.orderNo)x.shipmentId="";
   }
 
@@ -575,7 +583,7 @@ async function confirmImport(){
       delete y.duplicateReason;
       delete y.analysisError;
       y.id=y.id||`HIST-${Date.now()}-${i}`;
-      if(!y.shipmentId)y.shipmentId=y.waybillNo||y.orderNo||y.referenceNo||`${y.invoiceNumber||"INV"}-${y.invoicePosition||i+1}`;
+      if(y.shipmentId===y.orderNo)y.shipmentId="";
       return y
     });
     const next=[...rows,...shipments];
