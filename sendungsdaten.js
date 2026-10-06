@@ -9,6 +9,9 @@ let importState={file:null,sheets:[],sheetName:"",rows:[],headerRow:0,headers:[]
 
 const FIELD_DEFS=[
   ["shipmentId","Sendungsnummer",["sendungsnummer","sdg_nr","sdg","shipment","shipment_id","consignment","consignment_no","consignment_number","shipmentnumber","sending","paketnummer","parcel_number"]],
+  ["orderNo","Auftragsnummer",["auftrag","auftragsnummer","order","order_no","order_number"]],
+  ["waybillNo","Frachtbriefnummer",["frachtbrief","frachtbriefnummer","waybill","waybill_no"]],
+  ["referenceNo","Referenznummer",["referenz","referenznummer","reference","reference_no","ref_nr"]],
   ["shipmentDate","Versand-/Abholdatum",["versanddatum","shipment_date","ship_date","datum","abholdatum","pickup_date","shipping_date","versandtag"]],
   ["deliveryDate","Lieferdatum",["lieferdatum","zustelldatum","delivery_date","deliverydate","pod_date"]],
   ["originCountry","Start Land",["origin_country","versender_land","land_versender","abgangsland","country_origin","from_country"]],
@@ -29,8 +32,16 @@ const FIELD_DEFS=[
   ["freight","Fracht / Basis",["fracht","freight","freight_cost","basisfracht","transportkosten","logistikkosten","logistics_cost"]],
   ["diesel","Diesel / Fuel",["diesel","fuel","fuel_surcharge","dieselzuschlag","fuel_surcharge_amount"]],
   ["toll","Maut",["maut","toll","road_toll"]],
-  ["otherCharges","Nebenkosten",["nebenkosten","other_charges","surcharge","zuschlag","zuschlaege","zuschläge","insurance","versicherung"]],
-  ["actualTotal","Gesamtkosten",["gesamtpreis","actual_total","total","revtotal","umsatz","betrag","revenue","total_cost","total_freight"]]
+  ["insurance","Versicherung",["versicherung","insurance","insurance_fee"]],
+  ["noticeFee","Avis",["avis","avisierung","notification_fee"]],
+  ["customs","Zoll",["zoll","customs","customs_fee"]],
+  ["expressFee","Express",["express","expresszuschlag","express_fee"]],
+  ["tailLiftFee","Hebebühne",["hebebuehne","hebebühne","tail_lift"]],
+  ["waitingFee","Wartezeit",["wartezeit","waiting_time","waiting_fee"]],
+  ["areaSurcharge","Insel-/Gebietszuschlag",["inselzuschlag","gebietszuschlag","area_surcharge","island_surcharge"]],
+  ["palletExchangeFee","Palettentausch / Verpackung",["palettentausch","verpackung","pallet_exchange","packaging_fee"]],
+  ["otherCharges","Sonstige Nebenkosten",["nebenkosten","other_charges","surcharge","zuschlag","zuschlaege","zuschläge"]],
+  ["actualTotal","Gesamtkosten netto",["gesamtpreis","actual_total","total","revtotal","umsatz","betrag","revenue","total_cost","total_freight"]]
 ];
 
 function esc(v=""){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
@@ -41,8 +52,8 @@ function money(v){return new Intl.NumberFormat("de-DE",{style:"currency",currenc
 function intFmt(v){return new Intl.NumberFormat("de-DE",{maximumFractionDigits:0}).format(Number(v)||0)}
 function decFmt(v,d=1){return new Intl.NumberFormat("de-DE",{maximumFractionDigits:d}).format(Number(v)||0)}
 function showToast(t){const el=document.getElementById("shipmentToast");el.textContent=t;el.hidden=false;setTimeout(()=>el.hidden=true,3000)}
-function totalCost(x){const t=num(x.actualTotal);if(t!==null)return t;return [x.freight,x.diesel,x.toll,x.otherCharges].reduce((a,v)=>a+(num(v)||0),0)}
-function hasCost(x){return [x.actualTotal,x.freight,x.diesel,x.toll,x.otherCharges].some(v=>num(v)!==null&&num(v)!==0)}
+function totalCost(x){const t=num(x.actualTotal);if(t!==null)return t;return [x.freight,x.diesel,x.toll,x.insurance,x.noticeFee,x.customs,x.expressFee,x.tailLiftFee,x.waitingFee,x.areaSurcharge,x.palletExchangeFee,x.otherCharges].reduce((a,v)=>a+(num(v)||0),0)}
+function hasCost(x){return [x.actualTotal,x.freight,x.diesel,x.toll,x.insurance,x.noticeFee,x.customs,x.expressFee,x.tailLiftFee,x.waitingFee,x.areaSurcharge,x.palletExchangeFee,x.otherCharges].some(v=>num(v)!==null&&num(v)!==0)}
 function currentMapValue(row,key){const idx=mappedIndex(importState.mapping[key]);return idx>=0?(row[idx]??""):""}
 function colLetter(i){let n=i+1,s="";while(n){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26)}return s}
 function displayHeader(i){return `${colLetter(i)} · ${importState.headers[i]||`Spalte ${i+1}`}`}
@@ -208,7 +219,7 @@ function normalizeImportRows(){
     FIELD_DEFS.forEach(([key])=>x[key]=currentMapValue(r,key));
     const idTemplate=(document.getElementById("shipmentIdTemplate")?.value||importConfig.shipmentIdTemplate||"").trim();
     if(idTemplate)x.shipmentId=templateValue(idTemplate,x.shipmentId||"",r,seq);
-    ["pallets","colli","weight","ldm","volume","slots","freight","diesel","toll","otherCharges","actualTotal"].forEach(k=>{const z=num(x[k]);x[k]=z===null?null:z});
+    ["pallets","colli","weight","ldm","volume","slots","freight","diesel","toll","insurance","noticeFee","customs","expressFee","tailLiftFee","waitingFee","areaSurcharge","palletExchangeFee","otherCharges","actualTotal"].forEach(k=>{const z=num(x[k]);x[k]=z===null?null:z});
     x.shipmentDate=dateText(x.shipmentDate);x.deliveryDate=dateText(x.deliveryDate);
     x.originCountry=String(x.originCountry||"").trim().toUpperCase();x.destCountry=String(x.destCountry||"").trim().toUpperCase();
     x.originPostal=String(x.originPostal||"").trim();x.destPostal=String(x.destPostal||"").trim();
@@ -299,9 +310,10 @@ function renderAll(){
 }
 function renderShipmentTable(){
   const q=shipmentSearch.value.trim().toLowerCase(),carrier=shipmentCarrierFilter.value,country=shipmentCountryFilter.value,cost=shipmentCostFilter.value;
-  const filtered=shipments.filter(x=>{const custom=Object.values(x.custom||{}).join(" ");const hay=`${x.shipmentId} ${x.carrier} ${x.originPostal} ${x.destPostal} ${x.destCity} ${x.customer} ${x.service} ${custom}`.toLowerCase();return (!q||hay.includes(q))&&(!carrier||x.carrier===carrier)&&(!country||x.destCountry===country)&&(!cost||(cost==="with"?hasCost(x):!hasCost(x)))});
+  const filtered=shipments.filter(x=>{const custom=Object.values(x.custom||{}).join(" ");const hay=`${x.shipmentId} ${x.orderNo||""} ${x.waybillNo||""} ${x.referenceNo||""} ${x.invoiceNumber||""} ${x.carrier} ${x.originPostal} ${x.destPostal} ${x.destCity} ${x.customer} ${x.service} ${custom}`.toLowerCase();return (!q||hay.includes(q))&&(!carrier||x.carrier===carrier)&&(!country||x.destCountry===country)&&(!cost||(cost==="with"?hasCost(x):!hasCost(x)))});
   visibleShipmentCount.textContent=intFmt(filtered.length);
-  shipmentRows.innerHTML=filtered.slice(0,1000).map(x=>`<tr><td><strong>${esc(x.shipmentId||"—")}</strong><small>${esc(x.sourceFile||"")}</small></td><td>${esc(x.shipmentDate||"—")}</td><td>${esc(x.carrier||"—")}</td><td><strong>${esc([x.destCountry,x.destPostal].filter(Boolean).join(" ")||"—")}</strong><small>${esc(x.destCity||x.customer||"")}</small></td><td>${esc(x.service||"—")}</td><td>${x.pallets!=null?`${decFmt(x.pallets,1)} PLL`:x.colli!=null?`${decFmt(x.colli,1)} Colli`:"—"}</td><td>${x.weight!=null?`${decFmt(x.weight,1)} kg`:"—"}</td><td>${x.ldm!=null?`${decFmt(x.ldm,2)} LDM`:x.volume!=null?`${decFmt(x.volume,2)} m³`:"—"}</td><td><strong>${hasCost(x)?money(totalCost(x)):"—"}</strong></td></tr>`).join("")||'<tr><td colspan="9" class="empty-state">Keine Sendungen für diese Auswahl.</td></tr>';
+  shipmentRows.innerHTML=filtered.slice(0,1000).map(x=>`<tr><td><strong>${esc(x.shipmentId||x.orderNo||x.waybillNo||"—")}</strong><small>${esc(x.sourceFile||"")}${x.sourcePdfKey?` · <button type="button" class="shipment-source-link" data-open-source-pdf="${esc(x.sourcePdfKey)}">PDF</button>`:""}</small></td><td>${esc(x.shipmentDate||x.serviceDate||"—")}</td><td>${esc(x.carrier||"—")}</td><td><strong>${esc([x.destCountry,x.destPostal].filter(Boolean).join(" ")||"—")}</strong><small>${esc(x.destCity||x.customer||"")}</small></td><td>${esc(x.service||"—")}</td><td>${x.pallets!=null?`${decFmt(x.pallets,1)} PLL`:x.colli!=null?`${decFmt(x.colli,1)} Colli`:"—"}</td><td>${x.weight!=null?`${decFmt(x.weight,1)} kg`:"—"}</td><td>${x.ldm!=null?`${decFmt(x.ldm,2)} LDM`:x.volume!=null?`${decFmt(x.volume,2)} m³`:"—"}</td><td><strong>${hasCost(x)?money(totalCost(x)):"—"}</strong></td></tr>`).join("")||'<tr><td colspan="9" class="empty-state">Keine Sendungen für diese Auswahl.</td></tr>';
+  shipmentRows.querySelectorAll("[data-open-source-pdf]").forEach(btn=>btn.addEventListener("click",async()=>{try{const blob=await GPK.largeRead(btn.dataset.openSourcePdf,null);if(!blob)return showToast("Original-PDF nicht gefunden.");const url=URL.createObjectURL(blob);window.open(url,"_blank","noopener");setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(_){showToast("Original-PDF konnte nicht geöffnet werden.")}}));
 }
 function renderBenchmark(){
   const data=shipments,costData=data.filter(hasCost),weightData=data.filter(x=>num(x.weight)!==null),palData=data.filter(x=>num(x.pallets)!==null),ldmData=data.filter(x=>num(x.ldm)!==null);
@@ -316,7 +328,7 @@ function renderBenchmark(){
 }
 
 [shipmentSearch,shipmentCarrierFilter,shipmentCountryFilter,shipmentCostFilter].forEach(el=>{el.addEventListener("input",renderShipmentTable);el.addEventListener("change",renderShipmentTable)});
-openShipmentImportBtn.addEventListener("click",()=>{activateTab("import");shipmentFileInput.click()});
+openShipmentImportBtn.addEventListener("click",()=>{activateTab("import");if(window.GPKHistoricalImport)window.GPKHistoricalImport.showHistoricalMode();});
 chooseShipmentFileBtn.addEventListener("click",()=>shipmentFileInput.click());
 shipmentFileInput.addEventListener("change",()=>{if(shipmentFileInput.files[0])loadShipmentFile(shipmentFileInput.files[0])});
 shipmentImportDrop.addEventListener("dragover",e=>{e.preventDefault();shipmentImportDrop.classList.add("dragover")});
@@ -351,7 +363,16 @@ confirmShipmentImportBtn.addEventListener("click",async()=>{
 });
 exportShipmentsBtn.addEventListener("click",async()=>{
   if(!shipments.length){showToast("Keine Sendungsdaten zum Exportieren.");return}
-  const flat=shipments.map(x=>({...x,...Object.fromEntries(Object.entries(x.custom||{}).map(([k,v])=>[`custom_${k}`,v])),custom:undefined}));
+  const flat=shipments.map(x=>({
+    "Spediteur":x.carrier||"","Rechnungsnummer":x.invoiceNumber||"","Rechnungsposition":x.invoicePosition||"","Rechnungsdatum":x.invoiceDate||"","Leistungsdatum":x.serviceDate||"","Abholdatum":x.shipmentDate||"","Lieferdatum":x.deliveryDate||"",
+    "Auftragsnummer":x.orderNo||"","Sendungsnummer":x.shipmentId||"","Frachtbriefnummer":x.waybillNo||"","Referenznummer":x.referenceNo||"",
+    "Absender":x.originName||"","Start Land":x.originCountry||"","Start PLZ":x.originPostal||"","Start Ort":x.originCity||"",
+    "Empfänger":x.customer||x.destName||"","Ziel Land":x.destCountry||"","Ziel PLZ":x.destPostal||"","Ziel Ort":x.destCity||"",
+    "Transportart":x.service||"","Paletten":x.pallets??"","Kolli":x.colli??"","Stellplätze":x.slots??"","Gewicht kg":x.weight??"","LDM":x.ldm??"","CBM":x.volume??"","Kilometer":x.distanceKm??"",
+    "Fracht netto":x.freight??"","Diesel netto":x.diesel??"","Maut netto":x.toll??"","Versicherung netto":x.insurance??"","Avis netto":x.noticeFee??"","Zoll netto":x.customs??"","Express netto":x.expressFee??"","Hebebühne netto":x.tailLiftFee??"","Wartezeit netto":x.waitingFee??"","Insel-/Gebietszuschlag netto":x.areaSurcharge??"","Palettentausch / Verpackung netto":x.palletExchangeFee??"","Sonstige Nebenkosten netto":x.otherCharges??"","Gesamtsumme netto":(x.actualTotal??totalCost(x))||"",
+    "Originalbezeichnung Nebenkosten":x.originalChargeLabels||"","Quelle":x.sourceType||"","Quelldatei":x.sourceFile||"","Original-PDF verknüpft":x.sourcePdfKey?"Ja":"Nein","Datenqualität":x.dataQuality||"","Fehlende Felder":(x.missingFields||[]).join(", "),
+    ...Object.fromEntries(Object.entries(x.custom||{}).map(([k,v])=>[`Eigenes Feld: ${k}`,v]))
+  }));
   await exportWorkbook("GP_Kollund_Sendungsdaten.xlsx",{Sendungen:flat});
 });
 (async function init(){

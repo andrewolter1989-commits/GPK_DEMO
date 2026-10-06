@@ -4253,3 +4253,25 @@ body.planning-mode .calculator-shipment-layout{
     min-width:0!important;
   }
 }
+
+
+/* v6.71 – Historische PDF-Rechnungen → Sendungsdaten */
+.historical-import-header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.historical-import-mode-switch{display:inline-flex;border:1px solid #d4e0e5;background:#f6f9fa;border-radius:10px;padding:3px;gap:3px}
+.historical-mode-btn{border:0;background:transparent;color:#47636a;font-weight:700;padding:9px 14px;border-radius:8px;cursor:pointer}
+.historical-mode-btn.active{background:#004251;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.historical-only-note{display:flex;align-items:center;gap:10px;background:#eef8f6;border:1px solid #b8ddd5;border-radius:10px;padding:9px 12px;color:#31575b;font-size:12px}
+.historical-only-note strong{color:#004251;white-space:nowrap}.historical-only-note span{color:#5e7479}
+.historical-upload-grid{grid-template-columns:minmax(0,1.55fr) minmax(280px,.75fr)!important}
+.historical-pdf-drop{min-height:160px}.historical-options{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.historical-check{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#294c53}.historical-check input{width:16px;height:16px;accent-color:#004251}
+.historical-storage-hint{font-size:11px;color:#71868a}
+.historical-progress{margin-top:14px;padding:12px;border:1px solid #dbe6e9;border-radius:10px;background:#fbfcfd}.historical-progress>div{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#405b61;margin-bottom:8px}.historical-progress progress{width:100%;height:9px;accent-color:#004251}
+.historical-rule-list{display:grid;gap:10px}.historical-rule-list>div{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:10px;border:1px solid #e1e9eb;border-radius:9px}.historical-rule-list b{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:#e9f4f2;color:#004251;font-size:11px}.historical-rule-list span{display:grid;gap:2px}.historical-rule-list strong{font-size:12px;color:#173f47}.historical-rule-list small{font-size:11px;line-height:1.35;color:#6b7f83}
+.historical-result-kpis{margin-top:18px}.historical-kpi{appearance:none;text-align:left;cursor:pointer;border:1px solid #dbe5e8!important;background:#fff!important}.historical-kpi.active{border-color:#0b6a72!important;box-shadow:0 0 0 2px rgba(0,66,81,.08)}.historical-kpi.conflict strong{color:#b43c35}.historical-kpi.warning strong{color:#a66b09}
+.historical-preview-card{margin-top:14px}.historical-preview-head{align-items:flex-start}.historical-duplicate-alert{margin:0 0 12px;padding:11px 13px;border:1px solid #efc4c0;background:#fff4f3;border-radius:9px;color:#8d312c;font-size:12px}.historical-table-wrap{max-height:560px}.historical-preview-table{min-width:1320px}.historical-preview-table td small{display:block;margin-top:3px;color:#718489;font-size:10px;max-width:220px}.historical-row.duplicate{background:#fff8f7}.historical-row.review{background:#fffaf0}
+.historical-status{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}.historical-status.ok{background:#e9f7ef;color:#287a4d}.historical-status.conflict{background:#fdeceb;color:#a43b35}.historical-status.warning{background:#fff2d9;color:#94620c}
+.shipment-source-link{border:0;background:none;padding:0;color:#0d6574;text-decoration:underline;font-weight:700;font:inherit;cursor:pointer}.shipment-source-link:hover{color:#004251}
+.historical-detail-card{width:min(980px,94vw);max-height:88vh;overflow:auto}.historical-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.historical-detail-grid>div{border:1px solid #e1e9eb;border-radius:8px;padding:9px 10px;display:grid;gap:3px}.historical-detail-grid span{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:#77898d}.historical-detail-grid strong{font-size:12px;color:#173e46;word-break:break-word}
+@media(max-width:980px){.historical-upload-grid{grid-template-columns:1fr!important}.historical-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.historical-import-header,.historical-options{align-items:stretch;flex-direction:column}.historical-import-mode-switch{display:grid;grid-template-columns:1fr 1fr}.historical-detail-grid{grid-template-columns:1fr}}

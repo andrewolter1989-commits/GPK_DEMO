@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.70</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.71</div>
   </aside>
 
   <main class="main-content shipment-data-page">
@@ -36,6 +36,7 @@
           <button class="secondary compact-button" id="exportShipmentsBtn" type="button">Exportieren</button>
           <button class="primary compact-button" id="openShipmentImportBtn" type="button">+ Sendungsdaten importieren</button>
           <input id="shipmentFileInput" type="file" accept=".xlsx,.xls,.csv" hidden>
+          <input id="historicalPdfInput" type="file" accept="application/pdf,.pdf" multiple hidden>
         </div>
       </div>
 
@@ -105,6 +106,72 @@
       </section>
 
       <section id="shipmentImportPanel" class="shipment-data-panel" hidden>
+        <div class="historical-import-header">
+          <div class="historical-import-mode-switch" role="tablist" aria-label="Importart">
+            <button class="historical-mode-btn active" id="historicalModeBtn" type="button">Historische Rechnungen (PDF)</button>
+            <button class="historical-mode-btn" id="tabularModeBtn" type="button">Excel / CSV</button>
+          </div>
+          <div class="historical-only-note"><strong>Nur Sendungsstatistik</strong><span>Dieser Import prüft keine Frachtraten und bewertet nicht, ob Rechnungen korrekt sind.</span></div>
+        </div>
+
+        <div id="historicalImportArea">
+          <div class="shipment-import-grid historical-upload-grid">
+            <article class="statistics-card shipment-import-card historical-upload-card">
+              <div class="statistics-card-head">
+                <div><h2>Historische Frachtrechnungen einlesen</h2><p>Mehrere PDF-Rechnungen gleichzeitig hochladen. Jede erkannte Transportposition wird als eigene Sendungszeile vorbereitet.</p></div>
+                <button class="primary compact-button" id="chooseHistoricalPdfsBtn" type="button">PDFs auswählen</button>
+              </div>
+              <div class="shipment-import-drop historical-pdf-drop" id="historicalPdfDrop">
+                <strong>PDF-Rechnungen hier ablegen</strong>
+                <span>Mehrfachauswahl möglich – z. B. 500 Rechnungen in einem Lauf</span>
+                <small>Text-PDFs werden direkt gelesen. Scan-PDFs können per OCR analysiert werden.</small>
+              </div>
+              <div class="historical-options">
+                <label class="historical-check"><input id="historicalOcrEnabled" type="checkbox" checked><span>OCR für gescannte Rechnungen verwenden</span></label>
+                <span class="historical-storage-hint">Original-PDF wird beim Import einmal gespeichert und mit allen Positionen verknüpft.</span>
+              </div>
+              <div id="historicalProgress" class="historical-progress" hidden>
+                <div><strong id="historicalProgressText">Analyse wird vorbereitet …</strong><span id="historicalProgressCount">0 / 0</span></div>
+                <progress id="historicalProgressBar" max="100" value="0"></progress>
+              </div>
+            </article>
+
+            <article class="statistics-card historical-rules-card">
+              <div class="statistics-card-head"><div><h2>Importregeln</h2><p>Feste Regeln für den einmaligen historischen Statistikimport.</p></div></div>
+              <div class="historical-rule-list">
+                <div><b>1</b><span><strong>Eine Position = eine Sendung</strong><small>Sammelrechnungen werden in einzelne Transportpositionen zerlegt.</small></span></div>
+                <div><b>2</b><span><strong>Kosten getrennt</strong><small>Fracht, Diesel, Maut und weitere Nebenkosten erhalten eigene Felder. Gesamtsumme = Netto.</small></span></div>
+                <div><b>3</b><span><strong>Keine Dubletten</strong><small>Bestehende Sendungen werden als Konflikt angezeigt und nicht überschrieben.</small></span></div>
+                <div><b>4</b><span><strong>Keine Schätzung</strong><small>Fehlende Werte bleiben leer. Unvollständige Datensätze werden markiert.</small></span></div>
+              </div>
+            </article>
+          </div>
+
+          <div id="historicalResultArea" hidden>
+            <div class="provider-kpis historical-result-kpis">
+              <button class="provider-kpi historical-kpi active" type="button" data-historical-filter="all"><span>Positionen erkannt</span><strong id="historicalTotalCount">0</strong><small>gesamt analysiert</small></button>
+              <button class="provider-kpi historical-kpi" type="button" data-historical-filter="new"><span>Neu</span><strong id="historicalNewCount">0</strong><small>kann importiert werden</small></button>
+              <button class="provider-kpi historical-kpi conflict" type="button" data-historical-filter="duplicate"><span>Bereits vorhanden</span><strong id="historicalDuplicateCount">0</strong><small>wird nicht importiert</small></button>
+              <button class="provider-kpi historical-kpi warning" type="button" data-historical-filter="review"><span>Muss geprüft werden</span><strong id="historicalReviewCount">0</strong><small>unvollständig / unklar</small></button>
+            </div>
+
+            <article class="statistics-card historical-preview-card">
+              <div class="statistics-card-head historical-preview-head">
+                <div><h2>Importvorschau</h2><p id="historicalPreviewMeta">—</p></div>
+                <div class="masterdata-actions"><button class="secondary compact-button" id="clearHistoricalImportBtn" type="button">Verwerfen</button><button class="primary compact-button" id="confirmHistoricalImportBtn" type="button">Ausgewählte Sendungen übernehmen</button></div>
+              </div>
+              <div id="historicalDuplicateAlert" class="historical-duplicate-alert" hidden></div>
+              <div class="statistics-table-wrap historical-table-wrap">
+                <table class="statistics-table historical-preview-table">
+                  <thead><tr><th>Übernehmen</th><th>Status</th><th>Spediteur</th><th>Rechnung / Position</th><th>Datum</th><th>Relation</th><th>Sendungsdaten</th><th>Kosten netto</th><th>Quelle</th><th></th></tr></thead>
+                  <tbody id="historicalPreviewRows"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div id="tabularImportArea" hidden>
         <div class="shipment-import-grid">
           <article class="statistics-card shipment-import-card">
             <div class="statistics-card-head"><div><h2>Sendungsdaten importieren</h2><p>Excel, XLS oder CSV hochladen. Das System sucht automatisch die wahrscheinlichste Kopfzeile und ordnet Felder zu.</p></div><button class="primary compact-button" id="chooseShipmentFileBtn" type="button">Datei auswählen</button></div>
@@ -155,14 +222,23 @@
           </div>
           <div class="statistics-table-wrap"><table class="statistics-table"><thead id="shipmentPreviewHead"></thead><tbody id="shipmentPreviewRows"></tbody></table></div>
         </article>
+        </div>
       </section>
     </section>
   </main>
+</div>
+<div class="modal-backdrop historical-detail-modal" id="historicalDetailModal" hidden>
+  <div class="modal-card historical-detail-card" role="dialog" aria-modal="true" aria-labelledby="historicalDetailTitle">
+    <div class="modal-head"><div><h2 id="historicalDetailTitle">Erkannte Rechnungsposition</h2><p id="historicalDetailSubtitle">—</p></div><button class="icon-button" id="closeHistoricalDetailBtn" type="button" aria-label="Schließen">×</button></div>
+    <div id="historicalDetailBody" class="historical-detail-body"></div>
+    <div class="modal-actions"><button class="secondary" id="closeHistoricalDetailFooterBtn" type="button">Schließen</button></div>
+  </div>
 </div>
 <div class="toast" id="shipmentToast" hidden></div>
 <script src="gpk-core.js"></script>
 <script src="api-client.js"></script>
 <script src="excel-io.js"></script>
 <script src="sendungsdaten.js"></script>
+<script src="historical-invoice-import.js"></script>
 </body>
 </html>
