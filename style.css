@@ -4339,3 +4339,19 @@ body.planning-mode .calculator-shipment-layout{
 .danger-button{border:1px solid #d9a39c;background:#fff;color:#a62f26;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}.danger-button:hover{background:#fff1ef}
 @media(max-width:850px){.shipment-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.shipment-edit-grid{grid-template-columns:1fr}}
+
+/* v6.80 – Sendungsaktionen immer sichtbar */
+#shipmentRows td:last-child,
+.shipments-table thead th:last-child{
+  position:sticky;
+  right:0;
+  z-index:3;
+  background:#fff;
+  box-shadow:-8px 0 14px rgba(0,55,70,.06);
+}
+#shipmentRows tr:nth-child(even) td:last-child{background:#fbfdfe}
+#shipmentRows .shipment-row-actions{display:flex;gap:6px;align-items:center;white-space:nowrap}
+#shipmentRows .shipment-delete-icon{
+  width:34px;height:34px;border:1px solid #e0b7b2;border-radius:8px;background:#fff;color:#a63227;
+  font-size:20px;line-height:1;cursor:pointer
+}

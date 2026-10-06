@@ -202,16 +202,34 @@ function providerTune(x,text){
     x.serviceDate=dateIso(firstMatch(f,/\bLeistungstag\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;
     x.shipmentDate=x.serviceDate||x.shipmentDate||x.invoiceDate;
     x.orderNo=firstMatch(f,/\bAuftragsnummer\s+([0-9]{6,})\b/i)||x.orderNo;
-    x.referenceNo=normalizeInvoiceReference(firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.))/i))||normalizeInvoiceReference(x.referenceNo);
-    const route=f.match(/\bLadestelle\s+(.+?)\s+Entladestelle\s+(.+?)(?=\s+(?:Ware|200\b|Fracht\s+lt\.|Netto\b))/i);
-    if(route){
-      let o=route[1],d=route[2],m=o.match(/^(.*?)\s+(?:D[-\s])?(\d{5})\s+(.+)$/i);
-      if(m)setPartyFields(x,"origin",m[1],"DE",m[2],m[3]);
-      m=d.match(/^(.*?)\s+(PL|DE)[-\s]?(\d{2}-?\d{3}|\d{5})\s+(.+)$/i);
-      if(m)setPartyFields(x,"dest",m[1],m[2],m[3],m[4]);
+
+    // YALIN has two aligned columns. Read the explicit labels instead of the
+    // surrounding OCR flow, otherwise footer/AGB text can become "Empfänger".
+    const lad=lineStartingValue(text,["Ladestelle"])||
+      firstMatch(f,/\bLadestelle\s+(.+?)(?=\s+(?:Entladestelle|Ware|200\b|Fracht\s+lt\.|Leistungstag))/i);
+    const ent=lineStartingValue(text,["Entladestelle"])||
+      firstMatch(f,/\bEntladestelle\s+(.+?)(?=\s+(?:Ware|200\b|Fracht\s+lt\.|Netto\b|Zahlbar))/i);
+    if(lad){
+      const m=lad.match(/^(.*?)\s*,?\s*(?:D[-\s])?(\d{5})\s+(.+)$/i);
+      if(m)setPartyFields(x,"origin",m[1],"DE",m[2],m[3]);else setParty("origin",lad);
     }
+    if(ent){
+      const m=ent.match(/^(.*?)\s*,?\s*(PL|DE)?[-\s]?(\d{2}-?\d{3}|\d{5})\s+(.+)$/i);
+      if(m)setPartyFields(x,"dest",m[1],m[2]||"DE",m[3],m[4]);else setParty("dest",ent);
+    }
+
+    const ref=lineStartingValue(text,["Referenznummer"])||
+      firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.|Leistungstag))/i);
+    x.referenceNo=normalizeInvoiceReference(ref)||"";
+
+    const p=firstMatch(f,/\bWare\s+(\d+(?:[.,]\d+)?)\s+(?:Einwegpaletten?|EW-?Paletten?)/i);
+    if(p)x.pallets=n(p);
+    const c=firstMatch(f,/\bWare\s+(\d+(?:[.,]\d+)?)\s+Kolli\b/i);
+    if(c)x.colli=n(c);
     const wt=firstMatch(f,/\b([\d.]+(?:,\d+)?)\s*kg\b/i);if(wt)x.weight=n(wt);
     const fr=lastMoney(/\bFracht\s+lt\.?\s+Vereinbarung\b.*?([\d.]+,\d{2})/gi);if(fr!==null){x.freight=fr;x.actualTotal=fr}
+
+    // Service comes from the actual transport data, never from the word "Fracht".
     x.service="";
   }
 
@@ -221,12 +239,18 @@ function providerTune(x,text){
     x.serviceDate=dateIso(firstMatch(f,/\bLeistungstag\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;
     x.shipmentDate=x.serviceDate||x.shipmentDate||x.invoiceDate;
     x.orderNo=firstMatch(f,/\bAuftragsnummer\s+([0-9]{6,})\b/i)||x.orderNo;
-    x.referenceNo=normalizeInvoiceReference(firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.))/i))||normalizeInvoiceReference(x.referenceNo);
-    const route=f.match(/\bLadestelle\s+(.+?)\s+Entladestelle\s+(.+?)(?=\s+(?:Ware|200\b|Fracht\s+lt\.|Netto\b))/i);
-    if(route){
-      let m=route[1].match(/^(.*?)\s+(?:D[-\s])?(\d{5})\s+(.+)$/i);if(m)setPartyFields(x,"origin",m[1],"DE",m[2],m[3]);
-      m=route[2].match(/^(.*?)\s+(?:D[-\s])?(\d{5})\s+(.+)$/i);if(m)setPartyFields(x,"dest",m[1],"DE",m[2],m[3]);
-    }
+
+    const lad=lineStartingValue(text,["Ladestelle"])||
+      firstMatch(f,/\bLadestelle\s+(.+?)(?=\s+(?:Entladestelle|Ware|200\b|Fracht\s+lt\.|Leistungstag))/i);
+    const ent=lineStartingValue(text,["Entladestelle"])||
+      firstMatch(f,/\bEntladestelle\s+(.+?)(?=\s+(?:Ware|200\b|Fracht\s+lt\.|Netto\b|Zahlbar))/i);
+    if(lad){const m=lad.match(/^(.*?)\s*,?\s*(?:D[-\s])?(\d{5})\s+(.+)$/i);if(m)setPartyFields(x,"origin",m[1],"DE",m[2],m[3]);else setParty("origin",lad)}
+    if(ent){const m=ent.match(/^(.*?)\s*,?\s*(?:D[-\s])?(\d{5})\s+(.+)$/i);if(m)setPartyFields(x,"dest",m[1],"DE",m[2],m[3]);else setParty("dest",ent)}
+
+    const ref=lineStartingValue(text,["Referenznummer"])||
+      firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.|Leistungstag))/i);
+    x.referenceNo=normalizeInvoiceReference(ref)||"";
+
     const p=firstMatch(f,/\bWare\s+(\d+(?:[.,]\d+)?)\s+Einwegpaletten?/i);if(p)x.pallets=n(p);
     const wt=firstMatch(f,/\b([\d.]+(?:,\d+)?)\s*kg\b/i);if(wt)x.weight=n(wt);
     const fr=lastMoney(/\bFracht\s+lt\.?\s+Vereinbarung\b.*?([\d.]+,\d{2})/gi);if(fr!==null){x.freight=fr;x.actualTotal=fr}
