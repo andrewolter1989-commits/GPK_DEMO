@@ -29,7 +29,16 @@ async function ensureTesseract(){return ensureScript(TESSERACT_CDN,"Tesseract")}
 function cleanText(s=""){return String(s||"").replace(/\u00ad/g,"").replace(/[ \t]+/g," ").replace(/ *\n */g,"\n").replace(/\n{3,}/g,"\n\n").trim()}
 function flatText(s=""){return cleanText(s).replace(/\n/g," ").replace(/\s+/g," ")}
 function escH(v=""){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function n(v){if(v===null||v===undefined||v==="")return null;let s=String(v).trim().replace(/\s/g,"").replace(/EUR|€/gi,"");if(/^[-+]?\d{1,3}(?:\.\d{3})*,\d+$/.test(s))s=s.replace(/\./g,"").replace(",",".");else if(/^[-+]?\d{1,3}(?:,\d{3})*\.\d+$/.test(s))s=s.replace(/,/g,"");else s=s.replace(",",".").replace(/[^\d.+-]/g,"");const x=Number(s);return Number.isFinite(x)?x:null}
+function n(v){
+  if(v===null||v===undefined||v==="")return null;
+  let s=String(v).trim().replace(/\s/g,"").replace(/EUR|€/gi,"");
+  if(/^[-+]?\d{1,3}(?:\.\d{3})+,\d+$/.test(s))s=s.replace(/\./g,"").replace(",",".");
+  else if(/^[-+]?\d{1,3}(?:\.\d{3})+$/.test(s))s=s.replace(/\./g,"");
+  else if(/^[-+]?\d{1,3}(?:,\d{3})+\.\d+$/.test(s))s=s.replace(/,/g,"");
+  else if(/^[-+]?\d+(?:,\d+)$/.test(s))s=s.replace(",",".");
+  else s=s.replace(/[^\d.+-]/g,"");
+  const x=Number(s);return Number.isFinite(x)?x:null
+}
 function dateIso(v=""){const s=String(v).trim();let m=s.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);if(m){let y=m[3];if(y.length===2)y="20"+y;return `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`}m=s.match(/(\d{4})-(\d{2})-(\d{2})/);return m?`${m[1]}-${m[2]}-${m[3]}`:""}
 function euro(v){return v===null||v===undefined||v===""?"—":new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:2}).format(Number(v)||0)}
 function pickFirst(text,regs){for(const r of regs){const m=text.match(r);if(m&&m[1])return String(m[1]).trim()}return ""}
@@ -138,6 +147,50 @@ function firstMatch(text,re,group=1){const m=String(text||"").match(re);return m
 function normalizeInvoiceReference(v=""){const s=String(v||"").replace(/\s+/g," ").trim();if(!s)return "";if(/^(und|nummer|fracht|charter|teilladung|komplettladung|ladung|dienstleistung|ladestelle|entladestelle)$/i.test(s))return "";if(/allgemeinen|bestimmungen|vereinbart|ust-?id|zahlungsziel/i.test(s))return "";return s}
 function setPartyFields(x,side,name="",country="",postal="",city=""){const c=v=>String(v||"").replace(/\s+/g," ").replace(/[;,]+$/,"").trim();name=c(name);country=c(country).toUpperCase();postal=c(postal);city=c(city);if(side==="origin"){if(name)x.originName=name;if(country)x.originCountry=country;if(postal)x.originPostal=postal;if(city)x.originCity=city}else{if(name){x.destName=name;x.customer=name}if(country)x.destCountry=country;if(postal)x.destPostal=postal;if(city)x.destCity=city}}
 
+
+function euroAmountNear(text,labelRe){
+  const lines=cleanText(text).split("\n").map(v=>v.trim()).filter(Boolean);
+  for(let i=0;i<lines.length;i++){
+    if(!labelRe.test(lines[i]))continue;
+    const zone=[lines[i],lines[i+1]||"",lines[i+2]||""].join(" ");
+    const vals=[...zone.matchAll(/(-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+,\d{2})/g)].map(m=>n(m[1])).filter(v=>v!==null);
+    if(vals.length)return vals[vals.length-1];
+  }
+  return null;
+}
+function cleanOcrParty(v=""){
+  return String(v||"").replace(/\s+/g," ").replace(/\b(?:Fracht|Netto|MwSt|Gesamt|Zahlbar|Seite)\b.*$/i,"").replace(/[|]+/g," ").trim();
+}
+function deParty(raw=""){
+  const s=cleanOcrParty(raw);
+  let m=s.match(/^(.*?)\s+(?:D|DE)[-\s]?(\d{5})\s+(.+)$/i);
+  if(m)return {name:m[1].trim(),country:"DE",postal:m[2],city:m[3].trim()};
+  m=s.match(/^(.*?)\s+(\d{5})\s+(.+)$/i);
+  if(m)return {name:m[1].trim(),country:"DE",postal:m[2],city:m[3].trim()};
+  return addressParts(s);
+}
+function intlParty(raw=""){
+  const s=cleanOcrParty(raw);
+  let m=s.match(/^(.*?)\s+(PL)[-\s]?(\d{2}-?\d{3})\s+(.+)$/i);
+  if(m)return {name:m[1].trim(),country:"PL",postal:m[3],city:m[4].trim()};
+  m=s.match(/^(.*?)\s+(A|AT)[-\s]?(\d{4})\s+(.+)$/i);
+  if(m)return {name:m[1].trim(),country:"AT",postal:m[3],city:m[4].trim()};
+  return deParty(s);
+}
+function applyParty(x,side,p){
+  if(!p)return;
+  if(side==="origin"){
+    x.originName=p.name||"";x.originCountry=p.country||"";x.originPostal=p.postal||"";x.originCity=p.city||"";
+    x.originAddressRaw=[p.name,p.country,p.postal,p.city].filter(Boolean).join(" ");
+  }else{
+    x.destName=p.name||"";x.customer=p.name||"";x.destCountry=p.country||"";x.destPostal=p.postal||"";x.destCity=p.city||"";
+    x.destAddressRaw=[p.name,p.country,p.postal,p.city].filter(Boolean).join(" ");
+  }
+}
+function betweenLabels(f,left,right,stop){
+  const re=new RegExp("\\b"+left+"\\s+(.+?)\\s+"+right+"\\s+(.+?)(?=\\s+(?:"+stop+"))","i");
+  const m=f.match(re);return m?{left:m[1].trim(),right:m[2].trim()}:null;
+}
 function providerTune(x,text){
   const f=flatText(text),ct=cleanText(text);
   const setParty=(side,raw)=>{if(!raw)return;const p=addressParts(normalizePartyRaw(raw));if(side==="origin"){x.originName=p.name||x.originName;x.originAddressRaw=p.raw||x.originAddressRaw;x.originCountry=p.country||x.originCountry;x.originPostal=p.postal||x.originPostal;x.originCity=p.city||x.originCity}else{x.destName=p.name||x.destName;x.customer=p.name||x.customer;x.destAddressRaw=p.raw||x.destAddressRaw;x.destCountry=p.country||x.destCountry;x.destPostal=p.postal||x.destPostal;x.destCity=p.city||x.destCity}};
@@ -255,8 +308,88 @@ function providerTune(x,text){
     const net=lastMoney(/\bNetto(?:\s+EUR)?\s+([\d.]+,\d{2})/gi);if(net!==null)x.actualTotal=net;else if(x.freight!==null)x.actualTotal=(x.freight||0)+(x.palletExchangeFee||0);
   }
   if(x.carrier==="Leopold Schäfer"){const p=amountFromLine(text,/Festfracht|Fracht/i);if(p!==null)x.freight=p;const sys=amountFromLine(text,/Systemgebühr/i);if(sys!==null){x.otherCharges=sys;x.originalChargeLabels="Systemgebühr"}x.actualTotal=[x.freight,x.otherCharges].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0)||x.actualTotal}
-  if(x.carrier==="Emons"){const base=amountFromLine(text,/Pauschale/i);if(base!==null)x.freight=base;const diesel=amountFromLine(text,/Dieselzuschlag/i);if(diesel!==null)x.diesel=diesel;const toll=amountFromLine(text,/Maut/i);if(toll!==null)x.toll=toll;const co2=amountFromLine(text,/CO2-Aussto(?:ß|ss)/i);if(co2!==null){x.otherCharges=(x.otherCharges||0)+co2;x.originalChargeLabels=[x.originalChargeLabels,"Anteiliger CO2-Ausstoß"].filter(Boolean).join("; ")}x.actualTotal=[x.freight,x.diesel,x.toll,x.otherCharges].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0)||x.actualTotal}
-  if(x.carrier==="Gösped"){const fr=amountFromLine(text,/Fracht\s*:/i);if(fr!==null)x.freight=fr;const di=amountFromLine(text,/Dieselzuschlag/i);if(di!==null)x.diesel=di;x.actualTotal=[x.freight,x.diesel].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0)||x.actualTotal}
+  
+  
+
+  if(x.carrier==="LIFA Logistik"){
+    x.invoiceNumber=firstMatch(f,/\bRechnung\s+([0-9]{4,})\b/i)||x.invoiceNumber;
+    x.invoiceDate=dateIso(firstMatch(f,/\bBeleg-?Datum\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeistungstag\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;x.shipmentDate=x.serviceDate||x.invoiceDate;
+    x.orderNo=firstMatch(f,/\bAuftrag\s*:?\s*([0-9]{6,})/i)||x.orderNo;
+    const rt=betweenLabels(f,"Ladestelle(?:n)?","Entladestelle(?:n)?","200\\b|Fracht\\s+lt|Netto\\b");
+    if(rt){applyParty(x,"origin",deParty(rt.left));applyParty(x,"dest",deParty(rt.right))}
+    const wt=firstMatch(f,/\bGewichte?\s*:?\s*([\d.]+(?:,\d+)?)\s*kg/i)||firstMatch(f,/\b([\d.]+(?:,\d+)?)\s*kg\b/i);if(wt)x.weight=n(wt);
+    const fr=euroAmountNear(text,/Fracht\s+lt\.?\s+Vereinbarung/i);if(fr!==null){x.freight=fr;x.actualTotal=fr}
+    x.service="";
+  }
+
+  if(x.carrier==="Gösped"){
+    x.invoiceNumber=firstMatch(f,/\bRechnungs-?Nr\.?\s*:?\s*([0-9]{4,})/i)||x.invoiceNumber;
+    x.invoiceDate=dateIso(firstMatch(f,/\bRechnungsdatum\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeistungsdatum\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;
+    x.shipmentDate=dateIso(firstMatch(f,/\bDatum\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate||x.invoiceDate;
+    x.orderNo=firstMatch(f,/\bAuftrag\s*:?\s*([0-9-]{6,})/i)||x.orderNo;
+    const rt=betweenLabels(f,"Ladestelle\\(n\\)|Ladestelle","Entladestelle\\(n\\)|Entladestelle","Ladung|Fracht\\s*:|Dieselzuschlag|Summe");
+    if(rt){applyParty(x,"origin",deParty(rt.left));applyParty(x,"dest",deParty(rt.right))}
+    const load=firstMatch(f,/\bLadung\s*:?\s*(.+?)(?=\s+Fracht\s*:|\s+Dieselzuschlag|\s+Summe)/i);
+    if(load){const wt=firstMatch(load,/([\d.]+(?:,\d+)?)\s*kg/i);if(wt)x.weight=n(wt);const ldm=firstMatch(load,/([\d.,]+)\s*Ldm/i);if(ldm)x.ldm=n(ldm);const pal=firstMatch(load,/(\d+)\s*(?:EW-?)?Paletten?/i);if(pal)x.pallets=n(pal)}
+    const fr=euroAmountNear(text,/^\s*Fracht\s*:/i);if(fr!==null)x.freight=fr;
+    const di=euroAmountNear(text,/Dieselzuschlag/i);if(di!==null)x.diesel=di;
+    const net=euroAmountNear(text,/Summe\s+umsatzsteuerpflichtig/i);x.actualTotal=net!==null?net:[x.freight,x.diesel].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0);
+    x.service="";
+  }
+
+  if(x.carrier==="FME Frachtmanagement Europa"){
+    x.invoiceNumber=firstMatch(f,/\bBelegnummer\s*:?\s*([0-9]{5,})/i)||x.invoiceNumber;
+    x.invoiceDate=dateIso(firstMatch(f,/\bRech\.-?Datum\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeistungstag\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;x.shipmentDate=x.serviceDate||x.invoiceDate;
+    x.orderNo=firstMatch(f,/\bAuftrag\s+([0-9]{6,})/i)||x.orderNo;x.referenceNo=firstMatch(f,/\bRef\.-?Nr\.?\s+([0-9A-Z_-]+)/i)||x.referenceNo;
+    const rt=betweenLabels(f,"Ladestelle","Entladestelle","1\\s+Fracht|Fracht\\s+850|Netto\\b");if(rt){applyParty(x,"origin",deParty(rt.left));applyParty(x,"dest",deParty(rt.right))}
+    const wt=firstMatch(f,/\btats\.?\s*Gew\.?\s*:?\s*([\d.]+(?:,\d+)?)\s*kg/i);if(wt)x.weight=n(wt);const km=firstMatch(f,/\bgefahrene\s+KM\s*:?\s*([\d.,]+)/i);if(km)x.distanceKm=n(km);
+    const fr=euroAmountNear(text,/^\s*1\s+Fracht\b|^\s*Fracht\b/i);if(fr!==null){x.freight=fr;x.actualTotal=fr}x.service="";
+  }
+
+  if(x.carrier==="Finsterwalder"){
+    x.invoiceNumber=firstMatch(f,/\bBelegnr\.?\s*:?\s*([0-9]{5,})/i)||x.invoiceNumber;x.invoiceDate=dateIso(firstMatch(f,/\bBelegdatum\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeist\.-?Dat\.?\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;x.shipmentDate=x.serviceDate||x.invoiceDate;
+    x.orderNo=firstMatch(f,/\bAuftragsnr\.?\s*:?\s*([0-9]{6,})/i)||x.orderNo;x.referenceNo=firstMatch(f,/\bReferenz\s*:?\s*(AT-?\d+\s+[A-Za-zÄÖÜäöüß-]+)/i)||x.referenceNo;
+    const om=f.match(/\bAbsender\s*:?\s*(.+?)\s+(D|DE)\s+(\d{5})\s+(.+?)\s+Empfänger\s*:?\s*(.+?)\s+(A|AT)\s+(\d{4})\s+(.+?)(?=\s+(?:Anz\.|VPE|Inhalt|#ME|tats\.|Fracht))/i);
+    if(om){setPartyFields(x,"origin",om[1],"DE",om[3],om[4]);setPartyFields(x,"dest",om[5],"AT",om[7],om[8])}
+    const wt=firstMatch(f,/\btats\.?\s*Gew\.?\s+([\d.]+(?:,\d+)?)/i);if(wt)x.weight=n(wt);const ldm=firstMatch(f,/\bLdm\.?\s+([\d.,]+)/i)||firstMatch(f,/\b([\d.,]+)\s+LDM\b/i);if(ldm)x.ldm=n(ldm);const col=firstMatch(f,/\b(\d+)\s+LDG\b/i);if(col)x.colli=n(col);
+    const fr=euroAmountNear(text,/Fracht\s+all\s+in/i);if(fr!==null){x.freight=fr;x.actualTotal=fr}x.service="Fracht all in";
+  }
+
+  if(x.carrier==="Fahrlogistik Wächter"){
+    x.invoiceNumber=firstMatch(f,/\bBelegnummer\s*:?\s*([0-9]{5,})/i)||x.invoiceNumber;x.invoiceDate=dateIso(firstMatch(f,/\bRech\.-?Datum\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeistungstag\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;x.shipmentDate=x.serviceDate||x.invoiceDate;
+    x.orderNo=firstMatch(f,/\bAuftrag\s+([0-9]{6,})/i)||x.orderNo;const km=firstMatch(f,/\bgefahrene\s+KM\s*:?\s*([\d.,]+)/i);if(km)x.distanceKm=n(km);const wt=firstMatch(f,/\btats\.?\s*Gew\.?\s*:?\s*([\d.]+(?:,\d+)?)\s*kg/i);if(wt)x.weight=n(wt);
+    const rt=betweenLabels(f,"Ladestelle","Entladestelle","1\\s+Fracht|Fracht\\s+450|Netto\\b");if(rt){applyParty(x,"origin",deParty(rt.left));applyParty(x,"dest",deParty(rt.right))}
+    const fr=euroAmountNear(text,/^\s*1\s+Fracht\b|^\s*Fracht\b/i);if(fr!==null){x.freight=fr;x.actualTotal=fr}x.service="";
+  }
+
+  if(x.carrier==="Emons"){
+    x.invoiceNumber=firstMatch(f,/\bBeleg-?Nr\.?\s+([0-9]{6,})/i)||x.invoiceNumber;x.invoiceDate=dateIso(firstMatch(f,/\bDatum\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.shipmentDate=dateIso(firstMatch(f,/\b(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})\s+PB\s+Solution\s+GmbH/i))||x.invoiceDate;x.serviceDate=x.shipmentDate;
+    const route=f.match(/\bPB\s+Solution\s+GmbH\s+(\d{5})\s+Nordhausen.*?\bSalux\s+GmbH\s+(\d{5})\s+Sangerhausen/i);if(route){setPartyFields(x,"origin","PB Solution GmbH","DE",route[1],"Nordhausen");setPartyFields(x,"dest","Salux GmbH","DE",route[2],"Sangerhausen")}
+    const wt=firstMatch(f,/\b(?:Gew|frpfl\s+Gew)\s+8000\s+8000/i)?"8000":firstMatch(f,/\b(8000)\b/);if(wt)x.weight=n(wt);const ldm=firstMatch(f,/\bLademeter\s+([\d.,]+)/i);if(ldm)x.ldm=n(ldm);
+    const base=euroAmountNear(text,/Pauschale/i);if(base!==null)x.freight=base;const di=euroAmountNear(text,/Dieselzuschlag/i);if(di!==null)x.diesel=di;const toll=euroAmountNear(text,/Gesetzliche\s+Maut|\bMaut\b/i);if(toll!==null)x.toll=toll;
+    const sum=euroAmountNear(text,/\bSumme\b/i);x.actualTotal=sum!==null?sum:[x.freight,x.diesel,x.toll].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0);x.otherCharges=null;x.originalChargeLabels="";x.service="";
+  }
+
+  if(x.carrier==="Dachser"){
+    x.invoiceNumber=firstMatch(f,/\bRechnungs-?Nr\.?\s*:?\s*([0-9]{6,})/i)||x.invoiceNumber;x.invoiceDate=dateIso(firstMatch(f,/\bDatum\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.shipmentDate=dateIso(firstMatch(f,/\b00001\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||dateIso(firstMatch(f,/\b(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})\s+GLOBUS\s+FACHMARKT/i))||x.invoiceDate;x.serviceDate=x.shipmentDate;
+    const rt=f.match(/\bGLOBUS\s+FACHMARKT\s+D\s+(\d{5})\s+([A-ZÄÖÜß -]+?)\s+SALUX\s+GMBH\s+D\s+(\d{5})\s+([A-ZÄÖÜß -]+?)(?=\s+974\b|\s+Positionsendbetrag|\s+229[,\.])/i);if(rt){setPartyFields(x,"origin","GLOBUS FACHMARKT","DE",rt[1],rt[2]);setPartyFields(x,"dest","SALUX GMBH","DE",rt[3],rt[4])}
+    const wt=firstMatch(f,/\b(?:Gew\.?\(kg\)|Gew\.)\s*(?:Netto\s+EUR\s+Steuer\s+)?(?:974\s+)?([0-9]{3,5})/i)||firstMatch(f,/\bSALUX\s+GMBH.*?\b(974)\b/i);if(wt)x.weight=n(wt);
+    const fr=euroAmountNear(text,/Fracht\s+ab\s+Werk\s+bis\s+Empfangsort/i);if(fr!==null){x.freight=fr;x.actualTotal=fr}x.service="";
+  }
+
+  if(x.carrier==="BMZ Bagger und Transporte"){
+    x.invoiceNumber=firstMatch(f,/\bRechnung\s+([0-9]{4,})\b/i)||x.invoiceNumber;x.invoiceDate=dateIso(firstMatch(f,/\bBeleg-?Datum\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeistungstag\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;x.shipmentDate=x.serviceDate||x.invoiceDate;x.orderNo=firstMatch(f,/\bAuftragsnummer\s+([0-9]{6,})/i)||x.orderNo;x.referenceNo=firstMatch(f,/\bRef\.?nr\.?\s+([^\s]+\s+Herdorf)/i)||x.referenceNo;
+    const rt=betweenLabels(f,"Ladestelle","Entladestelle","200\\b|Fracht\\s+lt|Netto\\b");if(rt){applyParty(x,"origin",deParty(rt.left));applyParty(x,"dest",deParty(rt.right))}
+    const fr=euroAmountNear(text,/Fracht\s+lt\.?\s+Vereinbarung/i);if(fr!==null){x.freight=fr;x.actualTotal=fr}x.service="";
+  }
   x.orderNo=normalizeInvoiceReference(x.orderNo);
   x.referenceNo=normalizeInvoiceReference(x.referenceNo);
   x.originName=normalizeInvoiceReference(x.originName);

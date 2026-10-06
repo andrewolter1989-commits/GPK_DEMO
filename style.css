@@ -4321,3 +4321,21 @@ body.planning-mode .calculator-shipment-layout{
 .historical-detail-headbar .historical-read-field{min-height:52px;padding:7px 9px}
 .historical-party-panels .historical-read-grid,.historical-party-panels .historical-edit-grid{grid-template-columns:1.6fr .7fr .8fr 1.25fr}
 @media(max-width:900px){.historical-detail-headbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v6.79 – Sendungsstammdaten editierbar + Parserprüfung */
+.shipment-table th:last-child,.shipment-table td:last-child{width:145px;white-space:nowrap}
+.shipment-row-actions{display:flex;align-items:center;gap:6px}
+.shipment-delete-icon{width:32px;height:32px;border:1px solid #e4c7c3;border-radius:8px;background:#fff;color:#b23a30;font-size:19px;line-height:1;cursor:pointer}
+.shipment-delete-icon:hover{background:#fff3f1;border-color:#d98e84}
+.shipment-edit-card{width:min(1120px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.shipment-edit-body{padding:16px 20px;overflow:auto;background:#f7fafb;display:grid;gap:13px}
+.shipment-edit-section{background:#fff;border:1px solid #dce7ea;border-radius:12px;padding:13px 14px;display:grid;gap:10px}
+.shipment-edit-section h3{margin:0;font-size:12px;color:#174654}
+.shipment-edit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.shipment-edit-field{display:grid;gap:4px;min-width:0}
+.shipment-edit-field span{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#738990;font-weight:750}
+.shipment-edit-field input{width:100%;height:38px;border:1px solid #cddde1;border-radius:8px;padding:0 9px;background:#fff;color:#173f4d;font:inherit;font-size:12px}
+.shipment-edit-actions{display:flex;gap:8px;align-items:center}.shipment-edit-actions .modal-action-spacer{flex:1}
+.danger-button{border:1px solid #d9a39c;background:#fff;color:#a62f26;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}.danger-button:hover{background:#fff1ef}
+@media(max-width:850px){.shipment-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.shipment-edit-grid{grid-template-columns:1fr}}

@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.78</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.79</div>
   </aside>
 
   <main class="main-content shipment-data-page">
@@ -78,7 +78,7 @@
         <div class="masterdata-meta"><span><strong id="visibleShipmentCount">0</strong> Sendungen angezeigt</span><span class="meta-separator">•</span><span>Importwerte bleiben unverändert; abgeleitete Kennzahlen werden separat berechnet.</span></div>
         <div class="masterdata-table-wrap shipment-table-wrap">
           <table class="masterdata-table shipment-table">
-            <thead><tr><th>Sendung</th><th>Projekt</th><th>Datum</th><th>Dienstleister</th><th>Absender</th><th>Empfänger</th><th>Service</th><th>Paletten / Colli</th><th>Gewicht</th><th>LDM / Volumen</th><th>Kosten</th></tr></thead>
+            <thead><tr><th>Sendung</th><th>Projekt</th><th>Datum</th><th>Dienstleister</th><th>Absender</th><th>Empfänger</th><th>Service</th><th>Paletten / Colli</th><th>Gewicht</th><th>LDM / Volumen</th><th>Kosten</th><th>Aktionen</th></tr></thead>
             <tbody id="shipmentRows"></tbody>
           </table>
         </div>
@@ -235,6 +235,15 @@
     </section>
   </main>
 </div>
+
+<div class="modal-backdrop shipment-edit-modal" id="shipmentEditModal" hidden>
+  <div class="modal-card shipment-edit-card" role="dialog" aria-modal="true" aria-labelledby="shipmentEditTitle">
+    <div class="modal-head"><div><h2 id="shipmentEditTitle">Sendungsdaten bearbeiten</h2><p id="shipmentEditSubtitle">Gespeicherte Sendung korrigieren</p></div><button class="icon-button" id="closeShipmentEditBtn" type="button" aria-label="Schließen">×</button></div>
+    <div class="shipment-edit-body" id="shipmentEditBody"></div>
+    <div class="modal-actions shipment-edit-actions"><button class="danger-button" id="deleteShipmentBtn" type="button">Sendung löschen</button><span class="modal-action-spacer"></span><button class="secondary" id="cancelShipmentEditBtn" type="button">Schließen</button><button class="primary" id="saveShipmentEditBtn" type="button">Speichern</button></div>
+  </div>
+</div>
+
 <div class="modal-backdrop historical-detail-modal" id="historicalDetailModal" hidden>
   <div class="modal-card historical-detail-card" role="dialog" aria-modal="true" aria-labelledby="historicalDetailTitle">
     <div class="modal-head"><div><h2 id="historicalDetailTitle">Erkannte Rechnungsposition</h2><p id="historicalDetailSubtitle">—</p></div><button class="icon-button" id="closeHistoricalDetailBtn" type="button" aria-label="Schließen">×</button></div>
@@ -246,7 +255,7 @@
 <script src="gpk-core.js"></script>
 <script src="api-client.js"></script>
 <script src="excel-io.js"></script>
-<script src="sendungsdaten.js?v=6.78"></script>
-<script src="historical-invoice-import.js?v=6.78"></script>
+<script src="sendungsdaten.js?v=6.79"></script>
+<script src="historical-invoice-import.js?v=6.79"></script>
 </body>
 </html>
