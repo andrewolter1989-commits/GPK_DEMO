@@ -140,6 +140,8 @@ function setPartyFields(x,side,name="",country="",postal="",city=""){const c=v=>
 
 function providerTune(x,text){
   const f=flatText(text),ct=cleanText(text);
+  const setParty=(side,raw)=>{if(!raw)return;const p=addressParts(normalizePartyRaw(raw));if(side==="origin"){x.originName=p.name||x.originName;x.originAddressRaw=p.raw||x.originAddressRaw;x.originCountry=p.country||x.originCountry;x.originPostal=p.postal||x.originPostal;x.originCity=p.city||x.originCity}else{x.destName=p.name||x.destName;x.customer=p.name||x.customer;x.destAddressRaw=p.raw||x.destAddressRaw;x.destCountry=p.country||x.destCountry;x.destPostal=p.postal||x.destPostal;x.destCity=p.city||x.destCity}};
+  const lastMoney=(re)=>{const m=[...f.matchAll(re)];return m.length?n(m[m.length-1][1]):null};
 
   if(x.carrier==="YALIN Logistik"){
     x.invoiceNumber=firstMatch(f,/\bRechnung\s+([0-9]{4,})\b/i)||x.invoiceNumber;
@@ -195,21 +197,8 @@ function providerTune(x,text){
     const net=lastMoney(/\bGesamt\s*netto\s*:?\s*([\d.]+,\d{2})/gi);if(net!==null)x.actualTotal=net;
     x.service="Charter";
   }
-  const setParty=(side,raw)=>{if(!raw)return;const p=addressParts(normalizePartyRaw(raw));if(side==="origin"){x.originName=p.name||x.originName;x.originAddressRaw=p.raw||x.originAddressRaw;x.originCountry=p.country||x.originCountry;x.originPostal=p.postal||x.originPostal;x.originCity=p.city||x.originCity}else{x.destName=p.name||x.destName;x.customer=p.name||x.customer;x.destAddressRaw=p.raw||x.destAddressRaw;x.destCountry=p.country||x.destCountry;x.destPostal=p.postal||x.destPostal;x.destCity=p.city||x.destCity}};
-  const lastMoney=(re)=>{const m=[...f.matchAll(re)];return m.length?n(m[m.length-1][1]):null};
 
-  if(x.carrier==="Raben"){
-    x.invoiceDate=x.invoiceDate||findDate(text,["Rechnungsdatum"]);x.serviceDate=x.serviceDate||findDate(text,["Leistungsdatum"]);
-    x.shipmentDate=dateNearLabel(text,"^Abhol")||x.shipmentDate||x.serviceDate||x.invoiceDate;x.deliveryDate=dateNearLabel(text,"^Zustell")||x.deliveryDate;
-    setParty("origin",lineStartingValue(text,["Von"]));setParty("dest",lineStartingValue(text,["An"]));
-    x.shipmentId=x.shipmentId||pickFirst(f,[/\bSendung\s+([A-Z0-9_-]{6,})/i]);
-    const row=f.match(/\bAbhol\.?\s+Sendung\s+Referenznummer\s+Zustell\.?.*?\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})\s+([A-Z0-9_-]+)\s+(.+?)\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})\s+\S+\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/i);
-    if(row){x.shipmentDate=dateIso(row[1])||x.shipmentDate;x.shipmentId=row[2]||x.shipmentId;x.referenceNo=(row[3]||"").trim()||x.referenceNo;x.deliveryDate=dateIso(row[4])||x.deliveryDate;x.colli=n(row[5]);x.ldm=n(row[6]);x.slots=n(row[7]);x.volume=n(row[8]);x.distanceKm=n(row[9])}
-    const wt=pickFirst(f,[/\bGewicht\s+([\d.,]+)/i]);if(wt)x.weight=n(wt);
-    const fr=amountFromLine(text,/Speditionsdienste\s+Charter/i);if(fr!==null)x.freight=fr;
-    const ins=amountFromLine(text,/Gebühr\s+Beschaffung\s+Transp-Vers/i);if(ins!==null){x.insurance=ins;x.originalChargeLabels="Gebühr Beschaffung Transp-Vers"}
-    const net=lastMoney(/\bGesamt\s*netto\s*:?\s*([\d.]+,\d{2})/gi);x.actualTotal=net!==null?net:[x.freight,x.insurance].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0)||x.actualTotal;
-  }
+
   if(x.carrier==="Philipp Seidler Transportmanagement"){
     const load=ct.match(/Ladestelle\s*:\s*([^\n]+)\n?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})?/i);if(load){setParty("origin",load[1]);if(load[2])x.shipmentDate=dateIso(load[2])}
     const dest=f.match(/Entl(?:ade|de)stelle\s*:\s*(.+?\b\d{4,5}\s+[A-Za-zÄÖÜäöüß -]+?)\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i);if(dest){setParty("dest",dest[1]);x.deliveryDate=dateIso(dest[2])}
