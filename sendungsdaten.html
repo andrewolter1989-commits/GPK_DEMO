@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.75</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.76</div>
   </aside>
 
   <main class="main-content shipment-data-page">
@@ -136,7 +136,7 @@
               </div>
               <div class="historical-options">
                 <label class="historical-check"><input id="historicalOcrEnabled" type="checkbox" checked><span>OCR für gescannte Rechnungen verwenden</span></label>
-                <span class="historical-storage-hint">Original-PDF wird beim Import einmal gespeichert und mit allen Positionen verknüpft.</span>
+                <span class="historical-storage-hint">PDF nur temporär: während der Prüfung ansehen; nach Übernahme oder Verwerfen wird die Datei nicht dauerhaft gespeichert.</span>
               </div>
               <div id="historicalProgress" class="historical-progress" hidden>
                 <div><strong id="historicalProgressText">Analyse wird vorbereitet …</strong><span id="historicalProgressCount">0 / 0</span></div>
@@ -239,14 +239,14 @@
   <div class="modal-card historical-detail-card" role="dialog" aria-modal="true" aria-labelledby="historicalDetailTitle">
     <div class="modal-head"><div><h2 id="historicalDetailTitle">Erkannte Rechnungsposition</h2><p id="historicalDetailSubtitle">—</p></div><button class="icon-button" id="closeHistoricalDetailBtn" type="button" aria-label="Schließen">×</button></div>
     <div id="historicalDetailBody" class="historical-detail-body"></div>
-    <div class="modal-actions historical-detail-actions"><button class="secondary" id="openHistoricalDetailPdfBtn" type="button">Original-PDF öffnen</button><span class="modal-action-spacer"></span><button class="secondary" id="cancelHistoricalEditBtn" type="button" hidden>Abbrechen</button><button class="secondary" id="editHistoricalDetailBtn" type="button">Bearbeiten</button><button class="primary" id="saveHistoricalDetailBtn" type="button" hidden>Speichern</button><button class="secondary" id="closeHistoricalDetailFooterBtn" type="button">Schließen</button></div>
+    <div class="modal-actions historical-detail-actions"><button class="secondary" id="openHistoricalDetailPdfBtn" type="button">PDF ansehen</button><span class="modal-action-spacer"></span><button class="secondary" id="cancelHistoricalEditBtn" type="button" hidden>Abbrechen</button><button class="secondary" id="editHistoricalDetailBtn" type="button">Bearbeiten</button><button class="primary" id="saveHistoricalDetailBtn" type="button" hidden>Speichern</button><button class="secondary" id="closeHistoricalDetailFooterBtn" type="button">Schließen</button></div>
   </div>
 </div>
 <div class="toast" id="shipmentToast" hidden></div>
 <script src="gpk-core.js"></script>
 <script src="api-client.js"></script>
 <script src="excel-io.js"></script>
-<script src="sendungsdaten.js?v=6.75"></script>
-<script src="historical-invoice-import.js?v=6.75"></script>
+<script src="sendungsdaten.js?v=6.76"></script>
+<script src="historical-invoice-import.js?v=6.76"></script>
 </body>
 </html>

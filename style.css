@@ -4309,3 +4309,9 @@ body.planning-mode .calculator-shipment-layout{
 /* v6.75 – Analysefehler sichtbar + erneute Analyse */
 .historical-row-actions{display:flex;gap:6px;flex-wrap:wrap}
 .historical-row.review small{white-space:normal;overflow-wrap:anywhere}
+
+/* v6.76 – temporäre PDF-Vorschau / kompakte Detailaktionen */
+.historical-detail-actions .primary,.historical-detail-actions .secondary{width:auto!important;min-width:96px}
+.historical-detail-actions #openHistoricalDetailPdfBtn{min-width:110px}
+.historical-detail-actions #saveHistoricalDetailBtn{min-width:110px}
+.historical-storage-hint{font-style:normal}

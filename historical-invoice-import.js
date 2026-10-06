@@ -67,9 +67,20 @@ function normalizePartyRaw(v=""){
 function lineAfter(text,labelRe){const lines=cleanText(text).split("\n");for(let i=0;i<lines.length;i++){if(labelRe.test(lines[i])){const same=lines[i].replace(labelRe,"").replace(/^\s*[:\-]?\s*/,"").trim();if(same)return same;for(let j=i+1;j<Math.min(lines.length,i+3);j++)if(lines[j].trim())return lines[j].trim()}}return ""}
 function amountFromLine(text,labelRe){const lines=cleanText(text).split("\n");for(const line of lines){if(labelRe.test(line)){const vals=[...line.matchAll(/(-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+(?:[.,]\d{2}))/g)].map(m=>n(m[1])).filter(v=>v!==null);if(vals.length)return vals[vals.length-1]}}return null}
 function addressParts(raw=""){
-  const s=String(raw||"").replace(/\s+/g," ").trim();let country="",postal="",city="",name=s;
-  const m=s.match(/\b(?:([A-Z]{2})[-\s])?(\d{4,5})\s+([^,;|]+)/i);
-  if(m){country=(m[1]||"").toUpperCase();postal=m[2];city=m[3].trim().replace(/\s{2,}.*/,"");if(!country)country=postal.length===5?"DE":"";const idx=m.index||0;name=s.slice(0,idx).replace(/[,:;\-]+$/g,"").trim()||s;}
+  const s=String(raw||"").replace(/\s+/g," ").trim();
+  let country="",postal="",city="",name=s,m=null;
+  m=s.match(/\b(?:([A-Z]{2})[-\s])?(\d{5})\s+([^,;|]+)/i);
+  if(m){
+    country=(m[1]||"DE").toUpperCase();postal=m[2];city=String(m[3]||"").trim();
+  }else{
+    m=s.match(/\b(?:([A-Z]{2})[-\s])?(\d{4})\s*([A-Z]{2})\s+([^,;|]+)/i);
+    if(m){country=(m[1]||"NL").toUpperCase();postal=`${m[2]} ${m[3].toUpperCase()}`;city=String(m[4]||"").trim()}
+    else{
+      m=s.match(/\b(?:([A-Z]{2})[-\s])?(\d{4})\s+([^,;|]+)/i);
+      if(m){country=(m[1]||"").toUpperCase();postal=m[2];city=String(m[3]||"").trim()}
+    }
+  }
+  if(m){const idx=m.index||0;name=s.slice(0,idx).replace(/[,:;\-]+$/g,"").trim()||s}
   name=name.replace(/^(?:Ladestelle|Entladestelle|Abholort|Entladeort|Beladen|Entladen|Empfänger|Von|Nach)\s*[:#-]?\s*/i,"").trim();
   return {raw:s,name,country,postal,city};
 }
@@ -80,7 +91,16 @@ function detectCarrier(text,file=""){
 }
 function invoiceNo(text,file){return pickFirst(flatText(text),[/Rechnungs(?:-|\s*)Nr\.?\s*[:#]?\s*([A-Z0-9_\/-]+)/i,/Rechnung\s+(?:Nr\.?\s*)?([A-Z]{0,4}\d[A-Z0-9_\/-]*)/i,/Belegnummer\s*[:#]?\s*([A-Z0-9_\/-]+)/i,/Beleg-Nr\.?\s*[:#]?\s*([A-Z0-9_\/-]+)/i])||String(file||"").replace(/\.pdf$/i,"").match(/(?:Rechnung\s*)?([A-Z]{0,4}[\d_/-]{4,})/i)?.[1]||""}
 function findDate(text,labels){const f=flatText(text);for(const label of labels){const re=new RegExp(label+"\\s*[:#]?\\s*(\\d{1,2}[.\\/-]\\d{1,2}[.\\/-]\\d{2,4})","i"),m=f.match(re);if(m)return dateIso(m[1])}return ""}
-function namedValue(text,labels,pattern="[^\\n|]{1,80}") {for(const l of labels){const re=new RegExp(l+"\\s*[:#]?\\s*("+pattern+")","i"),m=cleanText(text).match(re);if(m)return m[1].trim()}return ""}
+function namedValue(text,labels,pattern="[^\\n|]{1,80}") {
+  for(const l of labels){
+    const re=new RegExp(l+"\\s*[:#]?\\s*("+pattern+")","i"),m=cleanText(text).match(re);
+    if(m){
+      const v=String(m[1]??"").trim();
+      if(v)return v;
+    }
+  }
+  return "";
+}
 function extractGeneric(text,file,positionNo=1){
   const f=flatText(text),carrier=detectCarrier(text,file),inv=invoiceNo(text,file);
   const originRaw=normalizePartyRaw(lineStartingValue(text,["Ladestelle(?:\(n\))?","Ladeort","Abholort","Beladen","Von"])||namedValue(text,["Ladestelle(?:\(n\))?","Ladeort","Abholort","Beladen"],"[^\n]{3,120}")||pickFirst(f,[/(?:\bvon\s*:|\bab\s*:)\s*([^;]{0,80}\b\d{4,5}\s+[^;]{2,80})/i]));
@@ -144,14 +164,42 @@ function providerTune(x,text){
     const fr=lastMoney(/\bFracht\b.*?([\d.]+,\d{2})/gi);if(fr!==null)x.freight=fr;const net=lastMoney(/\bNetto\s+([\d.]+,\d{2})/gi);if(net!==null)x.actualTotal=net;else if(x.freight!==null)x.actualTotal=x.freight;
   }
   if(x.carrier==="EXWAY Logistics"){
-    x.invoiceDate=x.invoiceDate||findDate(text,["Rechnungsdatum"]);x.serviceDate=x.serviceDate||findDate(text,["Leistungsdatum"])||dateNearLabel(text,"Leistungsdatum");x.shipmentDate=x.shipmentDate||x.serviceDate||x.invoiceDate;
-    x.service=pickFirst(f,[/\b(Komplettladung|Teilladung)\b/i])||x.service;setParty("origin",lineStartingValue(text,["Beladen"]));setParty("dest",lineStartingValue(text,["Entladen"]));
-    x.referenceNo=x.referenceNo||pickFirst(f,[/\bReferenz\s*:?\s*([A-Z0-9_-]+)/i]);const km=pickFirst(f,[/\bEntfernung\s*:?\s*([\d.,]+)\s*km/i]);if(km)x.distanceKm=n(km);
-    const fr=lastMoney(/\bZwischensumme\s+([\d.]+,\d{2})/gi);if(fr!==null){x.freight=fr;x.actualTotal=fr}
+    x.invoiceDate=findDate(text,["Rechnungsdatum"])||x.invoiceDate;
+    x.serviceDate=findDate(text,["Leistungsdatum"])||dateNearLabel(text,"Leistungsdatum")||x.serviceDate;
+    x.shipmentDate=x.serviceDate||x.shipmentDate||x.invoiceDate;
+    x.service=pickFirst(f,[/\b(Komplettladung|Teilladung)\b/i])||x.service;
+
+    const order=pickFirst(f,[/\b(AB\d{4,})\b/i]);
+    if(order)x.orderNo=order;
+    const ref=pickFirst(f,[/\bReferenz\s*:?\s*([A-Z0-9_-]{2,})/i]);
+    if(ref&&!/^(Teilladung|Komplettladung|Ladestelle|Dienstleistung)$/i.test(ref))x.referenceNo=ref;
+    else if(/^(Teilladung|Komplettladung|Ladestelle|Dienstleistung)$/i.test(x.referenceNo||""))x.referenceNo="";
+
+    const lines=ct.split("\n").map(v=>v.trim()).filter(Boolean);
+    const collectAfter=(label,max=6)=>{
+      const i=lines.findIndex(v=>new RegExp("^"+label+"\\b","i").test(v));
+      if(i<0)return "";
+      const out=[];
+      const same=lines[i].replace(new RegExp("^"+label+"\\b\\s*:?\\s*","i"),"").trim();
+      if(same)out.push(same);
+      for(let j=i+1;j<Math.min(lines.length,i+1+max);j++){
+        if(/^(Beladen|Entladen|Preis|Zwischensumme|Steuern|Rechnungsdatum|Fälligkeitsdatum|Leistungsdatum|Auftrag|Ladestelle|Dienstleistung|Steuerschlüssel|Netto)\b/i.test(lines[j]))break;
+        out.push(lines[j]);
+      }
+      return out.join(" ");
+    };
+    const origin=collectAfter("Beladen",5),dest=collectAfter("Entladen",7);
+    if(origin)setParty("origin",origin);
+    if(dest)setParty("dest",dest);
+
+    const km=pickFirst(f,[/\bEntfernung\s*:?\s*([\d.,]+)\s*km/i]);if(km)x.distanceKm=n(km);
+    const fr=lastMoney(/\bZwischensumme\s+([\d.]+,\d{2})/gi) ?? lastMoney(/\bPreis\b.*?([\d.]+,\d{2})/gi);
+    if(fr!==null){x.freight=fr;x.actualTotal=fr}
+    if(/^(Ladestelle|Auftrag|Dienstleistung|Netto)$/i.test(x.orderNo||""))x.orderNo=order||"";
   }
   if(x.carrier==="Dachser"){
     x.invoiceDate=x.invoiceDate||findDate(text,["Datum"]);const dt=pickFirst(f,[/\b(\d{1,2}[.]\d{1,2}[.]\d{2,4})\s+SALUX\b/i]);if(dt)x.shipmentDate=dateIso(dt);
-    const p=f.match(/\bSALUX\s+GMBH\s+D\s+(\d{5})\s+([A-ZÄÖÜß -]+?)\s+GLOBUS\s+BAUMARKT\s+D\s+(\d{5})\s+([A-ZÄÖÜß -]+?)(?=\s+\d{2,4}\b)/i);if(p){setParty("origin",`SALUX GMBH D-${p[1]} ${p[2].trim()}`);setParty("dest",`GLOBUS BAUMARKT D-${p[3]} ${p[4].trim()}`)}
+    const p=f.match(/\bSALUX\s+GMBH\s+D\s+(\d{5})\s+([A-ZÄÖÜß -]+?)\s+GLOBUS\s+BAUMARKT\s+D\s+(\d{5})\s+([A-ZÄÖÜß -]+?)(?=\s+\d{2,4}\b)/i);if(p){setParty("origin",`SALUX GMBH D-${p[1]} ${String(p[2]||"").trim()}`);setParty("dest",`GLOBUS BAUMARKT D-${p[3]} ${String(p[4]||"").trim()}`)}
     x.orderNo=x.orderNo||pickFirst(f,[/\bAuf-Nr\.?\s*:?\s*([A-Z0-9_-]+)/i]);x.shipmentId=x.shipmentId||pickFirst(f,[/\bLf-Nr\.?\s*:?\s*([A-Z0-9_-]+)/i]);
     const fr=lastMoney(/\bFracht\s+ab\s+Werk\s+bis\s+Empfangsort\s+([\d.]+,\d{2})/gi);if(fr!==null)x.freight=fr;
     const pe=lastMoney(/\bPackmitteltauschgeb(?:ü|u)hr\s+([\d.]+,\d{2})/gi);if(pe!==null)x.palletExchangeFee=pe;
@@ -224,7 +272,7 @@ function statusBadge(x){if(x.importStatus==="new")return '<span class="historica
 function relation(x){const o=[x.originCountry,x.originPostal,x.originCity].filter(Boolean).join(" "),d=[x.destCountry,x.destPostal,x.destCity].filter(Boolean).join(" ");return `${o||"—"} → ${d||x.customer||"—"}`}
 function sizeText(x){return [x.pallets!=null?`${x.pallets} PLL`:"",x.colli!=null?`${x.colli} Colli`:"",x.weight!=null?`${x.weight} kg`:"",x.ldm!=null?`${x.ldm} LDM`:"",x.volume!=null?`${x.volume} CBM`:""].filter(Boolean).join(" · ")||"—"}
 function renderResults(){const all=state.positions,view=state.filter==="all"?all:all.filter(x=>x.importStatus===state.filter);$("historicalResultArea").hidden=false;$("historicalTotalCount").textContent=all.length;$("historicalNewCount").textContent=all.filter(x=>x.importStatus==="new").length;$("historicalDuplicateCount").textContent=all.filter(x=>x.importStatus==="duplicate").length;$("historicalReviewCount").textContent=all.filter(x=>x.importStatus==="review").length;const dups=all.filter(x=>x.importStatus==="duplicate");$("historicalDuplicateAlert").hidden=!dups.length;$("historicalDuplicateAlert").innerHTML=dups.length?`<strong>${dups.length} bereits vorhandene Sendung${dups.length===1?"":"en"} erkannt.</strong> Diese Positionen werden nicht überschrieben und sind für den Import gesperrt.`:"";$("historicalPreviewMeta").textContent=`${all.length} Positionen aus ${state.files.length} PDF-Datei${state.files.length===1?"":"en"} · keine Rechnungsprüfung`;
-  $("historicalPreviewRows").innerHTML=view.map(x=>{const idx=all.indexOf(x),reason=x.analysisError?`${(x.missingFields||[])[0]||"Analysefehler"}: ${x.analysisError}`:x.importStatus==="duplicate"?x.duplicateReason:(x.missingFields||[]).length?`Fehlt: ${x.missingFields.join(", ")}`:"Bereit für Import";return `<tr class="historical-row ${x.importStatus}"><td><input type="checkbox" data-historical-select="${idx}" ${x.selected?"checked":""} ${x.importStatus==="duplicate"?"disabled":""}></td><td>${statusBadge(x)}<small>${escH(reason)}</small></td><td><strong>${escH(x.carrier||"—")}</strong></td><td><strong>${escH(x.invoiceNumber||"—")}</strong><small>Pos. ${escH(x.invoicePosition||"1")}</small></td><td>${escH(x.shipmentDate||x.serviceDate||x.invoiceDate||"—")}</td><td class="historical-party-cell"><strong>${escH(x.originName||"—")}</strong><small>${escH([x.originCountry,x.originPostal,x.originCity].filter(Boolean).join(" "))}</small></td><td class="historical-party-cell"><strong>${escH(x.destName||x.customer||"—")}</strong><small>${escH([x.destCountry,x.destPostal,x.destCity].filter(Boolean).join(" "))}</small></td><td>${escH(sizeText(x))}</td><td><strong>${euro(x.actualTotal)}</strong><small>${x.freight!=null?`Fracht ${euro(x.freight)}`:""}${x.diesel!=null?` · Diesel ${euro(x.diesel)}`:""}${x.toll!=null?` · Maut ${euro(x.toll)}`:""}</small></td><td><button class="shipment-source-link" type="button" data-open-pending-pdf="${x._fileIndex}">PDF</button><small>${x._ocr?"OCR":"Text"} · ${x._pages||"?"} S.</small></td><td><div class="historical-row-actions"><button class="secondary compact-button" type="button" data-historical-detail="${idx}">Details</button>${x.analysisError?`<button class="secondary compact-button" type="button" data-historical-retry="${x._fileIndex}">Erneut analysieren</button>`:""}</div></td></tr>`}).join("")||'<tr><td colspan="11" class="empty-state">Keine Positionen für diesen Filter.</td></tr>';
+  $("historicalPreviewRows").innerHTML=view.map(x=>{const idx=all.indexOf(x),reason=x.analysisError?`${(x.missingFields||[])[0]||"Analysefehler"}: ${x.analysisError}`:x.importStatus==="duplicate"?x.duplicateReason:(x.missingFields||[]).length?`Fehlt: ${x.missingFields.join(", ")}`:"Bereit für Import";return `<tr class="historical-row ${x.importStatus}"><td><input type="checkbox" data-historical-select="${idx}" ${x.selected?"checked":""} ${x.importStatus==="duplicate"?"disabled":""}></td><td>${statusBadge(x)}<small>${escH(reason)}</small></td><td><strong>${escH(x.carrier||"—")}</strong></td><td><strong>${escH(x.invoiceNumber||"—")}</strong><small>Pos. ${escH(x.invoicePosition||"1")}</small></td><td>${escH(x.shipmentDate||x.serviceDate||x.invoiceDate||"—")}</td><td class="historical-party-cell"><strong>${escH(x.originName||"—")}</strong><small>${escH([x.originCountry,x.originPostal,x.originCity].filter(Boolean).join(" "))}</small></td><td class="historical-party-cell"><strong>${escH(x.destName||x.customer||"—")}</strong><small>${escH([x.destCountry,x.destPostal,x.destCity].filter(Boolean).join(" "))}</small></td><td>${escH(sizeText(x))}</td><td><strong>${euro(x.actualTotal)}</strong><small>${x.freight!=null?`Fracht ${euro(x.freight)}`:""}${x.diesel!=null?` · Diesel ${euro(x.diesel)}`:""}${x.toll!=null?` · Maut ${euro(x.toll)}`:""}</small></td><td><button class="shipment-source-link" type="button" data-open-pending-pdf="${x._fileIndex}">PDF ansehen</button><small>temporär · ${x._ocr?"OCR":"Text"} · ${x._pages||"?"} S.</small></td><td><div class="historical-row-actions"><button class="secondary compact-button" type="button" data-historical-detail="${idx}">Details</button>${x.analysisError?`<button class="secondary compact-button" type="button" data-historical-retry="${x._fileIndex}">Erneut analysieren</button>`:""}</div></td></tr>`}).join("")||'<tr><td colspan="11" class="empty-state">Keine Positionen für diesen Filter.</td></tr>';
   $("historicalPreviewRows").querySelectorAll("[data-historical-select]").forEach(el=>el.addEventListener("change",()=>{state.positions[Number(el.dataset.historicalSelect)].selected=el.checked}));
   $("historicalPreviewRows").querySelectorAll("[data-open-pending-pdf]").forEach(el=>el.addEventListener("click",()=>{const f=state.files[Number(el.dataset.openPendingPdf)];if(!f)return;const url=URL.createObjectURL(f);window.open(url,"_blank","noopener");setTimeout(()=>URL.revokeObjectURL(url),60000)}));
   $("historicalPreviewRows").querySelectorAll("[data-historical-detail]").forEach(el=>el.addEventListener("click",()=>openDetail(Number(el.dataset.historicalDetail))));$("historicalPreviewRows").querySelectorAll("[data-historical-retry]").forEach(el=>el.addEventListener("click",()=>{const f=state.files[Number(el.dataset.historicalRetry)];if(f)analyzeFiles([f])}));
@@ -267,7 +315,45 @@ function saveDetailEdits(){const x=state.positions[detailIndex];if(!x)return;$("
 function openDetail(i){if(!state.positions[i])return;detailIndex=i;detailEditing=false;renderDetail();$("historicalDetailModal").hidden=false}
 function closeDetail(){$("historicalDetailModal").hidden=true}
 function clearImport(){state={files:[],positions:[],filter:"all",busy:false};$("historicalResultArea").hidden=true;$("historicalProgress").hidden=true;$("historicalPdfInput").value=""}
-async function confirmImport(){const projectName=(document.getElementById("shipmentImportProject")?.value||"").trim();if(!projectName){showToast("Bitte zuerst ein Projekt auswählen oder ein neues Projekt anlegen.");return}const selected=state.positions.filter(x=>x.selected&&x.importStatus!=="duplicate");const dups=state.positions.filter(x=>x.importStatus==="duplicate").length;if(!selected.length){showToast(dups?`${dups} Position(en) bereits vorhanden – nichts Neues ausgewählt.`:"Keine Positionen zum Import ausgewählt.");return}const batchId="HISTPDF-"+Date.now(),now=new Date().toISOString(),fileKeys=new Map();try{for(const x of selected){if(!fileKeys.has(x._fileIndex)){const key=x.pdfKeyPending||`gpk_historical_invoice_pdf_v1::${Date.now()}_${x._fileIndex}`;await GPK.largeWrite(key,state.files[x._fileIndex]);fileKeys.set(x._fileIndex,key)}}const rows=selected.map((x,i)=>{const y={...x,batchId,projectName,importedAt:now,sourcePdfKey:fileKeys.get(x._fileIndex)};delete y.rawText;delete y.pdfKeyPending;delete y._fileIndex;delete y._ocr;delete y._pages;delete y.selected;delete y.duplicateOf;delete y.duplicateReason;delete y.analysisError;y.id=y.id||`HIST-${Date.now()}-${i}`;if(!y.shipmentId)y.shipmentId=y.waybillNo||y.orderNo||y.referenceNo||`${y.invoiceNumber||"INV"}-${y.invoicePosition||i+1}`;return y});const next=[...rows,...shipments];await GPK.largeWrite(GPK.KEYS.shipments,next);shipments=next;shipmentImports.unshift({id:batchId,fileName:`${state.files.length} PDF-Rechnungen`,sheetName:"Historischer PDF-Import",source:"Historische Rechnungen",projectName,count:rows.length,importedAt:now,duplicates:dups,reviewed:selected.filter(x=>x.importStatus==="review").length});GPK.write(GPK.KEYS.shipmentImports,shipmentImports.slice(0,100));renderAll();showToast(`${rows.length} Sendungen übernommen${dups?` · ${dups} Dublette(n) ausgelassen`:""}.`);clearImport();activateTab("overview")}catch(err){console.error(err);showToast("Historische Sendungsdaten konnten nicht gespeichert werden.")}}
+async function confirmImport(){
+  const projectName=(document.getElementById("shipmentImportProject")?.value||"").trim();
+  if(!projectName){showToast("Bitte zuerst ein Projekt auswählen oder ein neues Projekt anlegen.");return}
+  const selected=state.positions.filter(x=>x.selected&&x.importStatus!=="duplicate");
+  const dups=state.positions.filter(x=>x.importStatus==="duplicate").length;
+  if(!selected.length){showToast(dups?`${dups} Position(en) bereits vorhanden – nichts Neues ausgewählt.`:"Keine Positionen zum Import ausgewählt.");return}
+  const batchId="HISTPDF-"+Date.now(),now=new Date().toISOString();
+  try{
+    const rows=selected.map((x,i)=>{
+      const y={...x,batchId,projectName,importedAt:now,sourceFileName:x.sourceFile||state.files[x._fileIndex]?.name||""};
+      delete y.rawText;
+      delete y.pdfKeyPending;
+      delete y.sourcePdfKey;
+      delete y._fileIndex;
+      delete y._ocr;
+      delete y._ocrError;
+      delete y._pages;
+      delete y.selected;
+      delete y.duplicateOf;
+      delete y.duplicateReason;
+      delete y.analysisError;
+      y.id=y.id||`HIST-${Date.now()}-${i}`;
+      if(!y.shipmentId)y.shipmentId=y.waybillNo||y.orderNo||y.referenceNo||`${y.invoiceNumber||"INV"}-${y.invoicePosition||i+1}`;
+      return y
+    });
+    const next=[...rows,...shipments];
+    await GPK.largeWrite(GPK.KEYS.shipments,next);
+    shipments=next;
+    shipmentImports.unshift({id:batchId,fileName:`${state.files.length} PDF-Rechnungen`,sheetName:"Historischer PDF-Import",source:"Historische Rechnungen",projectName,count:rows.length,importedAt:now,duplicates:dups,reviewed:selected.filter(x=>x.importStatus==="review").length});
+    GPK.write(GPK.KEYS.shipmentImports,shipmentImports.slice(0,100));
+    renderAll();
+    showToast(`${rows.length} Sendungen übernommen${dups?` · ${dups} Dublette(n) ausgelassen`:""}. PDF-Dateien wurden nicht dauerhaft gespeichert.`);
+    clearImport();
+    activateTab("overview");
+  }catch(err){
+    console.error(err);
+    showToast("Historische Sendungsdaten konnten nicht gespeichert werden.");
+  }
+}
 function showHistoricalMode(){$("historicalImportArea").hidden=false;$("tabularImportArea").hidden=true;$("historicalModeBtn").classList.add("active");$("tabularModeBtn").classList.remove("active")}
 function showTabularMode(){$("historicalImportArea").hidden=true;$("tabularImportArea").hidden=false;$("historicalModeBtn").classList.remove("active");$("tabularModeBtn").classList.add("active")}
 function bind(){
