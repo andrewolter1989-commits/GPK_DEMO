@@ -1,5 +1,6 @@
 
 const SHIPMENT_KEY=GPK.KEYS.shipments;
+const SHIPMENT_PROJECT_KEY="gpk_shipment_projects_v1";
 const SHIPMENT_IMPORT_KEY=GPK.KEYS.shipmentImports;
 let shipments=[];
 let shipmentImports=GPK.read(SHIPMENT_IMPORT_KEY,[])||[];
@@ -14,15 +15,17 @@ const FIELD_DEFS=[
   ["referenceNo","Referenznummer",["referenz","referenznummer","reference","reference_no","ref_nr"]],
   ["shipmentDate","Versand-/Abholdatum",["versanddatum","shipment_date","ship_date","datum","abholdatum","pickup_date","shipping_date","versandtag"]],
   ["deliveryDate","Lieferdatum",["lieferdatum","zustelldatum","delivery_date","deliverydate","pod_date"]],
+  ["originName","Absender Name",["absender","versender","sender","shipper","origin_name","versender_name","absender_name"]],
   ["originCountry","Start Land",["origin_country","versender_land","land_versender","abgangsland","country_origin","from_country"]],
   ["originPostal","Start PLZ",["origin_postal","origin_zip","plz_versender","versender_plz","abgangsplz","from_zip","pickup_postcode"]],
   ["originCity","Start Ort",["origin_city","versender_ort","ort_versender","abgangsort","from_city"]],
   ["destCountry","Ziel Land",["destination_country","dest_country","empfaenger_land","land_empfaenger","zielland","country_destination","to_country"]],
   ["destPostal","Ziel PLZ",["destination_postal","dest_postal","dest_zip","plz_empfaenger","empfaenger_plz","ziel_plz","to_zip","postcode"]],
   ["destCity","Ziel Ort",["destination_city","dest_city","empfaenger_ort","ort_empfaenger","zielort","to_city"]],
+  ["destName","Empfänger Name",["empfaenger","empfänger","consignee","receiver","destination_name","empfaenger_name"]],
   ["carrier","Dienstleister",["dienstleister","spediteur","spedition","carrier","forwarder","frachtfuehrer","frachtführer"]],
   ["service","Service / Produkt",["service","produkt","product","versandart","serviceart","service_type","transportart"]],
-  ["customer","Empfänger / Kunde",["empfaenger","empfänger","customer","kunde","consignee","receiver"]],
+  ["customer","Kunde / Referenzkunde",["customer","kunde","customer_name","kundennamen"]],
   ["pallets","Paletten",["paletten","palette","pallets","pll","euro_paletten","europaletten"]],
   ["colli","Colli / Packstücke",["colli","packstuecke","packstücke","packages","pieces","anzahl_packstuecke","quantity"]],
   ["weight","Gewicht kg",["gewicht","weight","gewicht_kg","weight_kg","bruttogewicht","kg"]],
@@ -294,6 +297,15 @@ async function loadShipmentFile(file){
   }catch(err){console.error(err);showToast("Datei konnte nicht gelesen werden.")}
 }
 
+function shipmentProjectNames(){
+  const saved=GPK.read(SHIPMENT_PROJECT_KEY,[])||[];
+  return [...new Set([...saved,...shipments.map(x=>x.projectName).filter(Boolean)])].map(v=>String(v).trim()).filter(Boolean).sort((a,b)=>a.localeCompare(b,"de"));
+}
+function refreshShipmentProjects(){
+  const names=shipmentProjectNames(), importSelect=document.getElementById("shipmentImportProject"), filter=document.getElementById("shipmentProjectFilter");
+  if(importSelect){const keep=importSelect.value;importSelect.innerHTML='<option value="">Bitte Projekt auswählen</option>'+names.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");if(names.includes(keep))importSelect.value=keep;}
+  if(filter){const keep=filter.value;filter.innerHTML='<option value="">Alle Projekte</option>'+names.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");if(names.includes(keep))filter.value=keep;}
+}
 function renderAll(){
   const data=shipments;
   shipmentCount.textContent=intFmt(data.length);
@@ -306,13 +318,14 @@ function renderAll(){
   const carriers=[...new Set(data.map(x=>x.carrier).filter(Boolean))].sort(),countries=[...new Set(data.map(x=>x.destCountry).filter(Boolean))].sort();
   shipmentCarrierFilter.innerHTML='<option value="">Alle Dienstleister</option>'+carriers.map(v=>`<option>${esc(v)}</option>`).join("");
   shipmentCountryFilter.innerHTML='<option value="">Alle Länder</option>'+countries.map(v=>`<option>${esc(v)}</option>`).join("");
+  refreshShipmentProjects();
   renderShipmentTable();renderBenchmark();
 }
 function renderShipmentTable(){
-  const q=shipmentSearch.value.trim().toLowerCase(),carrier=shipmentCarrierFilter.value,country=shipmentCountryFilter.value,cost=shipmentCostFilter.value;
-  const filtered=shipments.filter(x=>{const custom=Object.values(x.custom||{}).join(" ");const hay=`${x.shipmentId} ${x.orderNo||""} ${x.waybillNo||""} ${x.referenceNo||""} ${x.invoiceNumber||""} ${x.carrier} ${x.originPostal} ${x.destPostal} ${x.destCity} ${x.customer} ${x.service} ${custom}`.toLowerCase();return (!q||hay.includes(q))&&(!carrier||x.carrier===carrier)&&(!country||x.destCountry===country)&&(!cost||(cost==="with"?hasCost(x):!hasCost(x)))});
+  const q=shipmentSearch.value.trim().toLowerCase(),project=document.getElementById("shipmentProjectFilter")?.value||"",carrier=shipmentCarrierFilter.value,country=shipmentCountryFilter.value,cost=shipmentCostFilter.value;
+  const filtered=shipments.filter(x=>{const custom=Object.values(x.custom||{}).join(" ");const hay=`${x.projectName||""} ${x.shipmentId} ${x.orderNo||""} ${x.waybillNo||""} ${x.referenceNo||""} ${x.invoiceNumber||""} ${x.carrier} ${x.originName||""} ${x.originPostal||""} ${x.originCity||""} ${x.destName||""} ${x.destPostal||""} ${x.destCity||""} ${x.customer||""} ${x.service} ${custom}`.toLowerCase();return (!q||hay.includes(q))&&(!project||x.projectName===project)&&(!carrier||x.carrier===carrier)&&(!country||x.destCountry===country)&&(!cost||(cost==="with"?hasCost(x):!hasCost(x)))});
   visibleShipmentCount.textContent=intFmt(filtered.length);
-  shipmentRows.innerHTML=filtered.slice(0,1000).map(x=>`<tr><td><strong>${esc(x.shipmentId||x.orderNo||x.waybillNo||"—")}</strong><small>${esc(x.sourceFile||"")}${x.sourcePdfKey?` · <button type="button" class="shipment-source-link" data-open-source-pdf="${esc(x.sourcePdfKey)}">PDF</button>`:""}</small></td><td>${esc(x.shipmentDate||x.serviceDate||"—")}</td><td>${esc(x.carrier||"—")}</td><td><strong>${esc([x.destCountry,x.destPostal].filter(Boolean).join(" ")||"—")}</strong><small>${esc(x.destCity||x.customer||"")}</small></td><td>${esc(x.service||"—")}</td><td>${x.pallets!=null?`${decFmt(x.pallets,1)} PLL`:x.colli!=null?`${decFmt(x.colli,1)} Colli`:"—"}</td><td>${x.weight!=null?`${decFmt(x.weight,1)} kg`:"—"}</td><td>${x.ldm!=null?`${decFmt(x.ldm,2)} LDM`:x.volume!=null?`${decFmt(x.volume,2)} m³`:"—"}</td><td><strong>${hasCost(x)?money(totalCost(x)):"—"}</strong></td></tr>`).join("")||'<tr><td colspan="9" class="empty-state">Keine Sendungen für diese Auswahl.</td></tr>';
+  shipmentRows.innerHTML=filtered.slice(0,1000).map(x=>`<tr><td><strong>${esc(x.shipmentId||x.orderNo||x.waybillNo||"—")}</strong><small>${esc(x.sourceFile||"")}${x.sourcePdfKey?` · <button type="button" class="shipment-source-link" data-open-source-pdf="${esc(x.sourcePdfKey)}">PDF</button>`:""}</small></td><td>${x.projectName?`<span class="shipment-project-badge">${esc(x.projectName)}</span>`:"—"}</td><td>${esc(x.shipmentDate||x.serviceDate||"—")}</td><td>${esc(x.carrier||"—")}</td><td><strong>${esc(x.originName||"—")}</strong><small>${esc([x.originCountry,x.originPostal,x.originCity].filter(Boolean).join(" "))}</small></td><td><strong>${esc(x.destName||x.customer||"—")}</strong><small>${esc([x.destCountry,x.destPostal,x.destCity].filter(Boolean).join(" "))}</small></td><td>${esc(x.service||"—")}</td><td>${x.pallets!=null?`${decFmt(x.pallets,1)} PLL`:x.colli!=null?`${decFmt(x.colli,1)} Colli`:"—"}</td><td>${x.weight!=null?`${decFmt(x.weight,1)} kg`:"—"}</td><td>${x.ldm!=null?`${decFmt(x.ldm,2)} LDM`:x.volume!=null?`${decFmt(x.volume,2)} m³`:"—"}</td><td><strong>${hasCost(x)?money(totalCost(x)):"—"}</strong></td></tr>`).join("")||'<tr><td colspan="11" class="empty-state">Keine Sendungen für diese Auswahl.</td></tr>';
   shipmentRows.querySelectorAll("[data-open-source-pdf]").forEach(btn=>btn.addEventListener("click",async()=>{try{const blob=await GPK.largeRead(btn.dataset.openSourcePdf,null);if(!blob)return showToast("Original-PDF nicht gefunden.");const url=URL.createObjectURL(blob);window.open(url,"_blank","noopener");setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(_){showToast("Original-PDF konnte nicht geöffnet werden.")}}));
 }
 function renderBenchmark(){
@@ -327,7 +340,7 @@ function renderBenchmark(){
   shipmentPalletBenchmarkRows.innerHTML=bands.map(([label,min,max])=>{const a=data.filter(x=>{const p=num(x.pallets);return p!==null&&p>=min&&p<=max}),costs=a.filter(hasCost),cs=costs.reduce((s,x)=>s+totalCost(x),0),share=data.length?Math.round(a.length/data.length*100):0;return `<tr><td><strong>${label} PLL</strong></td><td>${intFmt(a.length)}</td><td>${share}%</td><td>${costs.length?money(cs/costs.length):"—"}</td></tr>`}).join("");
 }
 
-[shipmentSearch,shipmentCarrierFilter,shipmentCountryFilter,shipmentCostFilter].forEach(el=>{el.addEventListener("input",renderShipmentTable);el.addEventListener("change",renderShipmentTable)});
+[shipmentSearch,shipmentProjectFilter,shipmentCarrierFilter,shipmentCountryFilter,shipmentCostFilter].forEach(el=>{el.addEventListener("input",renderShipmentTable);el.addEventListener("change",renderShipmentTable)});
 openShipmentImportBtn.addEventListener("click",()=>{activateTab("import");if(window.GPKHistoricalImport)window.GPKHistoricalImport.showHistoricalMode();});
 chooseShipmentFileBtn.addEventListener("click",()=>shipmentFileInput.click());
 shipmentFileInput.addEventListener("change",()=>{if(shipmentFileInput.files[0])loadShipmentFile(shipmentFileInput.files[0])});
@@ -343,6 +356,8 @@ addShipmentCustomField.addEventListener("click",()=>{
 });
 cancelShipmentImportBtn.addEventListener("click",()=>{importState={file:null,sheets:[],sheetName:"",rows:[],headerRow:0,headers:[],mapping:{},normalized:[]};shipmentMappingCard.hidden=true;shipmentPreviewCard.hidden=true;shipmentImportInfo.hidden=true});
 confirmShipmentImportBtn.addEventListener("click",async()=>{
+  const projectName=(document.getElementById("shipmentImportProject")?.value||"").trim();
+  if(!projectName){showToast("Bitte zuerst ein Projekt auswählen oder ein neues Projekt anlegen.");return}
   normalizeImportRows();
   if(!importState.normalized.length){showToast("Keine Sendungen zum Importieren. Bitte Arbeitsblatt und Kopfzeile prüfen.");return}
   const mappedCount=Object.values(importState.mapping).filter(v=>mappedIndex(v)>=0).length;
@@ -350,12 +365,12 @@ confirmShipmentImportBtn.addEventListener("click",async()=>{
     showToast("Noch keine Spalten zugeordnet. Bitte mindestens ein Feld zuordnen.");
     return;
   }
-  const batchId="SHIPIMP-"+Date.now(),now=new Date().toISOString(),rows=importState.normalized.map(x=>({...x,batchId}));
+  const batchId="SHIPIMP-"+Date.now(),now=new Date().toISOString(),rows=importState.normalized.map(x=>({...x,batchId,projectName}));
   const next=[...rows,...shipments];
   try{
     await GPK.largeWrite(SHIPMENT_KEY,next);
     shipments=next;
-    shipmentImports.unshift({id:batchId,fileName:importState.file.name,sheetName:importState.sheetName,count:rows.length,importedAt:now,headerRow:importState.headerRow+1,mapping:{...importState.mapping},customFields:customFieldDefs.map(x=>({...x}))});
+    shipmentImports.unshift({id:batchId,fileName:importState.file.name,sheetName:importState.sheetName,projectName,count:rows.length,importedAt:now,headerRow:importState.headerRow+1,mapping:{...importState.mapping},customFields:customFieldDefs.map(x=>({...x}))});
     if(!GPK.write(SHIPMENT_IMPORT_KEY,shipmentImports.slice(0,100))){showToast("Sendungen gespeichert; Import-Historie konnte nicht vollständig gespeichert werden.")}
     else showToast(`${rows.length.toLocaleString("de-DE")} Sendungen importiert.`);
     renderAll();activateTab("overview");
@@ -364,10 +379,11 @@ confirmShipmentImportBtn.addEventListener("click",async()=>{
 exportShipmentsBtn.addEventListener("click",async()=>{
   if(!shipments.length){showToast("Keine Sendungsdaten zum Exportieren.");return}
   const flat=shipments.map(x=>({
+    "Projekt":x.projectName||"",
     "Spediteur":x.carrier||"","Rechnungsnummer":x.invoiceNumber||"","Rechnungsposition":x.invoicePosition||"","Rechnungsdatum":x.invoiceDate||"","Leistungsdatum":x.serviceDate||"","Abholdatum":x.shipmentDate||"","Lieferdatum":x.deliveryDate||"",
     "Auftragsnummer":x.orderNo||"","Sendungsnummer":x.shipmentId||"","Frachtbriefnummer":x.waybillNo||"","Referenznummer":x.referenceNo||"",
     "Absender":x.originName||"","Start Land":x.originCountry||"","Start PLZ":x.originPostal||"","Start Ort":x.originCity||"",
-    "Empfänger":x.customer||x.destName||"","Ziel Land":x.destCountry||"","Ziel PLZ":x.destPostal||"","Ziel Ort":x.destCity||"",
+    "Empfänger":x.destName||x.customer||"","Ziel Land":x.destCountry||"","Ziel PLZ":x.destPostal||"","Ziel Ort":x.destCity||"",
     "Transportart":x.service||"","Paletten":x.pallets??"","Kolli":x.colli??"","Stellplätze":x.slots??"","Gewicht kg":x.weight??"","LDM":x.ldm??"","CBM":x.volume??"","Kilometer":x.distanceKm??"",
     "Fracht netto":x.freight??"","Diesel netto":x.diesel??"","Maut netto":x.toll??"","Versicherung netto":x.insurance??"","Avis netto":x.noticeFee??"","Zoll netto":x.customs??"","Express netto":x.expressFee??"","Hebebühne netto":x.tailLiftFee??"","Wartezeit netto":x.waitingFee??"","Insel-/Gebietszuschlag netto":x.areaSurcharge??"","Palettentausch / Verpackung netto":x.palletExchangeFee??"","Sonstige Nebenkosten netto":x.otherCharges??"","Gesamtsumme netto":(x.actualTotal??totalCost(x))||"",
     "Originalbezeichnung Nebenkosten":x.originalChargeLabels||"","Quelle":x.sourceType||"","Quelldatei":x.sourceFile||"","Original-PDF verknüpft":x.sourcePdfKey?"Ja":"Nein","Datenqualität":x.dataQuality||"","Fehlende Felder":(x.missingFields||[]).join(", "),
@@ -375,6 +391,10 @@ exportShipmentsBtn.addEventListener("click",async()=>{
   }));
   await exportWorkbook("GP_Kollund_Sendungsdaten.xlsx",{Sendungen:flat});
 });
+const projectSelect=document.getElementById("shipmentImportProject"),projectNewWrap=document.getElementById("shipmentProjectNewWrap"),newProjectBtn=document.getElementById("newShipmentProjectBtn"),saveProjectBtn=document.getElementById("saveShipmentProjectBtn"),newProjectName=document.getElementById("shipmentNewProjectName");
+if(newProjectBtn)newProjectBtn.addEventListener("click",()=>{projectNewWrap.hidden=!projectNewWrap.hidden;if(!projectNewWrap.hidden)newProjectName.focus()});
+if(saveProjectBtn)saveProjectBtn.addEventListener("click",()=>{const name=(newProjectName.value||"").trim();if(!name){showToast("Bitte einen Projektnamen eingeben.");return}const names=shipmentProjectNames();if(!names.includes(name)){names.push(name);GPK.write(SHIPMENT_PROJECT_KEY,names.sort((a,b)=>a.localeCompare(b,"de")))}refreshShipmentProjects();projectSelect.value=name;newProjectName.value="";projectNewWrap.hidden=true;showToast(`Projekt „${name}“ angelegt.`)});
+
 (async function init(){
   shipments=await GPK.largeRead(SHIPMENT_KEY,[]);
   renderAll();

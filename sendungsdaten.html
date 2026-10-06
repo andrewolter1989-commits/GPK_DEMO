@@ -22,7 +22,7 @@
         <a class="nav-item" href="rechnungspruefung.html"><span class="nav-icon">✓</span><span>Rechnungsprüfung</span></a>
         <a class="nav-item" href="einstellungen.html"><span class="nav-icon">⚙</span><span>Einstellungen</span></a>
       </nav>
-    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.71</div>
+    <div class="sidebar-foot"><span class="status-dot"></span> Prototype v6.73</div>
   </aside>
 
   <main class="main-content shipment-data-page">
@@ -70,6 +70,7 @@
       <section id="shipmentShipmentsPanel" class="shipment-data-panel" hidden>
         <div class="masterdata-filterbar shipment-filterbar">
           <label class="search-box"><span class="search-icon">⌕</span><input id="shipmentSearch" type="search" placeholder="Sendungsnummer, Dienstleister, PLZ, Empfänger suchen"></label>
+          <select id="shipmentProjectFilter"><option value="">Alle Projekte</option></select>
           <select id="shipmentCarrierFilter"><option value="">Alle Dienstleister</option></select>
           <select id="shipmentCountryFilter"><option value="">Alle Länder</option></select>
           <select id="shipmentCostFilter"><option value="">Alle Kosten</option><option value="with">Mit Kosten</option><option value="without">Ohne Kosten</option></select>
@@ -77,7 +78,7 @@
         <div class="masterdata-meta"><span><strong id="visibleShipmentCount">0</strong> Sendungen angezeigt</span><span class="meta-separator">•</span><span>Importwerte bleiben unverändert; abgeleitete Kennzahlen werden separat berechnet.</span></div>
         <div class="masterdata-table-wrap shipment-table-wrap">
           <table class="masterdata-table shipment-table">
-            <thead><tr><th>Sendung</th><th>Datum</th><th>Dienstleister</th><th>Relation</th><th>Service</th><th>Paletten / Colli</th><th>Gewicht</th><th>LDM / Volumen</th><th>Kosten</th></tr></thead>
+            <thead><tr><th>Sendung</th><th>Projekt</th><th>Datum</th><th>Dienstleister</th><th>Absender</th><th>Empfänger</th><th>Service</th><th>Paletten / Colli</th><th>Gewicht</th><th>LDM / Volumen</th><th>Kosten</th></tr></thead>
             <tbody id="shipmentRows"></tbody>
           </table>
         </div>
@@ -112,6 +113,13 @@
             <button class="historical-mode-btn" id="tabularModeBtn" type="button">Excel / CSV</button>
           </div>
           <div class="historical-only-note"><strong>Nur Sendungsstatistik</strong><span>Dieser Import prüft keine Frachtraten und bewertet nicht, ob Rechnungen korrekt sind.</span></div>
+        </div>
+
+        <div class="shipment-project-picker">
+          <div class="shipment-project-copy"><span class="auto-strip-eyebrow">Projekt / Datenbasis</span><strong>Import einem Projekt zuordnen</strong><small>Das Projekt wird an jeder importierten Sendungszeile gespeichert und kann später gefiltert oder nach Excel exportiert werden.</small></div>
+          <label class="shipment-project-field"><span>Projekt auswählen</span><select id="shipmentImportProject"><option value="">Bitte Projekt auswählen</option></select></label>
+          <div class="shipment-project-new" id="shipmentProjectNewWrap" hidden><label><span>Neuer Projektname</span><input id="shipmentNewProjectName" type="text" maxlength="80" placeholder="z. B. Salux 2025 Ausgangsfracht"></label><button class="secondary compact-button" id="saveShipmentProjectBtn" type="button">Projekt anlegen</button></div>
+          <button class="secondary compact-button" id="newShipmentProjectBtn" type="button">+ Neues Projekt</button>
         </div>
 
         <div id="historicalImportArea">
@@ -163,7 +171,7 @@
               <div id="historicalDuplicateAlert" class="historical-duplicate-alert" hidden></div>
               <div class="statistics-table-wrap historical-table-wrap">
                 <table class="statistics-table historical-preview-table">
-                  <thead><tr><th>Übernehmen</th><th>Status</th><th>Spediteur</th><th>Rechnung / Position</th><th>Datum</th><th>Relation</th><th>Sendungsdaten</th><th>Kosten netto</th><th>Quelle</th><th></th></tr></thead>
+                  <thead><tr><th>Übernehmen</th><th>Status</th><th>Spediteur</th><th>Rechnung / Position</th><th>Datum</th><th>Absender</th><th>Empfänger</th><th>Sendungsdaten</th><th>Kosten netto</th><th>Quelle</th><th></th></tr></thead>
                   <tbody id="historicalPreviewRows"></tbody>
                 </table>
               </div>
@@ -231,14 +239,14 @@
   <div class="modal-card historical-detail-card" role="dialog" aria-modal="true" aria-labelledby="historicalDetailTitle">
     <div class="modal-head"><div><h2 id="historicalDetailTitle">Erkannte Rechnungsposition</h2><p id="historicalDetailSubtitle">—</p></div><button class="icon-button" id="closeHistoricalDetailBtn" type="button" aria-label="Schließen">×</button></div>
     <div id="historicalDetailBody" class="historical-detail-body"></div>
-    <div class="modal-actions"><button class="secondary" id="closeHistoricalDetailFooterBtn" type="button">Schließen</button></div>
+    <div class="modal-actions historical-detail-actions"><button class="secondary" id="openHistoricalDetailPdfBtn" type="button">Original-PDF öffnen</button><span class="modal-action-spacer"></span><button class="secondary" id="cancelHistoricalEditBtn" type="button" hidden>Abbrechen</button><button class="secondary" id="editHistoricalDetailBtn" type="button">Bearbeiten</button><button class="primary" id="saveHistoricalDetailBtn" type="button" hidden>Speichern</button><button class="secondary" id="closeHistoricalDetailFooterBtn" type="button">Schließen</button></div>
   </div>
 </div>
 <div class="toast" id="shipmentToast" hidden></div>
 <script src="gpk-core.js"></script>
 <script src="api-client.js"></script>
 <script src="excel-io.js"></script>
-<script src="sendungsdaten.js"></script>
-<script src="historical-invoice-import.js"></script>
+<script src="sendungsdaten.js?v=6.73"></script>
+<script src="historical-invoice-import.js?v=6.73"></script>
 </body>
 </html>
