@@ -203,23 +203,47 @@ function providerTune(x,text){
     x.shipmentDate=x.serviceDate||x.shipmentDate||x.invoiceDate;
     x.orderNo=firstMatch(f,/\bAuftragsnummer\s+([0-9]{6,})\b/i)||x.orderNo;
 
-    // YALIN has two aligned columns. Read the explicit labels instead of the
-    // surrounding OCR flow, otherwise footer/AGB text can become "Empfänger".
-    const lad=lineStartingValue(text,["Ladestelle"])||
-      firstMatch(f,/\bLadestelle\s+(.+?)(?=\s+(?:Entladestelle|Ware|200\b|Fracht\s+lt\.|Leistungstag))/i);
-    const ent=lineStartingValue(text,["Entladestelle"])||
-      firstMatch(f,/\bEntladestelle\s+(.+?)(?=\s+(?:Ware|200\b|Fracht\s+lt\.|Netto\b|Zahlbar))/i);
-    if(lad){
-      const m=lad.match(/^(.*?)\s*,?\s*(?:D[-\s])?(\d{5})\s+(.+)$/i);
-      if(m)setPartyFields(x,"origin",m[1],"DE",m[2],m[3]);else setParty("origin",lad);
+    // YALIN: read the single transport row as a bounded block.
+    // Example:
+    // Ladestelle Salux GmbH, D-06526 Sangerhausen
+    // Entladestelle Palram GmbH, D-39218 Schönebeck
+    const transportBlock=firstMatch(
+      f,
+      /\bLadestelle\s+(.+?)\s+Entladestelle\s+(.+?)(?=\s+200\s+Fracht\s+lt\.?\s+Vereinbarung|\s+Fracht\s+lt\.?\s+Vereinbarung|\s+Netto\b)/i,
+      0
+    );
+
+    let originRaw="",destRaw="";
+    if(transportBlock){
+      const m=transportBlock.match(/\bLadestelle\s+(.+?)\s+Entladestelle\s+(.+)$/i);
+      if(m){originRaw=String(m[1]||"").trim();destRaw=String(m[2]||"").trim()}
     }
-    if(ent){
-      const m=ent.match(/^(.*?)\s*,?\s*(PL|DE)?[-\s]?(\d{2}-?\d{3}|\d{5})\s+(.+)$/i);
-      if(m)setPartyFields(x,"dest",m[1],m[2]||"DE",m[3],m[4]);else setParty("dest",ent);
+    if(!originRaw){
+      originRaw=firstMatch(f,/\bLadestelle\s+(.+?)(?=\s+Entladestelle\b)/i);
+    }
+    if(!destRaw){
+      destRaw=firstMatch(f,/\bEntladestelle\s+(.+?)(?=\s+200\s+Fracht\s+lt\.?\s+Vereinbarung|\s+Fracht\s+lt\.?\s+Vereinbarung|\s+Netto\b)/i);
     }
 
-    const ref=lineStartingValue(text,["Referenznummer"])||
-      firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.|Leistungstag))/i);
+    const parseDEParty=(raw)=>{
+      const t=String(raw||"").replace(/\s+/g," ").replace(/[;,]+$/,"").trim();
+      // country prefix is optional in OCR; city stops at end because block is bounded above
+      const m=t.match(/^(.*?)\s*,?\s*(?:(DE|D|PL)[-\s])?(\d{5}|\d{2}-\d{3})\s+(.+)$/i);
+      if(!m)return null;
+      const cc=(m[2]||"DE").toUpperCase()==="D"?"DE":(m[2]||"DE").toUpperCase();
+      return {name:String(m[1]||"").trim(),country:cc,postal:String(m[3]||"").trim(),city:String(m[4]||"").trim()}
+    };
+
+    const op=parseDEParty(originRaw);
+    if(op)setPartyFields(x,"origin",op.name,op.country,op.postal,op.city);
+    else if(originRaw)setParty("origin",originRaw);
+
+    const dp=parseDEParty(destRaw);
+    if(dp)setPartyFields(x,"dest",dp.name,dp.country,dp.postal,dp.city);
+    else if(destRaw)setParty("dest",destRaw);
+
+    // YALIN 11353 has no business reference number; do not invent one from nearby text.
+    const ref=firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.|Leistungstag))/i);
     x.referenceNo=normalizeInvoiceReference(ref)||"";
 
     const p=firstMatch(f,/\bWare\s+(\d+(?:[.,]\d+)?)\s+(?:Einwegpaletten?|EW-?Paletten?)/i);
@@ -227,10 +251,13 @@ function providerTune(x,text){
     const c=firstMatch(f,/\bWare\s+(\d+(?:[.,]\d+)?)\s+Kolli\b/i);
     if(c)x.colli=n(c);
     const wt=firstMatch(f,/\b([\d.]+(?:,\d+)?)\s*kg\b/i);if(wt)x.weight=n(wt);
-    const fr=lastMoney(/\bFracht\s+lt\.?\s+Vereinbarung\b.*?([\d.]+,\d{2})/gi);if(fr!==null){x.freight=fr;x.actualTotal=fr}
 
-    // Service comes from the actual transport data, never from the word "Fracht".
+    const fr=lastMoney(/\bFracht\s+lt\.?\s+Vereinbarung\b.*?([\d.]+,\d{2})/gi);
+    if(fr!==null){x.freight=fr;x.actualTotal=fr}
+
     x.service="";
+    // Never duplicate order number into shipment number merely because shipment no. is absent.
+    if(x.shipmentId===x.orderNo)x.shipmentId="";
   }
 
   if(x.carrier==="TAFU Logistik"){

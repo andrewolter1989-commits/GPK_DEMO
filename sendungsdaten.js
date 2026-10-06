@@ -134,6 +134,7 @@ async function readShipmentWorkbook(file){
   return wb.SheetNames.map(name=>({name,rows:XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:"",raw:false})}));
 }
 
+function cleanShipmentIdentifier(x){const sid=String(x?.shipmentId||"").trim(),ord=String(x?.orderNo||"").trim();return sid&&sid!==ord?sid:""}
 function renderSheetSelector(){
   const el=document.getElementById("shipmentSheetSelect");if(!el)return;
   el.innerHTML=importState.sheets.map((sh,i)=>`<option value="${i}">${esc(sh.name)} · ${Math.max(0,(sh.rows||[]).length)} Zeilen</option>`).join("");
@@ -412,7 +413,7 @@ exportShipmentsBtn.addEventListener("click",async()=>{
     "Empfänger":x.destName||x.customer||"","Ziel Land":x.destCountry||"","Ziel PLZ":x.destPostal||"","Ziel Ort":x.destCity||"",
     "Transportart":x.service||"","Paletten":x.pallets??"","Kolli":x.colli??"","Stellplätze":x.slots??"","Gewicht kg":x.weight??"","LDM":x.ldm??"","CBM":x.volume??"","Kilometer":x.distanceKm??"",
     "Fracht netto":x.freight??"","Diesel netto":x.diesel??"","Maut netto":x.toll??"","Versicherung netto":x.insurance??"","Avis netto":x.noticeFee??"","Zoll netto":x.customs??"","Express netto":x.expressFee??"","Hebebühne netto":x.tailLiftFee??"","Wartezeit netto":x.waitingFee??"","Insel-/Gebietszuschlag netto":x.areaSurcharge??"","Palettentausch / Verpackung netto":x.palletExchangeFee??"","Sonstige Nebenkosten netto":x.otherCharges??"","Gesamtsumme netto":(x.actualTotal??totalCost(x))||"",
-    "Originalbezeichnung Nebenkosten":x.originalChargeLabels||"","Quelle":x.sourceType||"","Quelldatei":x.sourceFile||"","Original-PDF verknüpft":x.sourcePdfKey?"Ja":"Nein","Datenqualität":x.dataQuality||"","Fehlende Felder":(x.missingFields||[]).join(", "),
+    "Originalbezeichnung Nebenkosten":x.originalChargeLabels||"","Quelle":x.sourceType||"","Quelldatei":x.sourceFileName||x.sourceFile||"","Original-PDF verknüpft":"Nein","Datenqualität":x.dataQuality||"","Fehlende Felder":(x.missingFields||[]).join(", "),
     ...Object.fromEntries(Object.entries(x.custom||{}).map(([k,v])=>[`Eigenes Feld: ${k}`,v]))
   }));
   await exportWorkbook("GP_Kollund_Sendungsdaten.xlsx",{Sendungen:flat});
