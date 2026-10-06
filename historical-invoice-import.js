@@ -167,11 +167,48 @@ function finalizeQuality(x,existing,batchBefore){
   const missing=[];if(!(x.shipmentDate||x.serviceDate||x.invoiceDate))missing.push("Datum");if(!(x.destPostal||x.destCity||x.customer||x.destName))missing.push("Ziel");if(x.actualTotal===null||x.actualTotal===undefined)missing.push("Netto-Kosten");x.missingFields=missing;x.dataQuality=missing.length?"Unvollständig":"Vollständig";x.importStatus=missing.length?"review":"new";x.selected=!missing.length;return x;
 }
 async function pageText(page){const tc=await page.getTextContent();let lastY=null,line="",lines=[];for(const it of tc.items){const y=Math.round(it.transform?.[5]||0);if(lastY!==null&&Math.abs(y-lastY)>3){if(line.trim())lines.push(line.trim());line=""}line+=(line?" ":"")+it.str;lastY=y}if(line.trim())lines.push(line.trim());return lines.join("\n")}
-async function ocrPage(page,progressCb){const T=await ensureTesseract();const viewport=page.getViewport({scale:1.7});const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d");canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);await page.render({canvasContext:ctx,viewport}).promise;const result=await T.recognize(canvas,"deu+eng",{logger:m=>{if(m.status==="recognizing text"&&progressCb)progressCb(Math.round((m.progress||0)*100))}});return result?.data?.text||""}
-async function extractPdf(file,onStage){const pdfjs=await ensurePdf(),data=new Uint8Array(await file.arrayBuffer()),pdf=await pdfjs.getDocument({data}).promise;let parts=[],textChars=0;for(let p=1;p<=pdf.numPages;p++){onStage?.(`Seite ${p}/${pdf.numPages} lesen`,null);const page=await pdf.getPage(p);const t=await pageText(page);parts.push(t);textChars+=t.replace(/\s/g,"").length}let text=cleanText(parts.join("\n\n")),usedOcr=false;if(textChars<120&&$("historicalOcrEnabled")?.checked){usedOcr=true;parts=[];for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p);const t=await ocrPage(page,pc=>onStage?.(`OCR Seite ${p}/${pdf.numPages}`,pc));parts.push(t)}text=cleanText(parts.join("\n\n"))}return {text,usedOcr,pages:pdf.numPages}}
+async function ocrPage(page,progressCb){const T=await ensureTesseract();const viewport=page.getViewport({scale:2.25});const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d");canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);await page.render({canvasContext:ctx,viewport}).promise;const result=await T.recognize(canvas,"deu+eng",{logger:m=>{if(m.status==="recognizing text"&&progressCb)progressCb(Math.round((m.progress||0)*100))}});return result?.data?.text||""}
+async function extractPdf(file,onStage,forceOcr=false){
+  const pdfjs=await ensurePdf(),data=new Uint8Array(await file.arrayBuffer()),pdf=await pdfjs.getDocument({data}).promise;
+  let parts=[],textChars=0;
+  for(let p=1;p<=pdf.numPages;p++){
+    onStage?.(`Seite ${p}/${pdf.numPages} lesen`,null);
+    const page=await pdf.getPage(p),t=await pageText(page);parts.push(t);textChars+=t.replace(/\s/g,"").length;
+  }
+  let text=cleanText(parts.join("\n\n")),usedOcr=false,ocrError="";
+  if((forceOcr||textChars<120)&&$("historicalOcrEnabled")?.checked){
+    try{
+      usedOcr=true;parts=[];
+      for(let p=1;p<=pdf.numPages;p++){
+        const page=await pdf.getPage(p);
+        const t=await ocrPage(page,pc=>onStage?.(`OCR Seite ${p}/${pdf.numPages}`,pc));parts.push(t);
+      }
+      const ocrText=cleanText(parts.join("\n\n"));
+      if(ocrText.replace(/\s/g,"").length>40)text=ocrText;
+      else{usedOcr=false;ocrError="OCR lieferte zu wenig verwertbaren Text."}
+    }catch(err){console.warn("OCR fehlgeschlagen",err);usedOcr=false;ocrError=err?.message||String(err)}
+  }
+  return {text,usedOcr,pages:pdf.numPages,textChars,ocrError};
+}
 function updateProgress(done,total,label,subPct=null){$("historicalProgress").hidden=false;$("historicalProgressText").textContent=label||"Analyse …";$("historicalProgressCount").textContent=`${done} / ${total}`;const base=total?done/total*100:0,extra=subPct!=null&&total?subPct/100/total*100:0;$("historicalProgressBar").value=Math.min(100,base+extra)}
+function recognitionScore(x){
+  let score=0;if(x&&x.carrier&&x.carrier!=="Unbekannt")score++;if(x&&x.invoiceNumber)score++;if(x&&(x.shipmentDate||x.serviceDate||x.invoiceDate))score++;if(x&&(x.destPostal||x.destCity||x.destName||x.customer))score++;if(x&&x.actualTotal!==null&&x.actualTotal!==undefined&&x.actualTotal!=="")score++;if(x&&(x.orderNo||x.shipmentId||x.referenceNo||x.waybillNo))score++;return score;
+}
+function shouldRetryWithOcr(ps,ext){
+  if(!$("historicalOcrEnabled")?.checked||ext?.usedOcr)return false;
+  if(!Array.isArray(ps)||!ps.length)return true;
+  const best=Math.max(...ps.map(recognitionScore));
+  const essentialOk=ps.some(x=>(x.shipmentDate||x.serviceDate||x.invoiceDate)&&(x.destPostal||x.destCity||x.destName||x.customer)&&(x.actualTotal!==null&&x.actualTotal!==undefined&&x.actualTotal!==""));
+  return !essentialOk||best<4;
+}
 async function analyzeFiles(files){if(state.busy)return;state.busy=true;state.files=[...files].filter(f=>/\.pdf$/i.test(f.name));state.positions=[];$("historicalResultArea").hidden=true;if(!state.files.length){showToast("Bitte mindestens eine PDF-Datei auswählen.");state.busy=false;return}const existing=Array.isArray(shipments)?shipments:[];
-  for(let i=0;i<state.files.length;i++){const file=state.files[i];updateProgress(i,state.files.length,`${file.name} wird analysiert …`);try{const ext=await extractPdf(file,(stage,pct)=>updateProgress(i,state.files.length,`${file.name}: ${stage}`,pct));let ps=parsePositions(ext.text,file.name);if(!ps.length)ps=[extractGeneric(ext.text,file.name,1)];const pdfKey=`gpk_historical_invoice_pdf_v1::${Date.now()}_${i}_${Math.random().toString(36).slice(2,7)}`;ps.forEach((x,idx)=>{x.invoicePosition=x.invoicePosition||String(idx+1);x.pdfKeyPending=pdfKey;x._fileIndex=i;x._ocr=ext.usedOcr;x._pages=ext.pages;finalizeQuality(x,existing,state.positions);state.positions.push(x)})}catch(err){console.error(err);const x={id:"HIST-ERR-"+Date.now()+"-"+i,sourceType:"historical_invoice_pdf",sourceFile:file.name,carrier:detectCarrier("",file.name),invoiceNumber:"",invoicePosition:"1",importStatus:"review",selected:false,missingFields:["PDF konnte nicht analysiert werden"],dataQuality:"Fehler",analysisError:err.message||String(err),_fileIndex:i};state.positions.push(x)}}
+  for(let i=0;i<state.files.length;i++){const file=state.files[i];updateProgress(i,state.files.length,`${file.name} wird analysiert …`);try{let ext=await extractPdf(file,(stage,pct)=>updateProgress(i,state.files.length,`${file.name}: ${stage}`,pct),false);let ps=parsePositions(ext.text,file.name);if(!ps.length)ps=[extractGeneric(ext.text,file.name,1)];
+      if(shouldRetryWithOcr(ps,ext)){
+        updateProgress(i,state.files.length,`${file.name}: Texterkennung unvollständig – OCR wird automatisch gestartet …`,0);
+        const ocrExt=await extractPdf(file,(stage,pct)=>updateProgress(i,state.files.length,`${file.name}: ${stage}`,pct),true);
+        if(ocrExt.usedOcr){const candidate=parsePositions(ocrExt.text,file.name);const next=candidate.length?candidate:[extractGeneric(ocrExt.text,file.name,1)];const oldScore=Math.max(...ps.map(recognitionScore)),newScore=Math.max(...next.map(recognitionScore));if(newScore>=oldScore){ext=ocrExt;ps=next}}
+        else if(ocrExt.ocrError){ext.ocrError=ocrExt.ocrError}
+      }const pdfKey=`gpk_historical_invoice_pdf_v1::${Date.now()}_${i}_${Math.random().toString(36).slice(2,7)}`;ps.forEach((x,idx)=>{x.invoicePosition=x.invoicePosition||String(idx+1);x.pdfKeyPending=pdfKey;x._fileIndex=i;x._ocr=ext.usedOcr;x._ocrError=ext.ocrError||"";x._pages=ext.pages;finalizeQuality(x,existing,state.positions);state.positions.push(x)})}catch(err){console.error(err);const x={id:"HIST-ERR-"+Date.now()+"-"+i,sourceType:"historical_invoice_pdf",sourceFile:file.name,carrier:detectCarrier("",file.name),invoiceNumber:"",invoicePosition:"1",importStatus:"review",selected:false,missingFields:["PDF konnte nicht analysiert werden"],dataQuality:"Fehler",analysisError:err.message||String(err),_fileIndex:i};state.positions.push(x)}}
   updateProgress(state.files.length,state.files.length,"Analyse abgeschlossen");setTimeout(()=>{$("historicalProgress").hidden=true},1200);state.busy=false;renderResults();}
 function statusBadge(x){if(x.importStatus==="new")return '<span class="historical-status ok">Neu</span>';if(x.importStatus==="duplicate")return '<span class="historical-status conflict">Bereits vorhanden</span>';return '<span class="historical-status warning">Prüfen</span>'}
 function relation(x){const o=[x.originCountry,x.originPostal,x.originCity].filter(Boolean).join(" "),d=[x.destCountry,x.destPostal,x.destCity].filter(Boolean).join(" ");return `${o||"—"} → ${d||x.customer||"—"}`}
