@@ -133,8 +133,68 @@ function parseGoExpress(text,file){
   if(matches.length<2)return [extractGeneric(text,file,1)];
   const out=[];for(let i=0;i<matches.length;i++){const start=matches[i].index,end=i+1<matches.length?matches[i+1].index:f.length,block=f.slice(start,end);const x=extractGeneric(block,file,i+1);x.carrier="GO! Express";x.invoiceNumber=invoiceNo(text,file);x.shipmentDate=dateIso(matches[i][1]);x.waybillNo=matches[i][2];const sums=[...block.matchAll(/Summe\s+EUR\s+([\d.,]+)/gi)];if(sums.length)x.actualTotal=n(sums[sums.length-1][1]);out.push(x)}return out;
 }
+
+function firstMatch(text,re,group=1){const m=String(text||"").match(re);return m&&m[group]!=null?String(m[group]).trim():""}
+function normalizeInvoiceReference(v=""){const s=String(v||"").replace(/\s+/g," ").trim();if(!s)return "";if(/^(und|nummer|fracht|charter|teilladung|komplettladung|ladung|dienstleistung|ladestelle|entladestelle)$/i.test(s))return "";if(/allgemeinen|bestimmungen|vereinbart|ust-?id|zahlungsziel/i.test(s))return "";return s}
+function setPartyFields(x,side,name="",country="",postal="",city=""){const c=v=>String(v||"").replace(/\s+/g," ").replace(/[;,]+$/,"").trim();name=c(name);country=c(country).toUpperCase();postal=c(postal);city=c(city);if(side==="origin"){if(name)x.originName=name;if(country)x.originCountry=country;if(postal)x.originPostal=postal;if(city)x.originCity=city}else{if(name){x.destName=name;x.customer=name}if(country)x.destCountry=country;if(postal)x.destPostal=postal;if(city)x.destCity=city}}
+
 function providerTune(x,text){
   const f=flatText(text),ct=cleanText(text);
+
+  if(x.carrier==="YALIN Logistik"){
+    x.invoiceNumber=firstMatch(f,/\bRechnung\s+([0-9]{4,})\b/i)||x.invoiceNumber;
+    x.invoiceDate=dateIso(firstMatch(f,/\bBeleg-?Datum\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeistungstag\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;
+    x.shipmentDate=x.serviceDate||x.shipmentDate||x.invoiceDate;
+    x.orderNo=firstMatch(f,/\bAuftragsnummer\s+([0-9]{6,})\b/i)||x.orderNo;
+    x.referenceNo=normalizeInvoiceReference(firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.))/i))||normalizeInvoiceReference(x.referenceNo);
+    const route=f.match(/\bLadestelle\s+(.+?)\s+Entladestelle\s+(.+?)(?=\s+(?:Ware|200\b|Fracht\s+lt\.|Netto\b))/i);
+    if(route){
+      let o=route[1],d=route[2],m=o.match(/^(.*?)\s+(?:D[-\s])?(\d{5})\s+(.+)$/i);
+      if(m)setPartyFields(x,"origin",m[1],"DE",m[2],m[3]);
+      m=d.match(/^(.*?)\s+(PL|DE)[-\s]?(\d{2}-?\d{3}|\d{5})\s+(.+)$/i);
+      if(m)setPartyFields(x,"dest",m[1],m[2],m[3],m[4]);
+    }
+    const wt=firstMatch(f,/\b([\d.]+(?:,\d+)?)\s*kg\b/i);if(wt)x.weight=n(wt);
+    const fr=lastMoney(/\bFracht\s+lt\.?\s+Vereinbarung\b.*?([\d.]+,\d{2})/gi);if(fr!==null){x.freight=fr;x.actualTotal=fr}
+    x.service="";
+  }
+
+  if(x.carrier==="TAFU Logistik"){
+    x.invoiceNumber=firstMatch(f,/\bRechnung\s+([0-9]{4,})\b/i)||x.invoiceNumber;
+    x.invoiceDate=dateIso(firstMatch(f,/\bBeleg-?Datum\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeistungstag\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;
+    x.shipmentDate=x.serviceDate||x.shipmentDate||x.invoiceDate;
+    x.orderNo=firstMatch(f,/\bAuftragsnummer\s+([0-9]{6,})\b/i)||x.orderNo;
+    x.referenceNo=normalizeInvoiceReference(firstMatch(f,/\bReferenznummer\s+(.+?)(?=\s+(?:Ladestelle|Entladestelle|Ware|200\b|Fracht\s+lt\.))/i))||normalizeInvoiceReference(x.referenceNo);
+    const route=f.match(/\bLadestelle\s+(.+?)\s+Entladestelle\s+(.+?)(?=\s+(?:Ware|200\b|Fracht\s+lt\.|Netto\b))/i);
+    if(route){
+      let m=route[1].match(/^(.*?)\s+(?:D[-\s])?(\d{5})\s+(.+)$/i);if(m)setPartyFields(x,"origin",m[1],"DE",m[2],m[3]);
+      m=route[2].match(/^(.*?)\s+(?:D[-\s])?(\d{5})\s+(.+)$/i);if(m)setPartyFields(x,"dest",m[1],"DE",m[2],m[3]);
+    }
+    const p=firstMatch(f,/\bWare\s+(\d+(?:[.,]\d+)?)\s+Einwegpaletten?/i);if(p)x.pallets=n(p);
+    const wt=firstMatch(f,/\b([\d.]+(?:,\d+)?)\s*kg\b/i);if(wt)x.weight=n(wt);
+    const fr=lastMoney(/\bFracht\s+lt\.?\s+Vereinbarung\b.*?([\d.]+,\d{2})/gi);if(fr!==null){x.freight=fr;x.actualTotal=fr}
+    x.service="";
+  }
+
+  if(x.carrier==="Raben"){
+    x.invoiceNumber=firstMatch(f,/\bRECHNUNGS-?NR\.?\s*([0-9]{6,})/i)||x.invoiceNumber;
+    x.invoiceDate=dateIso(firstMatch(f,/\bRechnungsdatum\s*:?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.invoiceDate;
+    x.serviceDate=dateIso(firstMatch(f,/\bLeistungsdatum\s*:?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/i))||x.serviceDate;
+    const row=f.match(/\bAbhol\.?\s+Sendung\s+Referenznummer\s+Zustell\.?\s+Inc\s+Anzahl\s+LDM\s+PP\s+CBM\s+KM\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})\s+([A-Z0-9_-]+)\s+(.+?)\s+(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})\s+([A-Z]{2,4})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/i);
+    if(row){x.shipmentDate=dateIso(row[1]);x.shipmentId=row[2];x.referenceNo=normalizeInvoiceReference(row[3]);x.deliveryDate=dateIso(row[4]);x.colli=n(row[6]);x.ldm=n(row[7]);x.slots=n(row[8]);x.volume=n(row[9]);x.distanceKm=n(row[10])}
+    const route=f.match(/\bVon:\s+(.+?)\s+An:\s+(.+?)(?=\s+(?:Gewicht|Aktivität|Bezeichnung|Nebenkosten))/i);
+    if(route){
+      let m=route[1].match(/^(.*?)\s+(?:D[-\s])?(\d{5})\s+(.+)$/i);if(m)setPartyFields(x,"origin",m[1],"DE",m[2],m[3]);
+      m=route[2].match(/^(.*?)\s+(?:D[-\s])?(\d{5})\s+(.+)$/i);if(m)setPartyFields(x,"dest",m[1],"DE",m[2],m[3]);
+    }
+    const wm=f.match(/\bGewicht\s+([\d.,]+)(?:\s+([\d.,]+))?/i);if(wm)x.weight=n(wm[1]);
+    const fr=lastMoney(/\bSpeditionsdienste\s+Charter\b.*?([\d.]+,\d{2})/gi);if(fr!==null)x.freight=fr;
+    const ins=lastMoney(/\bGebühr\s+Beschaffung\s+Transp-?Vers\b.*?([\d.]+,\d{2})/gi);if(ins!==null){x.insurance=ins;x.originalChargeLabels="Gebühr Beschaffung Transp-Vers"}
+    const net=lastMoney(/\bGesamt\s*netto\s*:?\s*([\d.]+,\d{2})/gi);if(net!==null)x.actualTotal=net;
+    x.service="Charter";
+  }
   const setParty=(side,raw)=>{if(!raw)return;const p=addressParts(normalizePartyRaw(raw));if(side==="origin"){x.originName=p.name||x.originName;x.originAddressRaw=p.raw||x.originAddressRaw;x.originCountry=p.country||x.originCountry;x.originPostal=p.postal||x.originPostal;x.originCity=p.city||x.originCity}else{x.destName=p.name||x.destName;x.customer=p.name||x.customer;x.destAddressRaw=p.raw||x.destAddressRaw;x.destCountry=p.country||x.destCountry;x.destPostal=p.postal||x.destPostal;x.destCity=p.city||x.destCity}};
   const lastMoney=(re)=>{const m=[...f.matchAll(re)];return m.length?n(m[m.length-1][1]):null};
 
@@ -208,6 +268,11 @@ function providerTune(x,text){
   if(x.carrier==="Leopold Schäfer"){const p=amountFromLine(text,/Festfracht|Fracht/i);if(p!==null)x.freight=p;const sys=amountFromLine(text,/Systemgebühr/i);if(sys!==null){x.otherCharges=sys;x.originalChargeLabels="Systemgebühr"}x.actualTotal=[x.freight,x.otherCharges].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0)||x.actualTotal}
   if(x.carrier==="Emons"){const base=amountFromLine(text,/Pauschale/i);if(base!==null)x.freight=base;const diesel=amountFromLine(text,/Dieselzuschlag/i);if(diesel!==null)x.diesel=diesel;const toll=amountFromLine(text,/Maut/i);if(toll!==null)x.toll=toll;const co2=amountFromLine(text,/CO2-Aussto(?:ß|ss)/i);if(co2!==null){x.otherCharges=(x.otherCharges||0)+co2;x.originalChargeLabels=[x.originalChargeLabels,"Anteiliger CO2-Ausstoß"].filter(Boolean).join("; ")}x.actualTotal=[x.freight,x.diesel,x.toll,x.otherCharges].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0)||x.actualTotal}
   if(x.carrier==="Gösped"){const fr=amountFromLine(text,/Fracht\s*:/i);if(fr!==null)x.freight=fr;const di=amountFromLine(text,/Dieselzuschlag/i);if(di!==null)x.diesel=di;x.actualTotal=[x.freight,x.diesel].filter(v=>v!==null).reduce((a,b)=>a+(b||0),0)||x.actualTotal}
+  x.orderNo=normalizeInvoiceReference(x.orderNo);
+  x.referenceNo=normalizeInvoiceReference(x.referenceNo);
+  x.originName=normalizeInvoiceReference(x.originName);
+  x.destName=normalizeInvoiceReference(x.destName);
+  x.customer=x.destName||x.customer;
   return x;
 }
 function parsePositions(text,file){let out=detectCarrier(text,file)==="GO! Express"?parseGoExpress(text,file):[extractGeneric(text,file,1)];return out.map(x=>providerTune(x,text))}
@@ -295,14 +360,14 @@ function renderDetail(){
  const byKeys=keys=>EDIT_FIELDS.filter(f=>keys.includes(f[0])).map(([k,l,t])=>fieldInput(x,k,l,t)).join("");
  const cell=(k,l)=>readOnlyField(l,x[k]);
  if(detailEditing){
-  $("historicalDetailBody").innerHTML=`<div class="historical-detail-summary">${readOnlyField("Projekt",document.getElementById("shipmentImportProject")?.value||x.projectName)}${readOnlyField("Status",x.importStatus)}${readOnlyField("Spediteur",x.carrier)}${readOnlyField("Rechnung",x.invoiceNumber)}</div>
+  $("historicalDetailBody").innerHTML=`<div class="historical-detail-headbar">${readOnlyField("Projekt",document.getElementById("shipmentImportProject")?.value||x.projectName)}${readOnlyField("Status",x.importStatus)}${readOnlyField("Spediteur",x.carrier)}${readOnlyField("Rechnung",x.invoiceNumber)}</div>
   <section class="historical-detail-section"><h3>Referenzen & Termine</h3><div class="historical-edit-grid">${byKeys(["orderNo","shipmentId","waybillNo","referenceNo","invoiceDate","serviceDate","shipmentDate","deliveryDate"])}</div></section>
   <section class="historical-detail-section"><h3>Absender</h3><div class="historical-edit-grid">${byKeys(["originName","originCountry","originPostal","originCity"])}</div></section>
   <section class="historical-detail-section"><h3>Empfänger</h3><div class="historical-edit-grid">${byKeys(["destName","destCountry","destPostal","destCity"])}</div></section>
   <section class="historical-detail-section"><h3>Sendung</h3><div class="historical-edit-grid">${byKeys(["service","pallets","colli","slots","weight","ldm","volume","distanceKm"])}</div></section>
   <section class="historical-detail-section"><h3>Kosten netto</h3><div class="historical-edit-grid">${byKeys(["freight","diesel","toll","insurance","noticeFee","customs","expressFee","tailLiftFee","waitingFee","areaSurcharge","palletExchangeFee","otherCharges","actualTotal","originalChargeLabels"])}</div></section>`;
  }else{
-  $("historicalDetailBody").innerHTML=`<div class="historical-detail-summary">${readOnlyField("Projekt",document.getElementById("shipmentImportProject")?.value||x.projectName)}${readOnlyField("Status",x.importStatus)}${readOnlyField("Datenqualität",x.dataQuality)}${readOnlyField("Fehlende Felder",(x.missingFields||[]).join(", ")||"Keine")}${x.analysisError?readOnlyField("Analysefehler",x.analysisError):""}</div>
+  $("historicalDetailBody").innerHTML=`<div class="historical-detail-headbar">${readOnlyField("Projekt",document.getElementById("shipmentImportProject")?.value||x.projectName)}${readOnlyField("Status",x.importStatus)}${readOnlyField("Datenqualität",x.dataQuality)}${readOnlyField("Fehlende Felder",(x.missingFields||[]).join(", ")||"Keine")}${x.analysisError?readOnlyField("Analysefehler",x.analysisError):""}</div>
   <section class="historical-detail-section"><h3>Referenzen & Termine</h3><div class="historical-read-grid">${cell("orderNo","Auftragsnummer")}${cell("shipmentId","Sendungsnummer")}${cell("waybillNo","Frachtbriefnummer")}${cell("referenceNo","Referenznummer")}${cell("invoiceDate","Rechnungsdatum")}${cell("serviceDate","Leistungsdatum")}${cell("shipmentDate","Abholdatum")}${cell("deliveryDate","Lieferdatum")}</div></section>
   <div class="historical-party-panels"><section class="historical-detail-section"><h3>Absender</h3><div class="historical-read-grid">${cell("originName","Name")}${cell("originCountry","Land")}${cell("originPostal","PLZ")}${cell("originCity","Ort")}</div></section><section class="historical-detail-section"><h3>Empfänger</h3><div class="historical-read-grid">${cell("destName","Name")}${cell("destCountry","Land")}${cell("destPostal","PLZ")}${cell("destCity","Ort")}</div></section></div>
   <section class="historical-detail-section"><h3>Sendung</h3><div class="historical-read-grid">${cell("service","Transportart")}${cell("pallets","Paletten")}${cell("colli","Kolli")}${cell("slots","Stellplätze")}${cell("weight","Gewicht kg")}${cell("ldm","LDM")}${cell("volume","CBM")}${cell("distanceKm","Kilometer")}</div></section>
